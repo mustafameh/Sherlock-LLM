@@ -1,3 +1,7 @@
+For details about the model-development character emulation pipeline, implementation and testing please check FinalReport.pdf
+To try the stripped demo of the webapp can be found on www.sherlock.mustafa.ovh
+Please note that the stripped demo version lacks some features such at the realistic text to speech models due to resource constraints. 
+To get the full fetaured the current repository can be cloned and run locally. 
 This webapp was designed to work with python version 3.10.0 please make sure you are using the correct version.
 1. First please run and install all the dependencies by running pip install -r requirements.txt from the same directory.
 

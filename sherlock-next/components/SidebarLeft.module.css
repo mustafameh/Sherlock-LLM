@@ -199,3 +199,43 @@
     text-overflow: ellipsis;
     white-space: nowrap;
 }
+
+.backdrop {
+    display: none;
+}
+
+/* ── Mobile: overlay sidebar ── */
+@media (max-width: 768px) {
+    .sidebar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        bottom: 0;
+        z-index: 50;
+        width: 280px;
+        box-shadow: var(--shadow-xl);
+    }
+
+    .collapsed {
+        width: 0;
+        border: none;
+    }
+
+    .toggleBtn {
+        position: fixed;
+        top: var(--space-2);
+        left: var(--space-2);
+        z-index: 60;
+        background: var(--bg-secondary);
+        border: 1px solid var(--border-light);
+        box-shadow: var(--shadow-md);
+    }
+
+    .backdrop {
+        display: block;
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 40;
+    }
+}

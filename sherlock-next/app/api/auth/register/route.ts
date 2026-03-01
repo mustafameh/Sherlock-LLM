@@ -7,6 +7,8 @@ function hashPassword(password: string): string {
     return createHash('sha256').update(password).digest('hex');
 }
 
+const isProduction = process.env.NODE_ENV === 'production';
+
 export async function POST(request: NextRequest) {
     try {
         await dbConnect();
@@ -34,7 +36,7 @@ export async function POST(request: NextRequest) {
             email: newUser.email,
         }), {
             httpOnly: true,
-            secure: false,
+            secure: isProduction,
             sameSite: 'lax',
             maxAge: 60 * 60 * 24 * 7,
             path: '/',

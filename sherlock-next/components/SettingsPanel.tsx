@@ -36,13 +36,19 @@ export default function SettingsPanel() {
     const [showCharModal, setShowCharModal] = useState(false);
     const [localApiKey, setLocalApiKey] = useState(apiKey);
     const [localModel, setLocalModel] = useState(selectedModel);
-    const [collapsed, setCollapsed] = useState(false);
+    const [collapsed, setCollapsed] = useState(typeof window !== 'undefined' && window.innerWidth <= 768);
 
     const handleModelSourceChange = (source: ModelSource) => {
         setModelSource(source);
     };
 
+    const isMobile = typeof window !== 'undefined' && window.innerWidth <= 768;
+
     return (
+        <>
+        {!collapsed && isMobile && (
+            <div className={styles.backdrop} onClick={() => setCollapsed(true)} />
+        )}
         <aside className={`${styles.settings} ${collapsed ? styles.settingsCollapsed : ''}`}>
             {/* Collapsed state: just show gear icon */}
             {collapsed && (
@@ -224,5 +230,6 @@ export default function SettingsPanel() {
                 <CharacterModal onClose={() => setShowCharModal(false)} />
             )}
         </aside>
+        </>
     );
 }

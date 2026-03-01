@@ -11,7 +11,7 @@ export default function SidebarLeft() {
     const { messages, currentChatId, currentCharacter, clearChat, setMessages, setCurrentChatId, setCurrentCharacter, characters } = useChat();
     const { user, isLoggedIn } = useAuth();
     const [savedChats, setSavedChats] = useState<SavedChat[]>([]);
-    const [collapsed, setCollapsed] = useState(false);
+    const [collapsed, setCollapsed] = useState(typeof window !== 'undefined' && window.innerWidth <= 768);
     const [showProfileModal, setShowProfileModal] = useState(false);
     const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
 
@@ -57,6 +57,8 @@ export default function SidebarLeft() {
 
             const char = characters.find(c => c.name === chat.character);
             if (char) setCurrentCharacter(char);
+
+            if (window.innerWidth <= 768) setCollapsed(true);
         } catch (error) {
             console.error('Error loading chat:', error);
         }
@@ -73,8 +75,13 @@ export default function SidebarLeft() {
         setConfirmDelete(null);
     };
 
+    const isMobile = typeof window !== 'undefined' && window.innerWidth <= 768;
+
     return (
         <>
+            {!collapsed && isMobile && (
+                <div className={styles.backdrop} onClick={() => setCollapsed(true)} />
+            )}
             <aside className={`${styles.sidebar} ${collapsed ? styles.collapsed : ''}`}>
                 {/* Toggle button */}
                 <button

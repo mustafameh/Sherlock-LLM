@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/mongodb';
 import User from '@/lib/models/User';
 
+const isProduction = process.env.NODE_ENV === 'production';
+
 function getUserFromSession(request: NextRequest): { id: string; username: string; email: string } | null {
     const session = request.cookies.get('session');
     if (!session) return null;
@@ -77,7 +79,7 @@ export async function PUT(request: NextRequest) {
             avatar: user.avatar,
         }), {
             httpOnly: true,
-            secure: false,
+            secure: isProduction,
             sameSite: 'lax',
             maxAge: 60 * 60 * 24 * 7,
             path: '/',

@@ -188,3 +188,30 @@
 .caretOpen {
     transform: rotate(180deg);
 }
+
+/* ── Mobile header ── */
+@media (max-width: 768px) {
+    .header {
+        padding: var(--space-2) var(--space-3);
+        height: 56px;
+        padding-left: 52px;
+    }
+
+    .logo {
+        width: 36px;
+        height: 36px;
+        padding: 4px;
+    }
+
+    .title {
+        font-size: var(--text-lg);
+    }
+
+    .subtitle {
+        display: none;
+    }
+
+    .userBtn span:not(.caret) {
+        display: none;
+    }
+}

@@ -1,0 +1,29 @@
+[
+  {
+    "id": 1,
+    "user_id": 1,
+    "title": "Hey...",
+    "preview": "Please set your OpenRouter API key in the settings panel.",
+    "full_content": "[{\"id\":\"user-1772324896512\",\"role\":\"user\",\"content\":\"Hey\",\"timestamp\":1772324896512},{\"id\":\"error-1772324896512\",\"role\":\"assistant\",\"content\":\"Please set your OpenRouter API key in the settings panel.\",\"timestamp\":1772324896512},{\"id\":\"user-1772324908946\",\"role\":\"user\",\"content\":\"hey there\",\"timestamp\":1772324908946},{\"id\":\"error-1772324908946\",\"role\":\"assistant\",\"content\":\"Please set your OpenRouter API key in the settings panel.\",\"timestamp\":1772324908946}]",
+    "character": "Dr. Watson",
+    "created_at": "2026-03-01T00:29:03.844Z"
+  },
+  {
+    "id": 2,
+    "user_id": 1,
+    "title": "test...",
+    "preview": "Please set your OpenRouter API key in the settings panel.",
+    "full_content": "[{\"id\":\"user-1772326864773\",\"role\":\"user\",\"content\":\"test\",\"timestamp\":1772326864773},{\"id\":\"error-1772326864773\",\"role\":\"assistant\",\"content\":\"Please set your OpenRouter API key in the settings panel.\",\"timestamp\":1772326864773},{\"id\":\"user-1772327081710\",\"role\":\"user\",\"content\":\"Whats new?\",\"timestamp\":1772327081710},{\"id\":\"error-1772327081710\",\"role\":\"assistant\",\"content\":\"Please set your OpenRouter API key in the settings panel.\",\"timestamp\":1772327081710},{\"id\":\"user-1772327089699\",\"role\":\"user\",\"content\":\"adwa\",\"timestamp\":1772327089699},{\"id\":\"error-1772327089699\",\"role\":\"assistant\",\"content\":\"Please set your OpenRouter API key in the settings panel.\",\"timestamp\":1772327089699},{\"id\":\"user-1772327095704\",\"role\":\"user\",\"content\":\"adwawdoiadw\",\"timestamp\":1772327095704},{\"id\":\"error-1772327095704\",\"role\":\"assistant\",\"content\":\"Please set your OpenRouter API key in the settings panel.\",\"timestamp\":1772327095704}]",
+    "character": "Dr. Watson",
+    "created_at": "2026-03-01T01:04:45.238Z"
+  },
+  {
+    "id": 3,
+    "user_id": 1,
+    "title": "hello there...",
+    "preview": "Please set your OpenRouter API key in the settings panel.",
+    "full_content": "[{\"id\":\"user-1772329458769\",\"role\":\"user\",\"content\":\"hello there\",\"timestamp\":1772329458769},{\"id\":\"error-1772329458770\",\"role\":\"assistant\",\"content\":\"Please set your OpenRouter API key in the settings panel.\",\"timestamp\":1772329458770}]",
+    "character": "Dr. Watson",
+    "created_at": "2026-03-01T01:44:20.805Z"
+  }
+]

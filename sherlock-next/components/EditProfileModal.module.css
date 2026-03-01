@@ -1,0 +1,102 @@
+.profileModal {
+    max-width: 520px;
+}
+
+.modalTitle {
+    font-size: var(--text-xl);
+    font-weight: 700;
+    font-family: var(--font-serif);
+    color: var(--text-primary);
+}
+
+.charCount {
+    text-align: right;
+    font-size: 11px;
+    color: var(--color-navy-400);
+    margin-top: 4px;
+}
+
+/* Avatar Grid */
+.avatarGrid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: var(--space-3);
+}
+
+.avatarOption {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    padding: var(--space-3) var(--space-2);
+    border-radius: var(--radius-lg);
+    border: 2px solid transparent;
+    background: rgba(255, 255, 255, 0.04);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    color: var(--text-secondary);
+}
+
+.avatarOption:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.1);
+    transform: translateY(-2px);
+}
+
+.avatarSelected {
+    border-color: var(--color-blue-500) !important;
+    background: rgba(37, 99, 235, 0.15) !important;
+    box-shadow: 0 0 12px rgba(37, 99, 235, 0.2);
+}
+
+.avatarImg {
+    border-radius: 50%;
+    width: 48px;
+    height: 48px;
+}
+
+.avatarLabel {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+}
+
+/* Preview Section */
+.preview {
+    display: flex;
+    align-items: center;
+    gap: var(--space-4);
+    padding: var(--space-4);
+    background: rgba(255, 255, 255, 0.04);
+    border-radius: var(--radius-lg);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.previewAvatarImg {
+    border-radius: 50%;
+    width: 52px;
+    height: 52px;
+    flex-shrink: 0;
+}
+
+.previewName {
+    font-size: var(--text-lg);
+    font-weight: 600;
+    color: var(--text-primary);
+    font-family: var(--font-serif);
+}
+
+/* Error */
+.error {
+    padding: var(--space-2) var(--space-3);
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid rgba(239, 68, 68, 0.2);
+    border-radius: var(--radius-md);
+    color: #fca5a5;
+    font-size: var(--text-sm);
+}

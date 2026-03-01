@@ -1,0 +1,18 @@
+[
+  {
+    "id": 1,
+    "username": "Robo",
+    "email": "786mehmoodmustafa@gmail.com",
+    "password_hash": "16305ec5ffbd2db9b899f7a4685f1e2ddce2ddaf23899cb21b99e75ae93a527d",
+    "created_at": "2026-03-01T00:28:58.116Z",
+    "displayName": "NeonRobo",
+    "avatar": "ninja"
+  },
+  {
+    "id": 2,
+    "username": "testuser",
+    "email": "test@example.com",
+    "password_hash": "9f735e0df9a1ddc702bf0a1a7b83033f9f7153a00c29de82cedadc9957289b05",
+    "created_at": "2026-03-01T01:35:53.950Z"
+  }
+]

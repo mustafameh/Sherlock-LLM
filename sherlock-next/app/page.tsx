@@ -1,0 +1,55 @@
+'use client';
+
+import React, { useEffect } from 'react';
+import Header from '@/components/Header';
+import SidebarLeft from '@/components/SidebarLeft';
+import ChatWindow from '@/components/ChatWindow';
+import ChatInput from '@/components/ChatInput';
+import SettingsPanel from '@/components/SettingsPanel';
+import { useAuth } from '@/lib/contexts';
+import { useAutoSave } from '@/lib/useAutoSave';
+
+export default function Home() {
+  const { checkAuth } = useAuth();
+
+  useEffect(() => {
+    checkAuth();
+  }, [checkAuth]);
+
+  // Auto-save chats when messages change
+  useAutoSave();
+
+  return (
+    <div style={{
+      display: 'flex',
+      flexDirection: 'column',
+      height: '100vh',
+      overflow: 'hidden',
+    }}>
+      <Header />
+      <div style={{
+        display: 'flex',
+        flex: 1,
+        overflow: 'hidden',
+      }}>
+        {/* Left sidebar: Chat history */}
+        <SidebarLeft />
+
+        {/* Chat area */}
+        <main style={{
+          flex: 1,
+          display: 'flex',
+          flexDirection: 'column',
+          overflow: 'hidden',
+          minWidth: 0,
+        }}>
+          <ChatWindow />
+          <ChatInput />
+        </main>
+
+        {/* Settings sidebar */}
+        <SettingsPanel />
+      </div>
+    </div>
+  );
+}

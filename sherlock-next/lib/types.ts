@@ -83,10 +83,15 @@ export interface OpenRouterModel {
 }
 
 export const AVAILABLE_MODELS: OpenRouterModel[] = [
-    { id: 'meta-llama/llama-3.1-8b-instruct:free', name: 'Meta Llama 3.1 8B Instruct (Free)' },
-    { id: 'google/gemma-2-9b-it:free', name: 'Google Gemma 2 9B IT (Free)' },
-    { id: 'qwen/qwen-2-7b-instruct:free', name: 'Qwen 2 7B Instruct (Free)' },
-    { id: 'microsoft/phi-3-medium-128k-instruct:free', name: 'Microsoft PHI 3 Medium 128K Instruct (Free)' },
+    { id: 'qwen/qwen3-next-80b-a3b-instruct:free', name: 'Qwen3 Next 80B (Free, 262K ctx)' },
+    { id: 'qwen/qwen3-coder:free', name: 'Qwen3 Coder (Free, 262K ctx)' },
+    { id: 'meta-llama/llama-3.3-70b-instruct:free', name: 'Llama 3.3 70B Instruct (Free, 128K ctx)' },
+    { id: 'google/gemma-3-27b-it:free', name: 'Gemma 3 27B (Free, 131K ctx)' },
+    { id: 'google/gemma-3-12b-it:free', name: 'Gemma 3 12B (Free, 131K ctx)' },
+    { id: 'deepseek/deepseek-r1-distill-qwen-32b:free', name: 'DeepSeek R1 Distill 32B (Free, 16K ctx)' },
+    { id: 'qwen/qwen3-4b:free', name: 'Qwen3 4B (Free, 41K ctx)' },
+    { id: 'meta-llama/llama-3.2-3b-instruct:free', name: 'Llama 3.2 3B Instruct (Free, 131K ctx)' },
+    { id: 'google/gemma-3-4b-it:free', name: 'Gemma 3 4B (Free, 33K ctx)' },
     { id: 'mistralai/mistral-7b-instruct:free', name: 'Mistral 7B Instruct (Free)' },
 ];
 

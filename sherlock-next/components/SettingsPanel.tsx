@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { useChat, useSettings } from '@/lib/contexts';
-import { AVAILABLE_MODELS, ModelSource } from '@/lib/types';
+import { AVAILABLE_MODELS } from '@/lib/types';
 import CharacterModal from './CharacterModal';
 import styles from './SettingsPanel.module.css';
 
@@ -28,19 +28,16 @@ function CollapsibleSection({ title, defaultOpen = true, children }: {
 
 export default function SettingsPanel() {
     const {
-        modelSource, selectedModel, apiKey, temperature, localModelStatus,
-        showDebugWindow, setModelSource, saveModel, saveApiKey, clearApiKey,
-        setTemperature, setShowDebugWindow,
+        selectedModel, apiKey, temperature,
+        saveModel, saveApiKey, clearApiKey,
+        setTemperature,
     } = useSettings();
     const { currentCharacter, characters, setCurrentCharacter, context, setContext } = useChat();
     const [showCharModal, setShowCharModal] = useState(false);
     const [localApiKey, setLocalApiKey] = useState(apiKey);
     const [localModel, setLocalModel] = useState(selectedModel);
     const [collapsed, setCollapsed] = useState(typeof window !== 'undefined' && window.innerWidth <= 768);
-
-    const handleModelSourceChange = (source: ModelSource) => {
-        setModelSource(source);
-    };
+    const [showApiKey, setShowApiKey] = useState(false);
 
     const isMobile = typeof window !== 'undefined' && window.innerWidth <= 768;
 
@@ -50,7 +47,6 @@ export default function SettingsPanel() {
             <div className={styles.backdrop} onClick={() => setCollapsed(true)} />
         )}
         <aside className={`${styles.settings} ${collapsed ? styles.settingsCollapsed : ''}`}>
-            {/* Collapsed state: just show gear icon */}
             {collapsed && (
                 <button
                     className={styles.collapseBtn}
@@ -63,7 +59,6 @@ export default function SettingsPanel() {
 
             {!collapsed && (
                 <>
-                    {/* Header row: title + close button inline */}
                     <div className={styles.settingsHeader}>
                         <h2 className={styles.settingsTitle}>Settings</h2>
                         <button
@@ -81,112 +76,93 @@ export default function SettingsPanel() {
                         <CollapsibleSection title="Connection">
                             <div className={styles.modelOptions}>
                                 <div
-                                    className={`${styles.modelCard} ${modelSource === 'openrouter' ? styles.modelCardActive : ''}`}
-                                    onClick={() => handleModelSourceChange('openrouter')}
+                                    className={`${styles.modelCard} ${styles.modelCardActive}`}
                                 >
-                                    <div className={`${styles.modelCardRadio} ${modelSource === 'openrouter' ? styles.modelCardRadioActive : ''}`} />
+                                    <div className={`${styles.modelCardRadio} ${styles.modelCardRadioActive}`} />
                                     <div className={styles.modelCardInfo}>
                                         <h4>OpenRouter API</h4>
                                         <p>Access various AI models</p>
                                     </div>
                                 </div>
                                 <div
-                                    className={`${styles.modelCard} ${modelSource === 'local' ? styles.modelCardActive : ''}`}
-                                    onClick={() => handleModelSourceChange('local')}
+                                    className={`${styles.modelCard} ${styles.modelCardDisabled}`}
                                 >
-                                    <div className={`${styles.modelCardRadio} ${modelSource === 'local' ? styles.modelCardRadioActive : ''}`} />
+                                    <div className={styles.modelCardRadio} />
                                     <div className={styles.modelCardInfo}>
                                         <h4>Local Fine-tuned Model</h4>
-                                        <p>Use your custom model</p>
+                                        <p>Under Development</p>
                                     </div>
                                 </div>
                             </div>
 
-                            {/* Local model status */}
-                            <div className={styles.modelStatus}>
-                                <div className={`${styles.statusDot} ${localModelStatus === 'ready' ? styles.statusReady :
-                                    localModelStatus === 'loading' ? styles.statusLoading :
-                                        localModelStatus === 'failed' ? styles.statusFailed :
-                                            styles.statusNotLoaded
-                                    }`} />
-                                <span>Local Model: {localModelStatus === 'not_loaded' ? 'Not Loaded' : localModelStatus.charAt(0).toUpperCase() + localModelStatus.slice(1)}</span>
-                            </div>
-
-                            {/* API Key (moved here from the old Model section) */}
-                            {modelSource === 'openrouter' && (
-                                <div className={styles.apiKeyGroup}>
-                                    <div className={styles.fieldLabel}>API Key</div>
-                                    <input
-                                        type="password"
-                                        className={styles.input}
-                                        placeholder="Enter your OpenRouter API key"
-                                        value={localApiKey}
-                                        onChange={(e) => setLocalApiKey(e.target.value)}
-                                    />
-                                    <div className={styles.apiKeyRow}>
-                                        <button className={styles.btnPrimary} onClick={() => saveApiKey(localApiKey)}>
-                                            💾 Save Key
-                                        </button>
-                                        <button className={styles.btnSecondary} onClick={() => { clearApiKey(); setLocalApiKey(''); }}>
-                                            ✕ Clear
-                                        </button>
+                            {/* API Key — collapsible sub-section */}
+                            <div className={styles.apiKeyGroup}>
+                                <button
+                                    className={styles.apiKeyToggle}
+                                    onClick={() => setShowApiKey(!showApiKey)}
+                                >
+                                    <span>Bring your own API Key</span>
+                                    <span className={`${styles.chevron} ${showApiKey ? styles.chevronOpen : ''}`}>›</span>
+                                </button>
+                                {showApiKey && (
+                                    <div className={styles.apiKeyContent}>
+                                        <input
+                                            type="password"
+                                            className={styles.input}
+                                            placeholder="Enter your OpenRouter API key"
+                                            value={localApiKey}
+                                            onChange={(e) => setLocalApiKey(e.target.value)}
+                                        />
+                                        <div className={styles.apiKeyRow}>
+                                            <button className={styles.btnPrimary} onClick={() => saveApiKey(localApiKey)}>
+                                                💾 Save Key
+                                            </button>
+                                            <button className={styles.btnSecondary} onClick={() => { clearApiKey(); setLocalApiKey(''); }}>
+                                                ✕ Clear
+                                            </button>
+                                        </div>
                                     </div>
-                                </div>
-                            )}
+                                )}
+                            </div>
                         </CollapsibleSection>
 
-                        {/* ── MODEL ── */}
-                        {modelSource === 'openrouter' && (
-                            <CollapsibleSection title="Model">
-                                <div className={styles.fieldLabel}>Model Name</div>
-                                <select
-                                    className={styles.select}
-                                    value={localModel}
-                                    onChange={(e) => setLocalModel(e.target.value)}
-                                >
-                                    {AVAILABLE_MODELS.map(m => (
-                                        <option key={m.id} value={m.id}>{m.name}</option>
-                                    ))}
-                                </select>
-                                <button
-                                    className={styles.btnPrimary}
-                                    style={{ marginTop: '8px', width: '100%' }}
-                                    onClick={() => saveModel(localModel)}
-                                >
-                                    ✓ Confirm Model
-                                </button>
+                        {/* ── YOUR MODEL ── */}
+                        <CollapsibleSection title="Your Model">
+                            <div className={styles.fieldLabel}>Model Name</div>
+                            <select
+                                className={styles.select}
+                                value={localModel}
+                                onChange={(e) => setLocalModel(e.target.value)}
+                            >
+                                {AVAILABLE_MODELS.map(m => (
+                                    <option key={m.id} value={m.id}>{m.name}</option>
+                                ))}
+                            </select>
+                            <button
+                                className={styles.btnPrimary}
+                                style={{ marginTop: '8px', width: '100%' }}
+                                onClick={() => saveModel(localModel)}
+                            >
+                                ✓ Confirm Model
+                            </button>
 
-                                {/* Temperature (moved here) */}
-                                <div className={styles.fieldLabel} style={{ marginTop: '16px' }}>Temperature</div>
-                                <div className={styles.tempRow}>
-                                    <input
-                                        type="range"
-                                        className={styles.tempSlider}
-                                        min="0"
-                                        max="2"
-                                        step="0.1"
-                                        value={temperature}
-                                        onChange={(e) => setTemperature(parseFloat(e.target.value))}
-                                    />
-                                    <span className={styles.tempValue}>{temperature.toFixed(1)}</span>
-                                </div>
-                            </CollapsibleSection>
-                        )}
+                            <div className={styles.fieldLabel} style={{ marginTop: '16px' }}>Randomness Slider</div>
+                            <div className={styles.tempRow}>
+                                <input
+                                    type="range"
+                                    className={styles.tempSlider}
+                                    min="0"
+                                    max="2"
+                                    step="0.1"
+                                    value={temperature}
+                                    onChange={(e) => setTemperature(parseFloat(e.target.value))}
+                                />
+                                <span className={styles.tempValue}>{temperature.toFixed(1)}</span>
+                            </div>
+                        </CollapsibleSection>
 
-                        {/* Local model placeholder */}
-                        {modelSource === 'local' && (
-                            <CollapsibleSection title="Local Model">
-                                <button className={styles.btnPrimary} disabled style={{ width: '100%', opacity: 0.6 }}>
-                                    🔄 Load Model (Future)
-                                </button>
-                                <p style={{ fontSize: '11px', color: '#94a3b8', marginTop: '8px' }}>
-                                    Local model loading will be available when connected to a Python backend.
-                                </p>
-                            </CollapsibleSection>
-                        )}
-
-                        {/* ── CHARACTER ── */}
-                        <CollapsibleSection title="Character">
+                        {/* ── YOUR CHARACTER ── */}
+                        <CollapsibleSection title="Your Character">
                             <select
                                 className={styles.select}
                                 value={currentCharacter?.name || ''}
@@ -225,7 +201,6 @@ export default function SettingsPanel() {
                 </>
             )}
 
-            {/* Character Modal */}
             {showCharModal && (
                 <CharacterModal onClose={() => setShowCharModal(false)} />
             )}

@@ -2,18 +2,20 @@
 
 import React, { useState } from 'react';
 import Image from 'next/image';
-import { useAuth } from '@/lib/contexts';
+import { useAuth, useSettings } from '@/lib/contexts';
 import { AVATAR_OPTIONS } from '@/lib/types';
 import styles from './EditProfileModal.module.css';
 
 export default function EditProfileModal({ onClose }: { onClose: () => void }) {
     const { user, updateProfile } = useAuth();
+    const { apiKey, clearApiKey } = useSettings();
     const [displayName, setDisplayName] = useState(user?.displayName || user?.username || '');
     const [selectedAvatar, setSelectedAvatar] = useState(user?.avatar || 'detective');
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState('');
 
     const selectedAvatarSrc = AVATAR_OPTIONS.find(a => a.id === selectedAvatar)?.src || '/avatars/detective.svg';
+    const hasApiKey = !!apiKey;
 
     const handleSave = async () => {
         if (!displayName.trim()) {
@@ -41,9 +43,21 @@ export default function EditProfileModal({ onClose }: { onClose: () => void }) {
         <div className="overlay" onClick={(e) => e.target === e.currentTarget && onClose()}>
             <div className={`modal ${styles.profileModal}`}>
                 <div className="modal-header">
-                    <h2 className={styles.modalTitle}>Edit Profile</h2>
+                    <h2 className={styles.modalTitle}>Profile Info</h2>
                 </div>
                 <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-5)' }}>
+                    {/* Read-only Info */}
+                    <div className={styles.infoSection}>
+                        <div className={styles.infoRow}>
+                            <span className={styles.infoLabel}>Username</span>
+                            <span className={styles.infoValue}>{user?.username || '—'}</span>
+                        </div>
+                        <div className={styles.infoRow}>
+                            <span className={styles.infoLabel}>Email</span>
+                            <span className={styles.infoValue}>{user?.email || '—'}</span>
+                        </div>
+                    </div>
+
                     {/* Display Name */}
                     <div>
                         <label className="label">Display Name</label>
@@ -94,6 +108,28 @@ export default function EditProfileModal({ onClose }: { onClose: () => void }) {
                         <div className={styles.previewName}>
                             {displayName || user?.username || 'User'}
                         </div>
+                    </div>
+
+                    {/* API Key Status */}
+                    <div className={styles.apiKeyStatus}>
+                        <div className={styles.apiKeyStatusRow}>
+                            <span className={`${styles.statusDot} ${hasApiKey ? styles.statusConnected : styles.statusNotSet}`} />
+                            <span className={styles.apiKeyLabel}>
+                                API Key: {hasApiKey ? 'Connected' : 'Not Set'}
+                            </span>
+                        </div>
+                        {hasApiKey ? (
+                            <button
+                                className={styles.resetKeyBtn}
+                                onClick={() => clearApiKey()}
+                            >
+                                Reset Key
+                            </button>
+                        ) : (
+                            <span className={styles.apiKeyHint}>
+                                Set your API key in the Settings panel →
+                            </span>
+                        )}
                     </div>
 
                     {error && (

@@ -54,6 +54,7 @@ export default function SettingsPanel() {
     const [localApiKey, setLocalApiKey] = useState(apiKey);
     const [collapsed, setCollapsed] = useState(typeof window !== 'undefined' && window.innerWidth <= 768);
     const [showApiKey, setShowApiKey] = useState(false);
+    const [saveStatus, setSaveStatus] = useState<'idle' | 'saved' | 'cleared'>('idle');
 
     const isPresetModel = AVAILABLE_MODELS.some(m => m.id === selectedModel);
     const [dropdownValue, setDropdownValue] = useState(isPresetModel ? selectedModel : CUSTOM_MODEL_OPTION);
@@ -148,13 +149,26 @@ export default function SettingsPanel() {
                                             onChange={(e) => setLocalApiKey(e.target.value)}
                                         />
                                         <div className={styles.apiKeyRow}>
-                                            <button className={styles.btnPrimary} onClick={() => saveApiKey(localApiKey)}>
+                                            <button className={styles.btnPrimary} onClick={() => {
+                                                saveApiKey(localApiKey);
+                                                setSaveStatus('saved');
+                                                setTimeout(() => setSaveStatus('idle'), 2000);
+                                            }}>
                                                 💾 Save Key
                                             </button>
-                                            <button className={styles.btnSecondary} onClick={() => { clearApiKey(); setLocalApiKey(''); }}>
+                                            <button className={styles.btnSecondary} onClick={() => {
+                                                clearApiKey(); setLocalApiKey('');
+                                                setSaveStatus('cleared');
+                                                setTimeout(() => setSaveStatus('idle'), 2000);
+                                            }}>
                                                 ✕ Clear
                                             </button>
                                         </div>
+                                        {saveStatus !== 'idle' && (
+                                            <div className={styles.saveConfirmation} data-status={saveStatus}>
+                                                {saveStatus === 'saved' ? '✓ Key saved successfully' : '✓ Key cleared'}
+                                            </div>
+                                        )}
                                     </div>
                                 )}
                             </div>

@@ -69,7 +69,7 @@ export default function Header() {
                                         className={styles.dropdownItem}
                                         onClick={() => { setShowProfileModal(true); setDropdownOpen(false); }}
                                     >
-                                        ✏️ Edit Profile
+                                        👤 Profile Info
                                     </button>
                                     <button
                                         className={`${styles.dropdownItem} ${styles.logoutItem}`}

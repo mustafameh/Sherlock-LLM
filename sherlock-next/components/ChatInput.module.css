@@ -1,10 +1,13 @@
 .inputArea {
-    display: flex;
-    align-items: flex-end;
-    gap: var(--space-3);
     padding: var(--space-4) var(--space-5);
     border-top: 1px solid var(--border-medium);
     background: var(--color-navy-800);
+}
+
+.inputRow {
+    display: flex;
+    align-items: flex-end;
+    gap: var(--space-3);
 }
 
 .textarea {
@@ -57,6 +60,30 @@
 .sendBtn:disabled {
     opacity: 0.5;
     cursor: not-allowed;
+}
+
+.resendBtn {
+    padding: var(--space-3);
+    border-radius: var(--radius-xl);
+    background: rgba(251, 191, 36, 0.15);
+    color: #fbbf24;
+    border: 1px solid rgba(251, 191, 36, 0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+    font-size: 20px;
+    transition: all var(--transition-fast);
+    flex-shrink: 0;
+    cursor: pointer;
+}
+
+.resendBtn:hover {
+    background: rgba(251, 191, 36, 0.25);
+    border-color: rgba(251, 191, 36, 0.5);
+    box-shadow: 0 0 12px rgba(251, 191, 36, 0.2);
+    transform: translateY(-1px);
 }
 
 .controls {

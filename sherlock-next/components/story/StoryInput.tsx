@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useRef, useCallback } from 'react';
+import React, { useRef, useCallback, useMemo } from 'react';
 import { useStory } from '@/lib/storyContext';
+import { deriveScenes } from '@/lib/storyParser';
 import styles from './Story.module.css';
 
 const QUICK_ACTIONS = [
@@ -12,13 +13,19 @@ const QUICK_ACTIONS = [
 ];
 
 export default function StoryInput() {
-    const { sendStoryAction, selectDecision, isStoryLoading, userCharacter, storyBlocks } = useStory();
+    const { sendStoryAction, selectDecision, isStoryLoading, userCharacter, storyBlocks, currentSceneIndex } = useStory();
     const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-    const recentBlocks = storyBlocks.slice(-3);
-    const decisionBlock = recentBlocks.reverse().find(b => b.type === 'decision');
-    const isDecisionActive = !!decisionBlock && !isStoryLoading;
+    const scenes = useMemo(() => deriveScenes(storyBlocks), [storyBlocks]);
+    const isOnLatest = currentSceneIndex >= scenes.length - 1;
+
+    const currentBlocks = scenes[currentSceneIndex]?.blocks ?? [];
+    const recentBlocks = currentBlocks.slice(-3);
+    const decisionBlock = [...recentBlocks].reverse().find(b => b.type === 'decision');
+    const isDecisionActive = !!decisionBlock && !isStoryLoading && isOnLatest;
     const decisionOptions = decisionBlock?.type === 'decision' ? decisionBlock.options : [];
+
+    if (!isOnLatest) return null;
 
     const handleSend = useCallback(async () => {
         const text = textareaRef.current?.value.trim();

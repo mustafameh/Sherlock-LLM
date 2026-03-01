@@ -71,3 +71,32 @@ export function parseStoryBlocks(raw: string): StoryBlock[] {
 
     return blocks;
 }
+
+export interface Scene {
+    blocks: StoryBlock[];
+    userAction?: string;
+}
+
+export function deriveScenes(blocks: StoryBlock[]): Scene[] {
+    const scenes: Scene[] = [];
+    let current: StoryBlock[] = [];
+
+    for (const block of blocks) {
+        if (block.type === 'user_action') {
+            scenes.push({ blocks: current, userAction: block.content });
+            current = [];
+        } else {
+            current.push(block);
+        }
+    }
+
+    if (current.length > 0) {
+        scenes.push({ blocks: current });
+    }
+
+    if (scenes.length === 0) {
+        scenes.push({ blocks: [] });
+    }
+
+    return scenes;
+}

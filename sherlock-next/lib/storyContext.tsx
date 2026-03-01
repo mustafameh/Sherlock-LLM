@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, useCallback, useRef, useEffect, type ReactNode } from 'react';
-import { useSettings, useAuth, type StoryScrollMode } from '@/lib/contexts';
+import { useSettings, useAuth } from '@/lib/contexts';
 import { generateStorySystemPrompt } from '@/lib/storyPrompts';
 import { parseStoryBlocks, type StoryBlock } from '@/lib/storyParser';
 import type { ChatMessage } from '@/lib/types';
@@ -15,8 +15,6 @@ interface SavedStorySummary {
 
 interface StoryContextType {
     storyBlocks: StoryBlock[];
-    visibleBlockCount: number;
-    pendingBlockCount: number;
     storyMessages: ChatMessage[];
     userCharacter: string;
     storySetting: string;
@@ -26,12 +24,13 @@ interface StoryContextType {
     currentStoryId: string | null;
     savedStories: SavedStorySummary[];
     streamingHint: string | null;
+    currentSceneIndex: number;
+    setCurrentSceneIndex: (i: number) => void;
     sendStoryAction: (text: string) => Promise<void>;
     selectDecision: (optionText: string) => Promise<void>;
     startNewStory: (character: string, setting: string, settingTitle: string) => Promise<void>;
     loadStory: (id: string) => Promise<void>;
     resetStory: () => void;
-    revealNextBlock: () => void;
     setStoryError: (err: string | null) => void;
     refreshSavedStories: () => Promise<void>;
     deleteStory: (id: string) => Promise<void>;
@@ -40,10 +39,9 @@ interface StoryContextType {
 const StoryContext = createContext<StoryContextType | undefined>(undefined);
 
 export function StoryProvider({ children }: { children: ReactNode }) {
-    const { selectedModel, apiKey, temperature, storyScrollMode } = useSettings();
+    const { selectedModel, apiKey, temperature } = useSettings();
     const { isLoggedIn } = useAuth();
     const [storyBlocks, setStoryBlocks] = useState<StoryBlock[]>([]);
-    const [visibleBlockCount, setVisibleBlockCount] = useState(0);
     const [storyMessages, setStoryMessages] = useState<ChatMessage[]>([]);
     const [userCharacter, setUserCharacter] = useState('');
     const [storySetting, setStorySetting] = useState('');
@@ -53,20 +51,11 @@ export function StoryProvider({ children }: { children: ReactNode }) {
     const [currentStoryId, setCurrentStoryId] = useState<string | null>(null);
     const [savedStories, setSavedStories] = useState<SavedStorySummary[]>([]);
     const [streamingHint, setStreamingHint] = useState<string | null>(null);
+    const [currentSceneIndex, setCurrentSceneIndex] = useState(0);
     const abortRef = useRef<AbortController | null>(null);
     const saveTimerRef = useRef<NodeJS.Timeout | null>(null);
     const lastSavedRef = useRef<string>('');
     const savingRef = useRef(false);
-    const responseStartIndex = useRef(0);
-    const firstBlockRevealed = useRef(false);
-    const scrollModeRef = useRef<StoryScrollMode>(storyScrollMode);
-    scrollModeRef.current = storyScrollMode;
-
-    const pendingBlockCount = storyBlocks.length - visibleBlockCount;
-
-    const revealNextBlock = useCallback(() => {
-        setVisibleBlockCount(prev => Math.min(prev + 1, storyBlocks.length));
-    }, [storyBlocks.length]);
 
     const refreshSavedStories = useCallback(async () => {
         if (!isLoggedIn) { setSavedStories([]); return; }
@@ -80,20 +69,6 @@ export function StoryProvider({ children }: { children: ReactNode }) {
     }, [isLoggedIn]);
 
     useEffect(() => { refreshSavedStories(); }, [refreshSavedStories]);
-
-    useEffect(() => {
-        const mode = scrollModeRef.current;
-        if (mode === 'all-at-once' || mode === 'as-ready') {
-            setVisibleBlockCount(storyBlocks.length);
-        } else if (mode === 'block-by-block') {
-            if (storyBlocks.length <= responseStartIndex.current) {
-                setVisibleBlockCount(storyBlocks.length);
-            } else if (!firstBlockRevealed.current && storyBlocks.length > responseStartIndex.current) {
-                firstBlockRevealed.current = true;
-                setVisibleBlockCount(responseStartIndex.current + 1);
-            }
-        }
-    }, [storyBlocks]);
 
     const saveStory = useCallback(async () => {
         if (savingRef.current || !isLoggedIn || !isStoryStarted) return;
@@ -258,12 +233,9 @@ export function StoryProvider({ children }: { children: ReactNode }) {
         setUserCharacter(character);
         setStorySetting(settingTitle);
         setStoryBlocks([]);
-        setVisibleBlockCount(0);
         setCurrentStoryId(null);
         lastSavedRef.current = '';
         abortRef.current = new AbortController();
-        responseStartIndex.current = 0;
-        firstBlockRevealed.current = false;
 
         const systemPrompt = generateStorySystemPrompt(character, setting);
         const initialMessages: ChatMessage[] = [
@@ -299,7 +271,6 @@ export function StoryProvider({ children }: { children: ReactNode }) {
             setStoryMessages(saved.messages || []);
             const blocks = saved.blocks || [];
             setStoryBlocks(blocks);
-            setVisibleBlockCount(blocks.length);
             setUserCharacter(saved.userCharacter || data.character || '');
             setStorySetting(saved.storySetting || '');
             setCurrentStoryId(id);
@@ -321,10 +292,6 @@ export function StoryProvider({ children }: { children: ReactNode }) {
         const userActionBlock: StoryBlock = { type: 'user_action', content: text };
         const blocksBeforeStream = [...storyBlocks, userActionBlock];
         setStoryBlocks(blocksBeforeStream);
-
-        responseStartIndex.current = blocksBeforeStream.length;
-        firstBlockRevealed.current = false;
-        setVisibleBlockCount(blocksBeforeStream.length);
 
         const userMsg: ChatMessage = { role: 'user', content: text };
         const newMessages = [...storyMessages, userMsg];
@@ -361,7 +328,6 @@ export function StoryProvider({ children }: { children: ReactNode }) {
             if (currentStoryId === id) {
                 abortRef.current?.abort();
                 setStoryBlocks([]);
-                setVisibleBlockCount(0);
                 setStoryMessages([]);
                 setUserCharacter('');
                 setStorySetting('');
@@ -378,7 +344,6 @@ export function StoryProvider({ children }: { children: ReactNode }) {
     const resetStory = useCallback(() => {
         abortRef.current?.abort();
         setStoryBlocks([]);
-        setVisibleBlockCount(0);
         setStoryMessages([]);
         setUserCharacter('');
         setStorySetting('');
@@ -393,8 +358,6 @@ export function StoryProvider({ children }: { children: ReactNode }) {
     return (
         <StoryContext.Provider value={{
             storyBlocks,
-            visibleBlockCount,
-            pendingBlockCount,
             storyMessages,
             userCharacter,
             storySetting,
@@ -404,12 +367,13 @@ export function StoryProvider({ children }: { children: ReactNode }) {
             currentStoryId,
             savedStories,
             streamingHint,
+            currentSceneIndex,
+            setCurrentSceneIndex,
             sendStoryAction,
             selectDecision,
             startNewStory,
             loadStory,
             resetStory,
-            revealNextBlock,
             setStoryError,
             refreshSavedStories,
             deleteStory,

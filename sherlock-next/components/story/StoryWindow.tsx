@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useEffect, useRef, useCallback } from 'react';
+import React, { useEffect, useMemo, useRef } from 'react';
 import { useStory } from '@/lib/storyContext';
-import { useSettings } from '@/lib/contexts';
+import { deriveScenes } from '@/lib/storyParser';
 import type { StoryBlock } from '@/lib/storyParser';
 import styles from './Story.module.css';
 
@@ -73,88 +73,91 @@ function StoryBlockRenderer({ block, isLast, userCharacter }: { block: StoryBloc
 
 export default function StoryWindow() {
     const {
-        storyBlocks, visibleBlockCount, pendingBlockCount,
-        isStoryLoading, userCharacter, streamingHint, revealNextBlock,
+        storyBlocks, isStoryLoading, userCharacter,
+        streamingHint, currentSceneIndex, setCurrentSceneIndex,
     } = useStory();
-    const { storyScrollMode } = useSettings();
 
-    const scrollContainerRef = useRef<HTMLDivElement>(null);
-    const bottomRef = useRef<HTMLDivElement>(null);
-    const isNearBottomRef = useRef(true);
+    const scrollRef = useRef<HTMLDivElement>(null);
 
-    const NEAR_BOTTOM_THRESHOLD = 150;
-
-    const handleScroll = useCallback(() => {
-        const el = scrollContainerRef.current;
-        if (!el) return;
-        const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
-        isNearBottomRef.current = distanceFromBottom < NEAR_BOTTOM_THRESHOLD;
-
-        if (isNearBottomRef.current && storyScrollMode === 'block-by-block' && pendingBlockCount > 0) {
-            revealNextBlock();
-        }
-    }, [storyScrollMode, pendingBlockCount, revealNextBlock]);
+    const scenes = useMemo(() => deriveScenes(storyBlocks), [storyBlocks]);
+    const totalScenes = scenes.length;
+    const isOnLatest = currentSceneIndex >= totalScenes - 1;
 
     useEffect(() => {
-        if (storyScrollMode === 'all-at-once') {
-            bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-        } else if (storyScrollMode === 'as-ready' && isNearBottomRef.current) {
-            bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-        } else if (storyScrollMode === 'block-by-block' && isNearBottomRef.current) {
-            bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+        if (isStoryLoading) {
+            setCurrentSceneIndex(Math.max(0, totalScenes - 1));
         }
-    }, [visibleBlockCount, storyScrollMode]);
+    }, [totalScenes, isStoryLoading, setCurrentSceneIndex]);
 
-    const visibleBlocks = storyBlocks.slice(0, visibleBlockCount);
-    const showArrow = (storyScrollMode === 'block-by-block' && pendingBlockCount > 0)
-        || (storyScrollMode === 'as-ready' && !isNearBottomRef.current && isStoryLoading);
+    useEffect(() => {
+        if (currentSceneIndex >= totalScenes) {
+            setCurrentSceneIndex(Math.max(0, totalScenes - 1));
+        }
+    }, [totalScenes, currentSceneIndex, setCurrentSceneIndex]);
+
+    useEffect(() => {
+        scrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+    }, [currentSceneIndex]);
+
+    const scene = scenes[currentSceneIndex];
+    const blocksToRender = scene?.blocks ?? [];
 
     return (
-        <div className={styles.storyWindowWrap}>
-            <div
-                className={styles.storyWindow}
-                ref={scrollContainerRef}
-                onScroll={handleScroll}
-            >
-                {visibleBlocks.map((block, i) => (
-                    <StoryBlockRenderer
-                        key={i}
-                        block={block}
-                        isLast={i === visibleBlocks.length - 1}
-                        userCharacter={userCharacter}
-                    />
-                ))}
-                {isStoryLoading && (
-                    <div className={styles.streamingIndicator}>
-                        <span className={styles.streamingText}>{streamingHint || 'The story continues'}</span>
-                        <span className={styles.streamingDots}>
-                            <span className={styles.dot} />
-                            <span className={styles.dot} />
-                            <span className={styles.dot} />
-                        </span>
-                    </div>
-                )}
-                <div ref={bottomRef} />
-            </div>
+        <div className={styles.storyWindow} ref={scrollRef}>
+            {currentSceneIndex > 0 && scenes[currentSceneIndex - 1]?.userAction && (
+                <div className={styles.userActionDivider}>
+                    You said: &ldquo;{scenes[currentSceneIndex - 1].userAction}&rdquo;
+                </div>
+            )}
 
-            {showArrow && (
-                <button
-                    className={styles.newContentArrow}
-                    onClick={() => {
-                        if (storyScrollMode === 'block-by-block') {
-                            revealNextBlock();
-                        }
-                        bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-                    }}
-                    title={storyScrollMode === 'block-by-block'
-                        ? `${pendingBlockCount} more block${pendingBlockCount > 1 ? 's' : ''}`
-                        : 'Scroll to new content'}
-                >
-                    <span className={styles.arrowIcon}>↓</span>
-                    {storyScrollMode === 'block-by-block' && pendingBlockCount > 0 && (
-                        <span className={styles.pendingBadge}>{pendingBlockCount}</span>
-                    )}
-                </button>
+            {blocksToRender.map((block, i) => (
+                <StoryBlockRenderer
+                    key={`${currentSceneIndex}-${i}`}
+                    block={block}
+                    isLast={i === blocksToRender.length - 1}
+                    userCharacter={userCharacter}
+                />
+            ))}
+
+            {isOnLatest && isStoryLoading && (
+                <div className={styles.streamingIndicator}>
+                    <span className={styles.streamingText}>{streamingHint || 'The story continues'}</span>
+                    <span className={styles.streamingDots}>
+                        <span className={styles.dot} />
+                        <span className={styles.dot} />
+                        <span className={styles.dot} />
+                    </span>
+                </div>
+            )}
+
+            {scene?.userAction && (
+                <div className={styles.userActionDividerBottom}>
+                    You responded: &ldquo;{scene.userAction}&rdquo;
+                </div>
+            )}
+
+            {totalScenes > 1 && (
+                <div className={styles.sceneNav}>
+                    <button
+                        className={styles.sceneNavBtn}
+                        onClick={() => setCurrentSceneIndex(Math.max(0, currentSceneIndex - 1))}
+                        disabled={currentSceneIndex === 0}
+                        title="Previous scene"
+                    >
+                        ‹
+                    </button>
+                    <span className={styles.sceneNavLabel}>
+                        Scene {currentSceneIndex + 1} of {totalScenes}
+                    </span>
+                    <button
+                        className={styles.sceneNavBtn}
+                        onClick={() => setCurrentSceneIndex(Math.min(totalScenes - 1, currentSceneIndex + 1))}
+                        disabled={isOnLatest}
+                        title="Next scene"
+                    >
+                        ›
+                    </button>
+                </div>
             )}
         </div>
     );

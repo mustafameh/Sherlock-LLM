@@ -13,7 +13,7 @@ export default function ChatInput() {
         messages, addMessage, setMessages, currentCharacter, context, isLoading, setIsLoading,
         setChatError, lastFailedText, setLastFailedText,
     } = useChat();
-    const { modelSource, selectedModel, apiKey, temperature } = useSettings();
+    const { modelSource, selectedModel, apiKey, temperature, deepReasoning } = useSettings();
 
     const sendMessage = useCallback(async (text: string) => {
         if (!text || isLoading) return;
@@ -31,7 +31,7 @@ export default function ChatInput() {
         if (textareaRef.current) textareaRef.current.value = '';
 
         const toolDescriptions = toolRegistry.getToolDescriptions();
-        const systemPrompt = generateSystemPrompt(currentCharacter, context, toolDescriptions);
+        const systemPrompt = generateSystemPrompt(currentCharacter, context, toolDescriptions, deepReasoning);
 
         const apiMessages = [
             { role: 'system' as const, content: systemPrompt },
@@ -54,19 +54,14 @@ export default function ChatInput() {
                     return;
                 }
 
-                let maxIterations = 5;
-                let currentMessages = [...apiMessages];
-                const allSteps: Array<{ type: 'thought' | 'action' | 'observation' | 'final_answer'; content: string; toolName?: string; toolArgs?: Record<string, unknown>; timestamp: number }> = [];
-
-                while (maxIterations > 0) {
-                    maxIterations--;
-
+                if (!deepReasoning) {
+                    // Direct mode: single API call, no ReAct parsing
                     const res = await fetch('/api/chat', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
                             model: selectedModel,
-                            messages: currentMessages,
+                            messages: apiMessages,
                             temperature,
                             apiKey,
                         }),
@@ -80,44 +75,79 @@ export default function ChatInput() {
                     const data = await res.json();
                     const responseText = data.choices?.[0]?.message?.content || data.response || '';
 
-                    const parsed = parseReActResponse(responseText);
-
-                    for (const step of parsed.steps) {
-                        allSteps.push({ ...step, timestamp: Date.now() });
-                    }
-
-                    const actionStep = parsed.steps.find(s => s.type === 'action');
-                    if (actionStep && actionStep.toolName && toolRegistry.has(actionStep.toolName)) {
-                        const observation = await toolRegistry.execute(
-                            actionStep.toolName,
-                            actionStep.toolArgs || {}
-                        );
-
-                        allSteps.push({
-                            type: 'observation',
-                            content: observation,
-                            timestamp: Date.now(),
-                        });
-
-                        currentMessages.push(
-                            { role: 'assistant' as const, content: responseText },
-                            { role: 'user' as const, content: `Observation: ${observation}` }
-                        );
-
-                        continue;
-                    }
-
-                    const finalAnswer = parsed.finalAnswer || responseText;
-
                     addMessage({
                         id: `assistant-${Date.now()}`,
                         role: 'assistant',
-                        content: finalAnswer,
-                        reactSteps: allSteps.length > 0 ? allSteps : undefined,
+                        content: responseText,
                         timestamp: Date.now(),
                     });
+                } else {
+                    // Deep reasoning: ReAct loop with Thought/Action/Observation parsing
+                    let maxIterations = 5;
+                    let currentMessages = [...apiMessages];
+                    const allSteps: Array<{ type: 'thought' | 'action' | 'observation' | 'final_answer'; content: string; toolName?: string; toolArgs?: Record<string, unknown>; timestamp: number }> = [];
 
-                    break;
+                    while (maxIterations > 0) {
+                        maxIterations--;
+
+                        const res = await fetch('/api/chat', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                model: selectedModel,
+                                messages: currentMessages,
+                                temperature,
+                                apiKey,
+                            }),
+                        });
+
+                        if (!res.ok) {
+                            const err = await res.json();
+                            throw new Error(err.error || 'Failed to get response');
+                        }
+
+                        const data = await res.json();
+                        const responseText = data.choices?.[0]?.message?.content || data.response || '';
+
+                        const parsed = parseReActResponse(responseText);
+
+                        for (const step of parsed.steps) {
+                            allSteps.push({ ...step, timestamp: Date.now() });
+                        }
+
+                        const actionStep = parsed.steps.find(s => s.type === 'action');
+                        if (actionStep && actionStep.toolName && toolRegistry.has(actionStep.toolName)) {
+                            const observation = await toolRegistry.execute(
+                                actionStep.toolName,
+                                actionStep.toolArgs || {}
+                            );
+
+                            allSteps.push({
+                                type: 'observation',
+                                content: observation,
+                                timestamp: Date.now(),
+                            });
+
+                            currentMessages.push(
+                                { role: 'assistant' as const, content: responseText },
+                                { role: 'user' as const, content: `Observation: ${observation}` }
+                            );
+
+                            continue;
+                        }
+
+                        const finalAnswer = parsed.finalAnswer || responseText;
+
+                        addMessage({
+                            id: `assistant-${Date.now()}`,
+                            role: 'assistant',
+                            content: finalAnswer,
+                            reactSteps: allSteps.length > 0 ? allSteps : undefined,
+                            timestamp: Date.now(),
+                        });
+
+                        break;
+                    }
                 }
             } else {
                 addMessage({
@@ -135,7 +165,7 @@ export default function ChatInput() {
         } finally {
             setIsLoading(false);
         }
-    }, [messages, addMessage, setMessages, currentCharacter, context, isLoading, setIsLoading, modelSource, selectedModel, apiKey, temperature, setChatError, setLastFailedText]);
+    }, [messages, addMessage, setMessages, currentCharacter, context, isLoading, setIsLoading, modelSource, selectedModel, apiKey, temperature, deepReasoning, setChatError, setLastFailedText]);
 
     const handleSend = useCallback(async () => {
         const text = textareaRef.current?.value.trim();

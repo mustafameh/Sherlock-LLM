@@ -45,9 +45,9 @@ const CUSTOM_MODEL_OPTION = '__custom__';
 
 export default function SettingsPanel() {
     const {
-        selectedModel, apiKey, temperature,
+        selectedModel, apiKey, temperature, deepReasoning,
         saveModel, saveApiKey, clearApiKey,
-        setTemperature,
+        setTemperature, setDeepReasoning,
     } = useSettings();
     const { currentCharacter, characters, setCurrentCharacter, context, setContext } = useChat();
     const [showCharModal, setShowCharModal] = useState(false);
@@ -227,6 +227,21 @@ export default function SettingsPanel() {
                                     onChange={(e) => setTemperature(parseFloat(e.target.value))}
                                 />
                                 <span className={styles.tempValue}>{temperature.toFixed(1)}</span>
+                            </div>
+
+                            <div className={styles.toggleRow} style={{ marginTop: '16px' }}>
+                                <div className={styles.toggleLabel}>
+                                    Deep Reasoning
+                                    <InfoTooltip text="When enabled, Sherlock shows his thought process step-by-step before answering. When disabled, he responds directly." />
+                                </div>
+                                <button
+                                    className={`${styles.toggleSwitch} ${deepReasoning ? styles.toggleOn : ''}`}
+                                    onClick={() => setDeepReasoning(!deepReasoning)}
+                                    role="switch"
+                                    aria-checked={deepReasoning}
+                                >
+                                    <span className={styles.toggleKnob} />
+                                </button>
                             </div>
                         </CollapsibleSection>
 

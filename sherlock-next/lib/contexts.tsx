@@ -76,12 +76,14 @@ interface SettingsContextType {
     selectedModel: string;
     apiKey: string;
     temperature: number;
+    deepReasoning: boolean;
     localModelStatus: ModelStatus;
     showDebugWindow: boolean;
     setModelSource: (source: ModelSource) => void;
     setSelectedModel: (model: string) => void;
     setApiKey: (key: string) => void;
     setTemperature: (temp: number) => void;
+    setDeepReasoning: (on: boolean) => void;
     setLocalModelStatus: (status: ModelStatus) => void;
     setShowDebugWindow: (show: boolean) => void;
     saveApiKey: (key: string) => void;
@@ -106,8 +108,22 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
         return '';
     });
     const [temperature, setTemperature] = useState(0.7);
+    const [deepReasoning, setDeepReasoningState] = useState(() => {
+        if (typeof window !== 'undefined') {
+            const stored = localStorage.getItem('DeepReasoning');
+            return stored === null ? true : stored === 'true';
+        }
+        return true;
+    });
     const [localModelStatus, setLocalModelStatus] = useState<ModelStatus>('not_loaded');
     const [showDebugWindow, setShowDebugWindow] = useState(false);
+
+    const setDeepReasoning = useCallback((on: boolean) => {
+        setDeepReasoningState(on);
+        if (typeof window !== 'undefined') {
+            localStorage.setItem('DeepReasoning', String(on));
+        }
+    }, []);
 
     const saveApiKey = useCallback((key: string) => {
         setApiKey(key);
@@ -132,8 +148,8 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
 
     return (
         <SettingsContext.Provider value={{
-            modelSource, selectedModel, apiKey, temperature, localModelStatus, showDebugWindow,
-            setModelSource, setSelectedModel, setApiKey, setTemperature, setLocalModelStatus,
+            modelSource, selectedModel, apiKey, temperature, deepReasoning, localModelStatus, showDebugWindow,
+            setModelSource, setSelectedModel, setApiKey, setTemperature, setDeepReasoning, setLocalModelStatus,
             setShowDebugWindow, saveApiKey, clearApiKey, saveModel,
         }}>
             {children}

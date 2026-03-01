@@ -1,15 +1,22 @@
 import { Character } from './types';
+import {
+    SHERLOCK_PERSONA,
+    reactInstructionsWithTools,
+    REACT_INSTRUCTIONS_NO_TOOLS,
+    DIRECT_RESPONSE_INSTRUCTIONS,
+} from './prompts';
 
 /**
- * Generate the Sherlock Holmes system prompt based on character and context.
- * Includes ReAct format instructions for tool use.
+ * Generate the Sherlock Holmes system prompt based on character, context,
+ * available tools, and whether deep reasoning is enabled.
  */
 export function generateSystemPrompt(
     character: Character | null,
     context: string,
-    toolDescriptions: string
+    toolDescriptions: string,
+    deepReasoning: boolean
 ): string {
-    let message = `You are Sherlock Holmes, the famous detective known for your proficiency in observation, deduction, forensic science, and logical reasoning that borders on the fantastic, which you employ when investigating cases for a wide variety of clients. Respond in character. Sherlock Holmes typically speaks in a direct, analytical, and often brusque manner. His conversational style is characterized by keen observations, logical deductions, and a tendency to be blunt or even impatient with those who can't follow his rapid thought processes. Holmes often delivers his insights in a confident, sometimes dramatic fashion, punctuated by moments of dry wit or sarcasm. He's prone to making sharp, incisive remarks and can be dismissive of ideas he finds illogical. While brilliant in his deductions, Holmes can come across as aloof or detached in social interactions, focusing intensely on the intellectual aspects of a case rather than emotional nuances.`;
+    let message = SHERLOCK_PERSONA;
 
     if (context) {
         message += ` Context: ${context}`;
@@ -28,11 +35,12 @@ export function generateSystemPrompt(
         message += `an unknown individual. Treat them as a stranger who has come to seek your help.`;
     }
 
-    // ReAct instructions
-    if (toolDescriptions) {
-        message += `\n\nYou have access to the following tools:\n${toolDescriptions}\n\nTo use a tool, you MUST follow this exact format:\n\nThought: [your reasoning about what to do next]\nAction: tool_name({"param": "value"})\n\nAfter the tool returns a result, you will see:\nObservation: [the tool's output]\n\nYou can then continue thinking and using tools as needed.\nWhen you have enough information to give a final response, use:\n\nThought: I now have enough information to respond.\nFinal Answer: [your response to the user in character as Sherlock Holmes]`;
+    if (!deepReasoning) {
+        message += DIRECT_RESPONSE_INSTRUCTIONS;
+    } else if (toolDescriptions) {
+        message += reactInstructionsWithTools(toolDescriptions);
     } else {
-        message += `\n\nRespond directly to the user in character as Sherlock Holmes. If you reason through a problem, you may optionally show your thinking process using:\n\nThought: [your reasoning]\nFinal Answer: [your response]`;
+        message += REACT_INSTRUCTIONS_NO_TOOLS;
     }
 
     return message;
@@ -45,7 +53,6 @@ export function parseReActResponse(text: string): { steps: Array<{ type: 'though
     const steps: Array<{ type: 'thought' | 'action' | 'observation' | 'final_answer'; content: string; toolName?: string; toolArgs?: Record<string, unknown> }> = [];
     let finalAnswer = '';
 
-    // Split by the markers
     const lines = text.split('\n');
     let currentType: 'thought' | 'action' | 'observation' | 'final_answer' | null = null;
     let currentContent = '';
@@ -80,18 +87,15 @@ export function parseReActResponse(text: string): { steps: Array<{ type: 'though
         } else if (currentType) {
             currentContent += '\n' + line;
         } else {
-            // No markers found — treat entire response as final answer
             currentType = 'final_answer';
             currentContent += line + '\n';
         }
     }
 
-    // Push last step
     if (currentType && currentContent.trim()) {
         pushStep();
     }
 
-    // If no final answer was found, use the full text
     if (!finalAnswer) {
         finalAnswer = text.trim();
     }
@@ -124,9 +128,6 @@ export function parseReActResponse(text: string): { steps: Array<{ type: 'though
     return { steps, finalAnswer };
 }
 
-/**
- * Parse an action string like: tool_name({"arg": "value"})
- */
 function parseAction(action: string): { toolName: string; args: Record<string, unknown> } {
     const match = action.match(/^(\w+)\s*\(([\s\S]*)\)\s*$/);
     if (match) {

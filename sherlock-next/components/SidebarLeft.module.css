@@ -208,7 +208,7 @@
 @media (max-width: 768px) {
     .sidebar {
         position: fixed;
-        top: 0;
+        top: 56px;
         left: 0;
         bottom: 0;
         z-index: 50;
@@ -221,9 +221,9 @@
         border: none;
     }
 
-    .toggleBtn {
+    .collapsed .toggleBtn {
         position: fixed;
-        top: var(--space-2);
+        top: 64px;
         left: var(--space-2);
         z-index: 60;
         background: var(--bg-secondary);

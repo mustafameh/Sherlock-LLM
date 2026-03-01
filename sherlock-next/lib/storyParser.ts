@@ -2,7 +2,8 @@ export type StoryBlock =
     | { type: 'narrator'; content: string }
     | { type: 'dialogue'; character: string; content: string }
     | { type: 'decision'; options: string[] }
-    | { type: 'awaiting_input'; context: string };
+    | { type: 'awaiting_input'; context: string }
+    | { type: 'user_action'; content: string };
 
 const BLOCK_PATTERN = /\[(NARRATOR|SHERLOCK|WATSON|CHARACTER:([^\]]+)|DECISION|AWAITING_INPUT)\]/g;
 

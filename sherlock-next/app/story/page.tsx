@@ -2,14 +2,17 @@
 
 import React, { useState } from 'react';
 import { StoryProvider, useStory } from '@/lib/storyContext';
+import { useAuth } from '@/lib/contexts';
 import { STORY_SETTINGS, CHARACTER_PRESETS } from '@/lib/storyPrompts';
 import StoryHeader from '@/components/story/StoryHeader';
 import StoryWindow from '@/components/story/StoryWindow';
 import StoryInput from '@/components/story/StoryInput';
+import StorySidebar from '@/components/story/StorySidebar';
 import styles from '@/components/story/Story.module.css';
 
 function SetupScreen() {
-    const { startNewStory, isStoryLoading } = useStory();
+    const { startNewStory, isStoryLoading, savedStories, loadStory } = useStory();
+    const { isLoggedIn } = useAuth();
     const [selectedCharacter, setSelectedCharacter] = useState('');
     const [customCharacter, setCustomCharacter] = useState('');
     const [selectedSetting, setSelectedSetting] = useState('');
@@ -32,6 +35,30 @@ function SetupScreen() {
             <p className={styles.setupSubtitle}>
                 Step into a Sherlock Holmes mystery and shape the story with your choices.
             </p>
+
+            {isLoggedIn && savedStories.length > 0 && (
+                <div className={styles.continueSection}>
+                    <span className={styles.setupLabel}>Continue a Story</span>
+                    <div className={styles.continueGrid}>
+                        {savedStories.slice(0, 5).map(s => (
+                            <button
+                                key={s.id}
+                                className={styles.storyCard}
+                                onClick={() => loadStory(s.id)}
+                            >
+                                <strong>{s.title}</strong>
+                                <span>Playing as {s.character}</span>
+                                <span className={styles.storyCardDate}>
+                                    {new Date(s.created_at).toLocaleDateString()}
+                                </span>
+                            </button>
+                        ))}
+                    </div>
+                    <div className={styles.continueDivider}>
+                        <span>or start a new story</span>
+                    </div>
+                </div>
+            )}
 
             <div className={styles.setupSection}>
                 <span className={styles.setupLabel}>Choose Your Character</span>
@@ -97,22 +124,25 @@ function StoryContent() {
     const { isStoryStarted, storyError, setStoryError } = useStory();
 
     return (
-        <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden' }}>
-            <StoryHeader />
-            {storyError && (
-                <div className={styles.errorBanner}>
-                    <span>{storyError}</span>
-                    <button onClick={() => setStoryError(null)}>✕</button>
-                </div>
-            )}
-            {isStoryStarted ? (
-                <>
-                    <StoryWindow />
-                    <StoryInput />
-                </>
-            ) : (
-                <SetupScreen />
-            )}
+        <div style={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
+            <StorySidebar />
+            <div style={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden', minWidth: 0 }}>
+                <StoryHeader />
+                {storyError && (
+                    <div className={styles.errorBanner}>
+                        <span>{storyError}</span>
+                        <button onClick={() => setStoryError(null)}>✕</button>
+                    </div>
+                )}
+                {isStoryStarted ? (
+                    <>
+                        <StoryWindow />
+                        <StoryInput />
+                    </>
+                ) : (
+                    <SetupScreen />
+                )}
+            </div>
         </div>
     );
 }

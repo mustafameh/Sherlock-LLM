@@ -1,0 +1,237 @@
+.sidebar {
+    width: 280px;
+    background: rgba(11, 17, 32, 0.95);
+    border-right: 1px solid rgba(255, 255, 255, 0.06);
+    display: flex;
+    flex-direction: column;
+    transition: width var(--transition-base);
+    position: relative;
+    flex-shrink: 0;
+    overflow: hidden;
+}
+
+.collapsed {
+    width: 48px;
+}
+
+.toggleBtn {
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: var(--space-2);
+    border-radius: var(--radius-md);
+    background: transparent;
+    color: var(--color-navy-300);
+    font-size: 16px;
+    transition: all var(--transition-fast);
+    flex-shrink: 0;
+    cursor: pointer;
+    border: none;
+}
+
+.toggleBtn:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--text-primary);
+}
+
+.newStoryBtn {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    margin: 0 var(--space-3) var(--space-3);
+    padding: var(--space-3) var(--space-4);
+    border-radius: var(--radius-lg);
+    border: 1px dashed rgba(255, 255, 255, 0.15);
+    background: transparent;
+    color: var(--text-primary);
+    font-size: var(--text-sm);
+    font-weight: 500;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.newStoryBtn:hover {
+    background: rgba(59, 130, 246, 0.1);
+    border-color: var(--color-blue-500);
+    color: var(--color-blue-400);
+}
+
+.newStoryIcon {
+    width: 24px;
+    height: 24px;
+    border-radius: var(--radius-md);
+    background: rgba(59, 130, 246, 0.15);
+    color: var(--color-blue-400);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.storyList {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0 var(--space-2);
+}
+
+.sectionLabel {
+    padding: var(--space-2) var(--space-3);
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--color-navy-400);
+}
+
+.emptyState {
+    padding: var(--space-4) var(--space-3);
+    text-align: center;
+    font-size: var(--text-xs);
+    color: var(--color-navy-500);
+}
+
+.storyItem {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: var(--space-2) var(--space-3);
+    margin-bottom: 2px;
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    position: relative;
+}
+
+.storyItem:hover {
+    background: rgba(255, 255, 255, 0.06);
+}
+
+.storyItemActive {
+    background: rgba(59, 130, 246, 0.12) !important;
+    border-left: 2px solid var(--color-blue-500);
+}
+
+.storyTitle {
+    font-size: var(--text-sm);
+    font-weight: 500;
+    color: var(--text-primary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.storyMeta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.storyCharacter {
+    font-size: 10px;
+    color: var(--color-navy-400);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.deleteBtn {
+    opacity: 0;
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius-sm);
+    color: var(--color-navy-400);
+    font-size: 14px;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    background: transparent;
+    border: none;
+}
+
+.storyItem:hover .deleteBtn {
+    opacity: 1;
+}
+
+.deleteBtn:hover {
+    color: #fca5a5;
+    background: rgba(239, 68, 68, 0.15);
+}
+
+.userFooter {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    padding: var(--space-3) var(--space-4);
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    flex-shrink: 0;
+}
+
+.userFooter:hover {
+    background: rgba(255, 255, 255, 0.04);
+}
+
+.userInfo {
+    overflow: hidden;
+}
+
+.userName {
+    font-size: var(--text-sm);
+    font-weight: 600;
+    color: var(--text-primary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.userEmail {
+    font-size: 11px;
+    color: var(--color-navy-400);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.backdrop {
+    display: none;
+}
+
+@media (max-width: 768px) {
+    .sidebar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        bottom: 0;
+        z-index: 50;
+        width: 280px;
+        box-shadow: var(--shadow-xl);
+    }
+
+    .collapsed {
+        width: 0;
+        border: none;
+    }
+
+    .collapsed .toggleBtn {
+        position: fixed;
+        top: 10px;
+        left: var(--space-2);
+        z-index: 60;
+        background: var(--bg-secondary);
+        border: 1px solid var(--border-light);
+        box-shadow: var(--shadow-md);
+    }
+
+    .backdrop {
+        display: block;
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 40;
+    }
+}

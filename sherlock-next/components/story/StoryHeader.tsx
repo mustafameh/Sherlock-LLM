@@ -1,28 +1,14 @@
 'use client';
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
 import { useStory } from '@/lib/storyContext';
-import { useAuth } from '@/lib/contexts';
 import StorySettings from './StorySettings';
 import styles from './Story.module.css';
 
 export default function StoryHeader() {
-    const { userCharacter, storySetting, resetStory, isStoryStarted, savedStories, loadStory } = useStory();
-    const { isLoggedIn } = useAuth();
+    const { userCharacter, storySetting, isStoryStarted } = useStory();
     const [showSettings, setShowSettings] = useState(false);
-    const [showSaved, setShowSaved] = useState(false);
-    const savedRef = useRef<HTMLDivElement>(null);
-
-    useEffect(() => {
-        function handleClick(e: MouseEvent) {
-            if (savedRef.current && !savedRef.current.contains(e.target as Node)) {
-                setShowSaved(false);
-            }
-        }
-        document.addEventListener('click', handleClick);
-        return () => document.removeEventListener('click', handleClick);
-    }, []);
 
     return (
         <>
@@ -37,32 +23,6 @@ export default function StoryHeader() {
                     )}
                 </div>
                 <div className={styles.storyHeaderRight}>
-                    {isLoggedIn && savedStories.length > 0 && (
-                        <div className={styles.savedDropdownWrap} ref={savedRef}>
-                            <button
-                                className={styles.headerIconBtn}
-                                onClick={() => setShowSaved(!showSaved)}
-                                title="Saved Stories"
-                            >
-                                📚
-                            </button>
-                            {showSaved && (
-                                <div className={styles.savedDropdown}>
-                                    <span className={styles.savedDropdownTitle}>Saved Stories</span>
-                                    {savedStories.map(s => (
-                                        <button
-                                            key={s.id}
-                                            className={styles.savedItem}
-                                            onClick={() => { loadStory(s.id); setShowSaved(false); }}
-                                        >
-                                            <strong>{s.title}</strong>
-                                            <span>{s.character}</span>
-                                        </button>
-                                    ))}
-                                </div>
-                            )}
-                        </div>
-                    )}
                     <button
                         className={styles.headerIconBtn}
                         onClick={() => setShowSettings(true)}
@@ -70,11 +30,6 @@ export default function StoryHeader() {
                     >
                         ⚙
                     </button>
-                    {isStoryStarted && (
-                        <button className={styles.resetBtn} onClick={resetStory}>
-                            New Story
-                        </button>
-                    )}
                 </div>
             </header>
             <StorySettings open={showSettings} onClose={() => setShowSettings(false)} />

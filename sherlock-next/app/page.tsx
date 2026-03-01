@@ -9,7 +9,8 @@ import EditProfileModal from '@/components/EditProfileModal';
 import styles from './page.module.css';
 
 function ApiKeyModal({ onClose }: { onClose: () => void }) {
-    const { apiKey, saveApiKey, clearApiKey } = useSettings();
+    const { apiKey, saveApiKey, clearApiKey, apiKeyStorage, setApiKeyStorage } = useSettings();
+    const { isLoggedIn } = useAuth();
     const [keyInput, setKeyInput] = useState(apiKey);
     const [saved, setSaved] = useState(false);
 
@@ -25,7 +26,10 @@ function ApiKeyModal({ onClose }: { onClose: () => void }) {
                 <h2 className={styles.modalTitle}>Set Your API Key</h2>
                 <p className={styles.modalDesc}>
                     Agent Sherlock uses <a href="https://openrouter.ai" target="_blank" rel="noopener noreferrer">OpenRouter</a> to
-                    access LLMs. Your key is stored locally in your browser and sent only to OpenRouter for inference.
+                    access LLMs. Your key is sent only to OpenRouter for inference.
+                    {apiKeyStorage === 'account'
+                        ? ' It is encrypted and saved to your account so it works across devices.'
+                        : ' It is stored locally in your browser.'}
                 </p>
                 <input
                     type="password"
@@ -46,6 +50,40 @@ function ApiKeyModal({ onClose }: { onClose: () => void }) {
                     <button className={styles.btnGhost} onClick={onClose}>Close</button>
                 </div>
                 {apiKey && <p className={styles.statusConnected}>API Key is set</p>}
+                {isLoggedIn && (
+                    <div className={styles.storageToggle}>
+                        <span className={styles.storageLabel}>Save key to:</span>
+                        <div className={styles.storageOptions}>
+                            <button
+                                className={`${styles.storageBtn} ${apiKeyStorage === 'browser' ? styles.storageBtnActive : ''}`}
+                                onClick={() => {
+                                    if (apiKeyStorage === 'account') {
+                                        if (!window.confirm('Switching to browser-only will remove your API key from your account. Your key will only exist in this browser. Continue?')) return;
+                                        fetch('/api/user/profile', {
+                                            method: 'PUT',
+                                            headers: { 'Content-Type': 'application/json' },
+                                            body: JSON.stringify({ apiKey: null }),
+                                        }).catch(() => {});
+                                    }
+                                    setApiKeyStorage('browser');
+                                }}
+                            >
+                                🖥 Browser only
+                            </button>
+                            <button
+                                className={`${styles.storageBtn} ${apiKeyStorage === 'account' ? styles.storageBtnActive : ''}`}
+                                onClick={() => setApiKeyStorage('account')}
+                            >
+                                ☁ My account
+                            </button>
+                        </div>
+                        <p className={styles.storageHint}>
+                            {apiKeyStorage === 'browser'
+                                ? 'Key stays in this browser. Re-enter on other devices.'
+                                : 'Key is encrypted and saved to your account. Available on any device you log into.'}
+                        </p>
+                    </div>
+                )}
             </div>
         </div>
     );
@@ -175,8 +213,9 @@ export default function LandingPage() {
                     <div className={styles.aboutCard}>
                         <h3>How the API Key Works</h3>
                         <p>
-                            Agent Sherlock uses OpenRouter to access various LLMs. Your API key is stored
-                            locally in your browser and is only sent directly to OpenRouter for inference.
+                            Agent Sherlock uses OpenRouter to access various LLMs. Your API key is only sent
+                            directly to OpenRouter for inference. You can keep it in your browser only, or
+                            save it to your account (encrypted) so it&apos;s available on any device.
                             Many free models are available, or you can use your own credits for premium models.
                         </p>
                     </div>

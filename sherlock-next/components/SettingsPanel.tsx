@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { useChat, useSettings } from '@/lib/contexts';
+import { useChat, useSettings, useAuth } from '@/lib/contexts';
 import { AVAILABLE_MODELS } from '@/lib/types';
 import CharacterModal from './CharacterModal';
 import styles from './SettingsPanel.module.css';
@@ -45,10 +45,11 @@ const CUSTOM_MODEL_OPTION = '__custom__';
 
 export default function SettingsPanel() {
     const {
-        selectedModel, apiKey, temperature, deepReasoning,
+        selectedModel, apiKey, temperature, deepReasoning, apiKeyStorage,
         saveModel, saveApiKey, clearApiKey,
-        setTemperature, setDeepReasoning,
+        setTemperature, setDeepReasoning, setApiKeyStorage,
     } = useSettings();
+    const { isLoggedIn } = useAuth();
     const { currentCharacter, characters, setCurrentCharacter, context, setContext } = useChat();
     const [showCharModal, setShowCharModal] = useState(false);
     const [localApiKey, setLocalApiKey] = useState(apiKey);
@@ -135,7 +136,7 @@ export default function SettingsPanel() {
                                 >
                                     <span>
                                         Bring your own API Key
-                                        <InfoTooltip text="Get a free API key at openrouter.ai/keys. Free models have no cost — you just need an account. Your key is stored locally in your browser and never sent to our servers." />
+                                        <InfoTooltip text="Get a free API key at openrouter.ai/keys. Free models have no cost — you just need an account. You can choose to store your key in the browser only, or save it to your account (encrypted) so it's available on any device." />
                                     </span>
                                     <span className={`${styles.chevron} ${showApiKey ? styles.chevronOpen : ''}`}>›</span>
                                 </button>
@@ -167,6 +168,40 @@ export default function SettingsPanel() {
                                         {saveStatus !== 'idle' && (
                                             <div className={styles.saveConfirmation} data-status={saveStatus}>
                                                 {saveStatus === 'saved' ? '✓ Key saved successfully' : '✓ Key cleared'}
+                                            </div>
+                                        )}
+                                        {isLoggedIn && (
+                                            <div className={styles.storageToggle}>
+                                                <span className={styles.storageLabel}>Save key to:</span>
+                                                <div className={styles.storageOptions}>
+                                                    <button
+                                                        className={`${styles.storageBtn} ${apiKeyStorage === 'browser' ? styles.storageBtnActive : ''}`}
+                                                        onClick={() => {
+                                                            if (apiKeyStorage === 'account') {
+                                                                if (!window.confirm('Switching to browser-only will remove your API key from your account. Your key will only exist in this browser. Continue?')) return;
+                                                                fetch('/api/user/profile', {
+                                                                    method: 'PUT',
+                                                                    headers: { 'Content-Type': 'application/json' },
+                                                                    body: JSON.stringify({ apiKey: null }),
+                                                                }).catch(() => {});
+                                                            }
+                                                            setApiKeyStorage('browser');
+                                                        }}
+                                                    >
+                                                        🖥 Browser only
+                                                    </button>
+                                                    <button
+                                                        className={`${styles.storageBtn} ${apiKeyStorage === 'account' ? styles.storageBtnActive : ''}`}
+                                                        onClick={() => setApiKeyStorage('account')}
+                                                    >
+                                                        ☁ My account
+                                                    </button>
+                                                </div>
+                                                <p className={styles.storageHint}>
+                                                    {apiKeyStorage === 'browser'
+                                                        ? 'Key stays in this browser. Re-enter on other devices.'
+                                                        : 'Key is encrypted and saved to your account. Available on any device you log into.'}
+                                                </p>
                                             </div>
                                         )}
                                     </div>

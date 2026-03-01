@@ -6,6 +6,7 @@ export interface IUser extends Document {
     password_hash: string;
     displayName?: string;
     avatar?: string;
+    apiKey?: string;
     created_at: Date;
 }
 
@@ -15,6 +16,7 @@ const UserSchema = new Schema<IUser>({
     password_hash: { type: String, required: true },
     displayName: { type: String },
     avatar: { type: String, default: 'detective' },
+    apiKey: { type: String },
     created_at: { type: Date, default: Date.now },
 });
 

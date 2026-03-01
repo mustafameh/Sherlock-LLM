@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/mongodb';
 import User from '@/lib/models/User';
+import { encryptApiKey, decryptApiKey } from '@/lib/crypto';
 
 const isProduction = process.env.NODE_ENV === 'production';
 
@@ -27,12 +28,23 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
+    let decryptedApiKey: string | null = null;
+    if (user.apiKey) {
+        try {
+            decryptedApiKey = decryptApiKey(user.apiKey);
+        } catch {
+            decryptedApiKey = null;
+        }
+    }
+
     return NextResponse.json({
         id: user._id,
         username: user.username,
         email: user.email,
         displayName: user.displayName || user.username,
         avatar: user.avatar || 'detective',
+        hasServerApiKey: !!user.apiKey,
+        apiKey: decryptedApiKey,
     });
 }
 
@@ -44,7 +56,8 @@ export async function PUT(request: NextRequest) {
 
     try {
         await dbConnect();
-        const { displayName, avatar } = await request.json();
+        const body = await request.json();
+        const { displayName, avatar, apiKey } = body;
 
         if (displayName && (typeof displayName !== 'string' || displayName.length > 30)) {
             return NextResponse.json({ error: 'Display name must be a string, max 30 chars' }, { status: 400 });
@@ -55,11 +68,25 @@ export async function PUT(request: NextRequest) {
             return NextResponse.json({ error: 'Invalid avatar selection' }, { status: 400 });
         }
 
-        const updateFields: Record<string, string> = {};
+        const updateFields: Record<string, unknown> = {};
         if (displayName) updateFields.displayName = displayName.trim();
         if (avatar) updateFields.avatar = avatar;
 
-        const user = await User.findByIdAndUpdate(sessionUser.id, updateFields, { new: true });
+        const clearApiKey = apiKey !== undefined && (apiKey === null || apiKey === '');
+        if (apiKey !== undefined && !clearApiKey) {
+            updateFields.apiKey = encryptApiKey(apiKey);
+        }
+
+        const updateOp: Record<string, unknown> = { $set: updateFields };
+        if (clearApiKey) {
+            updateOp.$unset = { apiKey: 1 };
+        }
+
+        const user = await User.findByIdAndUpdate(
+            sessionUser.id,
+            updateOp,
+            { new: true },
+        );
 
         if (!user) {
             return NextResponse.json({ error: 'User not found' }, { status: 404 });
@@ -69,6 +96,7 @@ export async function PUT(request: NextRequest) {
             success: true,
             displayName: user.displayName || user.username,
             avatar: user.avatar || 'detective',
+            hasServerApiKey: !!user.apiKey,
         });
 
         response.cookies.set('session', JSON.stringify({

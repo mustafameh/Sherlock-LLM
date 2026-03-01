@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useState, useCallback, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect, useRef, ReactNode } from 'react';
 import { UIMessage, Character, ModelSource, ModelStatus } from '@/lib/types';
 import { DEFAULT_CHARACTERS } from '@/lib/characters';
 
@@ -71,12 +71,17 @@ export function useChat() {
 }
 
 // ===== Settings Context =====
+type ApiKeyStorageMode = 'browser' | 'account';
+export type StoryScrollMode = 'all-at-once' | 'block-by-block' | 'as-ready';
+
 interface SettingsContextType {
     modelSource: ModelSource;
     selectedModel: string;
     apiKey: string;
     temperature: number;
     deepReasoning: boolean;
+    apiKeyStorage: ApiKeyStorageMode;
+    storyScrollMode: StoryScrollMode;
     localModelStatus: ModelStatus;
     showDebugWindow: boolean;
     setModelSource: (source: ModelSource) => void;
@@ -84,6 +89,8 @@ interface SettingsContextType {
     setApiKey: (key: string) => void;
     setTemperature: (temp: number) => void;
     setDeepReasoning: (on: boolean) => void;
+    setApiKeyStorage: (mode: ApiKeyStorageMode) => void;
+    setStoryScrollMode: (mode: StoryScrollMode) => void;
     setLocalModelStatus: (status: ModelStatus) => void;
     setShowDebugWindow: (show: boolean) => void;
     saveApiKey: (key: string) => void;
@@ -94,6 +101,7 @@ interface SettingsContextType {
 const SettingsContext = createContext<SettingsContextType | undefined>(undefined);
 
 export function SettingsProvider({ children }: { children: ReactNode }) {
+    const { user, isLoggedIn } = useAuth();
     const [modelSource, setModelSource] = useState<ModelSource>('openrouter');
     const [selectedModel, setSelectedModel] = useState(() => {
         if (typeof window !== 'undefined') {
@@ -115,8 +123,21 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
         }
         return true;
     });
+    const [apiKeyStorage, setApiKeyStorageState] = useState<ApiKeyStorageMode>(() => {
+        if (typeof window !== 'undefined') {
+            return (localStorage.getItem('ApiKeyStorage') as ApiKeyStorageMode) || 'browser';
+        }
+        return 'browser';
+    });
+    const [storyScrollMode, setStoryScrollModeState] = useState<StoryScrollMode>(() => {
+        if (typeof window !== 'undefined') {
+            return (localStorage.getItem('StoryScrollMode') as StoryScrollMode) || 'as-ready';
+        }
+        return 'as-ready';
+    });
     const [localModelStatus, setLocalModelStatus] = useState<ModelStatus>('not_loaded');
     const [showDebugWindow, setShowDebugWindow] = useState(false);
+    const hydratedForUser = useRef<string | null>(null);
 
     const setDeepReasoning = useCallback((on: boolean) => {
         setDeepReasoningState(on);
@@ -125,17 +146,55 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
         }
     }, []);
 
-    const saveApiKey = useCallback((key: string) => {
+    const setApiKeyStorage = useCallback((mode: ApiKeyStorageMode) => {
+        setApiKeyStorageState(mode);
+        if (typeof window !== 'undefined') {
+            localStorage.setItem('ApiKeyStorage', mode);
+        }
+    }, []);
+
+    const setStoryScrollMode = useCallback((mode: StoryScrollMode) => {
+        setStoryScrollModeState(mode);
+        if (typeof window !== 'undefined') {
+            localStorage.setItem('StoryScrollMode', mode);
+        }
+    }, []);
+
+    const saveApiKey = useCallback(async (key: string) => {
         setApiKey(key);
         if (typeof window !== 'undefined') {
             localStorage.setItem('APIKey', key);
         }
+        const currentStorageMode = typeof window !== 'undefined'
+            ? (localStorage.getItem('ApiKeyStorage') as ApiKeyStorageMode) || 'browser'
+            : 'browser';
+        if (currentStorageMode === 'account') {
+            try {
+                await fetch('/api/user/profile', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ apiKey: key }),
+                });
+            } catch { /* server sync failed silently */ }
+        }
     }, []);
 
-    const clearApiKey = useCallback(() => {
+    const clearApiKey = useCallback(async () => {
         setApiKey('');
         if (typeof window !== 'undefined') {
             localStorage.removeItem('APIKey');
+        }
+        const currentStorageMode = typeof window !== 'undefined'
+            ? (localStorage.getItem('ApiKeyStorage') as ApiKeyStorageMode) || 'browser'
+            : 'browser';
+        if (currentStorageMode === 'account') {
+            try {
+                await fetch('/api/user/profile', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ apiKey: null }),
+                });
+            } catch { /* server sync failed silently */ }
         }
     }, []);
 
@@ -146,11 +205,41 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
         }
     }, []);
 
+    useEffect(() => {
+        if (!isLoggedIn || !user) {
+            hydratedForUser.current = null;
+            return;
+        }
+        if (hydratedForUser.current === user.id) return;
+        hydratedForUser.current = user.id;
+
+        (async () => {
+            try {
+                const res = await fetch('/api/user/profile');
+                if (!res.ok) return;
+                const data = await res.json();
+                if (data.hasServerApiKey && data.apiKey) {
+                    const localKey = typeof window !== 'undefined' ? localStorage.getItem('APIKey') : '';
+                    if (!localKey) {
+                        setApiKey(data.apiKey);
+                        if (typeof window !== 'undefined') {
+                            localStorage.setItem('APIKey', data.apiKey);
+                            localStorage.setItem('ApiKeyStorage', 'account');
+                        }
+                        setApiKeyStorageState('account');
+                    }
+                }
+            } catch { /* hydration failed silently */ }
+        })();
+    }, [isLoggedIn, user]);
+
     return (
         <SettingsContext.Provider value={{
-            modelSource, selectedModel, apiKey, temperature, deepReasoning, localModelStatus, showDebugWindow,
-            setModelSource, setSelectedModel, setApiKey, setTemperature, setDeepReasoning, setLocalModelStatus,
-            setShowDebugWindow, saveApiKey, clearApiKey, saveModel,
+            modelSource, selectedModel, apiKey, temperature, deepReasoning, apiKeyStorage,
+            storyScrollMode, localModelStatus, showDebugWindow,
+            setModelSource, setSelectedModel, setApiKey, setTemperature, setDeepReasoning,
+            setApiKeyStorage, setStoryScrollMode, setLocalModelStatus, setShowDebugWindow,
+            saveApiKey, clearApiKey, saveModel,
         }}>
             {children}
         </SettingsContext.Provider>

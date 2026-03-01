@@ -8,7 +8,7 @@ import styles from './EditProfileModal.module.css';
 
 export default function EditProfileModal({ onClose }: { onClose: () => void }) {
     const { user, updateProfile } = useAuth();
-    const { apiKey, clearApiKey } = useSettings();
+    const { apiKey, clearApiKey, apiKeyStorage } = useSettings();
     const [displayName, setDisplayName] = useState(user?.displayName || user?.username || '');
     const [selectedAvatar, setSelectedAvatar] = useState(user?.avatar || 'detective');
     const [saving, setSaving] = useState(false);
@@ -118,6 +118,13 @@ export default function EditProfileModal({ onClose }: { onClose: () => void }) {
                                 API Key: {hasApiKey ? 'Connected' : 'Not Set'}
                             </span>
                         </div>
+                        {hasApiKey && (
+                            <span className={styles.storageMode}>
+                                {apiKeyStorage === 'account'
+                                    ? '☁ Saved to account (encrypted)'
+                                    : '🖥 Saved in browser only'}
+                            </span>
+                        )}
                         {hasApiKey ? (
                             <button
                                 className={styles.resetKeyBtn}

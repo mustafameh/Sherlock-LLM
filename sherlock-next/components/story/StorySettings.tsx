@@ -1,14 +1,16 @@
 'use client';
 
 import React, { useState } from 'react';
-import { useSettings } from '@/lib/contexts';
+import { useSettings, useAuth } from '@/lib/contexts';
 import { AVAILABLE_MODELS } from '@/lib/types';
 import styles from './StorySettings.module.css';
 
 export default function StorySettings({ open, onClose }: { open: boolean; onClose: () => void }) {
     const {
         selectedModel, saveModel, apiKey, saveApiKey, clearApiKey, temperature, setTemperature,
+        apiKeyStorage, setApiKeyStorage, storyScrollMode, setStoryScrollMode,
     } = useSettings();
+    const { isLoggedIn } = useAuth();
     const [keyInput, setKeyInput] = useState(apiKey);
     const [showApiKey, setShowApiKey] = useState(false);
     const [saveStatus, setSaveStatus] = useState<'idle' | 'saved' | 'cleared'>('idle');
@@ -66,6 +68,33 @@ export default function StorySettings({ open, onClose }: { open: boolean; onClos
                 </div>
 
                 <div className={styles.section}>
+                    <label className={styles.label}>Story Pacing</label>
+                    <div className={styles.pacingOptions}>
+                        <button
+                            className={`${styles.pacingBtn} ${storyScrollMode === 'all-at-once' ? styles.pacingBtnActive : ''}`}
+                            onClick={() => setStoryScrollMode('all-at-once')}
+                        >
+                            <span className={styles.pacingBtnTitle}>All at once</span>
+                            <span className={styles.pacingBtnDesc}>Content appears and scrolls automatically</span>
+                        </button>
+                        <button
+                            className={`${styles.pacingBtn} ${storyScrollMode === 'block-by-block' ? styles.pacingBtnActive : ''}`}
+                            onClick={() => setStoryScrollMode('block-by-block')}
+                        >
+                            <span className={styles.pacingBtnTitle}>Block by block</span>
+                            <span className={styles.pacingBtnDesc}>New blocks wait for you to advance</span>
+                        </button>
+                        <button
+                            className={`${styles.pacingBtn} ${storyScrollMode === 'as-ready' ? styles.pacingBtnActive : ''}`}
+                            onClick={() => setStoryScrollMode('as-ready')}
+                        >
+                            <span className={styles.pacingBtnTitle}>As ready</span>
+                            <span className={styles.pacingBtnDesc}>Blocks appear live, scrolling is manual</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div className={styles.section}>
                     <button
                         className={styles.toggleLabel}
                         onClick={() => setShowApiKey(!showApiKey)}
@@ -92,6 +121,40 @@ export default function StorySettings({ open, onClose }: { open: boolean; onClos
                             {saveStatus === 'cleared' && <span className={styles.clearedMsg}>Key cleared</span>}
                             {apiKey && saveStatus === 'idle' && (
                                 <span className={styles.statusMsg}>API Key is set</span>
+                            )}
+                            {isLoggedIn && (
+                                <div className={styles.storageToggle}>
+                                    <span className={styles.storageLabel}>Save key to:</span>
+                                    <div className={styles.storageOptions}>
+                                        <button
+                                            className={`${styles.storageBtn} ${apiKeyStorage === 'browser' ? styles.storageBtnActive : ''}`}
+                                            onClick={() => {
+                                                if (apiKeyStorage === 'account') {
+                                                    if (!window.confirm('Switching to browser-only will remove your API key from your account. Continue?')) return;
+                                                    fetch('/api/user/profile', {
+                                                        method: 'PUT',
+                                                        headers: { 'Content-Type': 'application/json' },
+                                                        body: JSON.stringify({ apiKey: null }),
+                                                    }).catch(() => {});
+                                                }
+                                                setApiKeyStorage('browser');
+                                            }}
+                                        >
+                                            🖥 Browser
+                                        </button>
+                                        <button
+                                            className={`${styles.storageBtn} ${apiKeyStorage === 'account' ? styles.storageBtnActive : ''}`}
+                                            onClick={() => setApiKeyStorage('account')}
+                                        >
+                                            ☁ Account
+                                        </button>
+                                    </div>
+                                    <p className={styles.storageHint}>
+                                        {apiKeyStorage === 'browser'
+                                            ? 'Key stays in this browser only.'
+                                            : 'Key encrypted & saved to your account.'}
+                                    </p>
+                                </div>
                             )}
                         </div>
                     )}

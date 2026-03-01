@@ -102,9 +102,9 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     const [modelSource, setModelSource] = useState<ModelSource>('openrouter');
     const [selectedModel, setSelectedModel] = useState(() => {
         if (typeof window !== 'undefined') {
-            return localStorage.getItem('SelectedModel') || 'google/gemma-3-27b-it:free';
+            return localStorage.getItem('SelectedModel') || 'nvidia/nemotron-3-nano-30b-a3b:free';
         }
-        return 'google/gemma-3-27b-it:free';
+        return 'nvidia/nemotron-3-nano-30b-a3b:free';
     });
     const [apiKey, setApiKey] = useState(() => {
         if (typeof window !== 'undefined') {

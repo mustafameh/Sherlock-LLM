@@ -25,8 +25,6 @@ export default function StoryInput() {
     const isDecisionActive = !!decisionBlock && !isStoryLoading && isOnLatest;
     const decisionOptions = decisionBlock?.type === 'decision' ? decisionBlock.options : [];
 
-    if (!isOnLatest) return null;
-
     const handleSend = useCallback(async () => {
         const text = textareaRef.current?.value.trim();
         if (!text) return;
@@ -38,12 +36,14 @@ export default function StoryInput() {
         await sendStoryAction(action);
     }, [sendStoryAction]);
 
-    const handleKeyDown = (e: React.KeyboardEvent) => {
+    const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
         if (e.key === 'Enter' && !e.shiftKey) {
             e.preventDefault();
             handleSend();
         }
-    };
+    }, [handleSend]);
+
+    if (!isOnLatest) return null;
 
     return (
         <div className={styles.storyInputArea}>

@@ -52,6 +52,10 @@
     background: var(--bg-tertiary);
 }
 
+.navUserWrap {
+    position: relative;
+}
+
 .navUser {
     display: flex;
     align-items: center;
@@ -61,12 +65,79 @@
     padding: var(--space-1) var(--space-3) var(--space-1) var(--space-1);
     border-radius: var(--radius-full);
     background: var(--bg-tertiary);
-    text-decoration: none;
+    border: none;
+    cursor: pointer;
     transition: background var(--transition-fast);
 }
 
 .navUser:hover {
     background: var(--color-navy-600);
+}
+
+.navCaret {
+    font-size: 10px;
+    color: var(--text-tertiary);
+    margin-left: 2px;
+}
+
+.navDropdown {
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    width: 240px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-lg);
+    z-index: 100;
+    overflow: hidden;
+}
+
+.navDropdownHeader {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    padding: var(--space-3) var(--space-4);
+    border-bottom: 1px solid var(--border-light);
+}
+
+.navDropdownName {
+    font-size: var(--text-sm);
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.navDropdownEmail {
+    font-size: 11px;
+    color: var(--text-tertiary);
+}
+
+.navDropdownItem {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    width: 100%;
+    padding: var(--space-3) var(--space-4);
+    background: none;
+    border: none;
+    color: var(--text-primary);
+    font-size: var(--text-sm);
+    cursor: pointer;
+    transition: background var(--transition-fast);
+    text-align: left;
+}
+
+.navDropdownItem:hover {
+    background: rgba(255, 255, 255, 0.06);
+}
+
+.navDropdownLogout {
+    color: #fca5a5;
+    border-top: 1px solid var(--border-light);
+}
+
+.navDropdownLogout:hover {
+    background: rgba(239, 68, 68, 0.1);
 }
 
 .navLoginBtn {

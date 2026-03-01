@@ -1,10 +1,11 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useAuth, useSettings } from '@/lib/contexts';
 import { AVATAR_OPTIONS } from '@/lib/types';
+import EditProfileModal from '@/components/EditProfileModal';
 import styles from './page.module.css';
 
 function ApiKeyModal({ onClose }: { onClose: () => void }) {
@@ -51,10 +52,25 @@ function ApiKeyModal({ onClose }: { onClose: () => void }) {
 }
 
 export default function LandingPage() {
-    const { user, isLoggedIn } = useAuth();
+    const { user, isLoggedIn, logout, checkAuth } = useAuth();
     const { apiKey } = useSettings();
     const [showApiModal, setShowApiModal] = useState(false);
+    const [showProfileModal, setShowProfileModal] = useState(false);
+    const [dropdownOpen, setDropdownOpen] = useState(false);
+    const dropdownRef = useRef<HTMLDivElement>(null);
     const userAvatarSrc = AVATAR_OPTIONS.find(a => a.id === user?.avatar)?.src || '/avatars/detective.svg';
+
+    useEffect(() => { checkAuth(); }, [checkAuth]);
+
+    useEffect(() => {
+        function handleClickOutside(e: MouseEvent) {
+            if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+                setDropdownOpen(false);
+            }
+        }
+        document.addEventListener('click', handleClickOutside);
+        return () => document.removeEventListener('click', handleClickOutside);
+    }, []);
 
     return (
         <div className={styles.page}>
@@ -68,10 +84,36 @@ export default function LandingPage() {
                         {apiKey ? '🔑 API Key Set' : '🔑 Set API Key'}
                     </button>
                     {isLoggedIn ? (
-                        <Link href="/roleplay" className={styles.navUser}>
-                            <Image src={userAvatarSrc} alt="Avatar" width={28} height={28} style={{ borderRadius: '50%' }} />
-                            <span>{user?.displayName || user?.username}</span>
-                        </Link>
+                        <div className={styles.navUserWrap} ref={dropdownRef}>
+                            <button className={styles.navUser} onClick={() => setDropdownOpen(!dropdownOpen)}>
+                                <Image src={userAvatarSrc} alt="Avatar" width={28} height={28} style={{ borderRadius: '50%' }} />
+                                <span>{user?.displayName || user?.username}</span>
+                                <span className={styles.navCaret}>{dropdownOpen ? '▴' : '▾'}</span>
+                            </button>
+                            {dropdownOpen && (
+                                <div className={styles.navDropdown}>
+                                    <div className={styles.navDropdownHeader}>
+                                        <Image src={userAvatarSrc} alt="Avatar" width={32} height={32} style={{ borderRadius: '50%' }} />
+                                        <div>
+                                            <div className={styles.navDropdownName}>{user?.displayName || user?.username}</div>
+                                            <div className={styles.navDropdownEmail}>{user?.email}</div>
+                                        </div>
+                                    </div>
+                                    <button
+                                        className={styles.navDropdownItem}
+                                        onClick={() => { setShowProfileModal(true); setDropdownOpen(false); }}
+                                    >
+                                        👤 Profile Info
+                                    </button>
+                                    <button
+                                        className={`${styles.navDropdownItem} ${styles.navDropdownLogout}`}
+                                        onClick={() => { logout(); setDropdownOpen(false); }}
+                                    >
+                                        ↪ Logout
+                                    </button>
+                                </div>
+                            )}
+                        </div>
                     ) : (
                         <Link href="/login" className={styles.navLoginBtn}>Login</Link>
                     )}
@@ -148,6 +190,7 @@ export default function LandingPage() {
             </footer>
 
             {showApiModal && <ApiKeyModal onClose={() => setShowApiModal(false)} />}
+            {showProfileModal && <EditProfileModal onClose={() => setShowProfileModal(false)} />}
         </div>
     );
 }

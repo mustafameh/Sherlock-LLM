@@ -30,9 +30,9 @@ export default function Header() {
         <>
             <header className={styles.header}>
                 <div className={styles.headerLeft}>
-                    <div className={styles.logo}>
+                    <Link href="/" className={styles.logo}>
                         <Image src="/logo.png" alt="Sherlock Holmes Logo" width={40} height={40} style={{ objectFit: 'contain' }} />
-                    </div>
+                    </Link>
                     <h1 className={styles.title}>
                         Agent Sherlock
                     </h1>

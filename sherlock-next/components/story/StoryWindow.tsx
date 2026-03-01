@@ -1,8 +1,7 @@
 'use client';
 
-import React, { useEffect, useRef, useCallback } from 'react';
+import React, { useEffect, useRef, useCallback, useState } from 'react';
 import { useStory } from '@/lib/storyContext';
-import { useSettings } from '@/lib/contexts';
 import type { StoryBlock } from '@/lib/storyParser';
 import styles from './Story.module.css';
 
@@ -15,7 +14,7 @@ const CHARACTER_COLORS: Record<string, string> = {
 
 function NarratorBlock({ content }: { content: string }) {
     return (
-        <div className={styles.narratorBlock}>
+        <div className={`${styles.narratorBlock} ${styles.blockFadeIn}`}>
             <p>{content}</p>
         </div>
     );
@@ -24,7 +23,7 @@ function NarratorBlock({ content }: { content: string }) {
 function DialogueBubble({ character, content }: { character: string; content: string }) {
     const color = CHARACTER_COLORS[character] || '#e2e8f0';
     return (
-        <div className={styles.bubbleWrapper}>
+        <div className={`${styles.bubbleWrapper} ${styles.blockFadeIn}`}>
             <div className={styles.bubbleLeft}>
                 <span className={styles.bubbleSpeaker} style={{ color }}>{character}</span>
                 <span className={styles.bubbleContent}>{content}</span>
@@ -36,7 +35,7 @@ function DialogueBubble({ character, content }: { character: string; content: st
 function UserActionBubble({ content, characterName }: { content: string; characterName: string }) {
     const displayText = content.replace(/^I choose:\s*/i, '');
     return (
-        <div className={`${styles.bubbleWrapper} ${styles.bubbleWrapperRight}`}>
+        <div className={`${styles.bubbleWrapper} ${styles.bubbleWrapperRight} ${styles.blockFadeIn}`}>
             <div className={styles.bubbleRight}>
                 <span className={styles.bubbleSpeakerUser}>{characterName}</span>
                 <span className={styles.bubbleContent}>{displayText}</span>
@@ -47,7 +46,7 @@ function UserActionBubble({ content, characterName }: { content: string; charact
 
 function AwaitingBlock({ context }: { context: string }) {
     return (
-        <div className={styles.awaitingBlock}>
+        <div className={`${styles.awaitingBlock} ${styles.blockFadeIn}`}>
             <p>{context}</p>
         </div>
     );
@@ -63,7 +62,7 @@ function StoryBlockRenderer({ block, isLast, userCharacter }: { block: StoryBloc
             return <UserActionBubble content={block.content} characterName={userCharacter} />;
         case 'decision':
             if (isLast) return null;
-            return <div className={styles.decisionBlockPast}>{block.options.join(' / ')}</div>;
+            return <div className={`${styles.decisionBlockPast} ${styles.blockFadeIn}`}>{block.options.join(' / ')}</div>;
         case 'awaiting_input':
             return isLast ? <AwaitingBlock context={block.context} /> : null;
         default:
@@ -72,55 +71,51 @@ function StoryBlockRenderer({ block, isLast, userCharacter }: { block: StoryBloc
 }
 
 export default function StoryWindow() {
-    const {
-        storyBlocks, visibleBlockCount, pendingBlockCount,
-        isStoryLoading, userCharacter, streamingHint, revealNextBlock,
-    } = useStory();
-    const { storyScrollMode } = useSettings();
+    const { storyBlocks, isStoryLoading, userCharacter, streamingHint } = useStory();
 
     const scrollContainerRef = useRef<HTMLDivElement>(null);
     const bottomRef = useRef<HTMLDivElement>(null);
-    const isNearBottomRef = useRef(true);
+    const isPinnedRef = useRef(true);
+    const [showJumpBtn, setShowJumpBtn] = useState(false);
+    const prevBlockCountRef = useRef(0);
 
-    const NEAR_BOTTOM_THRESHOLD = 150;
+    const PINNED_THRESHOLD = 100;
 
-    const handleScroll = useCallback(() => {
+    const checkIfPinned = useCallback(() => {
         const el = scrollContainerRef.current;
         if (!el) return;
-        const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
-        isNearBottomRef.current = distanceFromBottom < NEAR_BOTTOM_THRESHOLD;
-
-        if (isNearBottomRef.current && storyScrollMode === 'block-by-block' && pendingBlockCount > 0) {
-            revealNextBlock();
-        }
-    }, [storyScrollMode, pendingBlockCount, revealNextBlock]);
+        const gap = el.scrollHeight - el.scrollTop - el.clientHeight;
+        isPinnedRef.current = gap < PINNED_THRESHOLD;
+        setShowJumpBtn(gap >= PINNED_THRESHOLD);
+    }, []);
 
     useEffect(() => {
-        if (storyScrollMode === 'all-at-once') {
+        if (isPinnedRef.current) {
             bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-        } else if (storyScrollMode === 'as-ready' && isNearBottomRef.current) {
-            bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-        } else if (storyScrollMode === 'block-by-block' && isNearBottomRef.current) {
-            bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+        } else if (storyBlocks.length > prevBlockCountRef.current) {
+            setShowJumpBtn(true);
         }
-    }, [visibleBlockCount, storyScrollMode]);
+        prevBlockCountRef.current = storyBlocks.length;
+    }, [storyBlocks]);
 
-    const visibleBlocks = storyBlocks.slice(0, visibleBlockCount);
-    const showArrow = (storyScrollMode === 'block-by-block' && pendingBlockCount > 0)
-        || (storyScrollMode === 'as-ready' && !isNearBottomRef.current && isStoryLoading);
+    const jumpToBottom = useCallback(() => {
+        bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+        setShowJumpBtn(false);
+        isPinnedRef.current = true;
+    }, []);
 
     return (
         <div className={styles.storyWindowWrap}>
             <div
                 className={styles.storyWindow}
                 ref={scrollContainerRef}
-                onScroll={handleScroll}
+                onScroll={checkIfPinned}
             >
-                {visibleBlocks.map((block, i) => (
+                {storyBlocks.map((block, i) => (
                     <StoryBlockRenderer
                         key={i}
                         block={block}
-                        isLast={i === visibleBlocks.length - 1}
+                        isLast={i === storyBlocks.length - 1}
                         userCharacter={userCharacter}
                     />
                 ))}
@@ -137,23 +132,13 @@ export default function StoryWindow() {
                 <div ref={bottomRef} />
             </div>
 
-            {showArrow && (
+            {showJumpBtn && (
                 <button
-                    className={styles.newContentArrow}
-                    onClick={() => {
-                        if (storyScrollMode === 'block-by-block') {
-                            revealNextBlock();
-                        }
-                        bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-                    }}
-                    title={storyScrollMode === 'block-by-block'
-                        ? `${pendingBlockCount} more block${pendingBlockCount > 1 ? 's' : ''}`
-                        : 'Scroll to new content'}
+                    className={styles.jumpToBottom}
+                    onClick={jumpToBottom}
+                    title="Jump to latest"
                 >
-                    <span className={styles.arrowIcon}>↓</span>
-                    {storyScrollMode === 'block-by-block' && pendingBlockCount > 0 && (
-                        <span className={styles.pendingBadge}>{pendingBlockCount}</span>
-                    )}
+                    ↓
                 </button>
             )}
         </div>

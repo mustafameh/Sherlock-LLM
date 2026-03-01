@@ -72,7 +72,6 @@ export function useChat() {
 
 // ===== Settings Context =====
 type ApiKeyStorageMode = 'browser' | 'account';
-export type StoryScrollMode = 'all-at-once' | 'block-by-block' | 'as-ready';
 
 interface SettingsContextType {
     modelSource: ModelSource;
@@ -81,7 +80,6 @@ interface SettingsContextType {
     temperature: number;
     deepReasoning: boolean;
     apiKeyStorage: ApiKeyStorageMode;
-    storyScrollMode: StoryScrollMode;
     localModelStatus: ModelStatus;
     showDebugWindow: boolean;
     setModelSource: (source: ModelSource) => void;
@@ -90,7 +88,6 @@ interface SettingsContextType {
     setTemperature: (temp: number) => void;
     setDeepReasoning: (on: boolean) => void;
     setApiKeyStorage: (mode: ApiKeyStorageMode) => void;
-    setStoryScrollMode: (mode: StoryScrollMode) => void;
     setLocalModelStatus: (status: ModelStatus) => void;
     setShowDebugWindow: (show: boolean) => void;
     saveApiKey: (key: string) => void;
@@ -129,12 +126,6 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
         }
         return 'browser';
     });
-    const [storyScrollMode, setStoryScrollModeState] = useState<StoryScrollMode>(() => {
-        if (typeof window !== 'undefined') {
-            return (localStorage.getItem('StoryScrollMode') as StoryScrollMode) || 'as-ready';
-        }
-        return 'as-ready';
-    });
     const [localModelStatus, setLocalModelStatus] = useState<ModelStatus>('not_loaded');
     const [showDebugWindow, setShowDebugWindow] = useState(false);
     const hydratedForUser = useRef<string | null>(null);
@@ -150,13 +141,6 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
         setApiKeyStorageState(mode);
         if (typeof window !== 'undefined') {
             localStorage.setItem('ApiKeyStorage', mode);
-        }
-    }, []);
-
-    const setStoryScrollMode = useCallback((mode: StoryScrollMode) => {
-        setStoryScrollModeState(mode);
-        if (typeof window !== 'undefined') {
-            localStorage.setItem('StoryScrollMode', mode);
         }
     }, []);
 
@@ -236,9 +220,9 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     return (
         <SettingsContext.Provider value={{
             modelSource, selectedModel, apiKey, temperature, deepReasoning, apiKeyStorage,
-            storyScrollMode, localModelStatus, showDebugWindow,
+            localModelStatus, showDebugWindow,
             setModelSource, setSelectedModel, setApiKey, setTemperature, setDeepReasoning,
-            setApiKeyStorage, setStoryScrollMode, setLocalModelStatus, setShowDebugWindow,
+            setApiKeyStorage, setLocalModelStatus, setShowDebugWindow,
             saveApiKey, clearApiKey, saveModel,
         }}>
             {children}

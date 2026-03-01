@@ -30,21 +30,6 @@ function DialogueBlock({ character, content }: { character: string; content: str
     );
 }
 
-function DecisionBlock({ options, onSelect }: { options: string[]; onSelect: (opt: string) => void }) {
-    return (
-        <div className={styles.decisionBlock}>
-            <span className={styles.decisionLabel}>What will you do?</span>
-            <div className={styles.decisionOptions}>
-                {options.map((opt, i) => (
-                    <button key={i} className={styles.decisionBtn} onClick={() => onSelect(opt)}>
-                        {opt}
-                    </button>
-                ))}
-            </div>
-        </div>
-    );
-}
-
 function AwaitingBlock({ context }: { context: string }) {
     return (
         <div className={styles.awaitingBlock}>
@@ -54,17 +39,14 @@ function AwaitingBlock({ context }: { context: string }) {
 }
 
 function StoryBlockRenderer({ block, isLast }: { block: StoryBlock; isLast: boolean }) {
-    const { selectDecision, isStoryLoading } = useStory();
-
     switch (block.type) {
         case 'narrator':
             return <NarratorBlock content={block.content} />;
         case 'dialogue':
             return <DialogueBlock character={block.character} content={block.content} />;
         case 'decision':
-            return isLast && !isStoryLoading
-                ? <DecisionBlock options={block.options} onSelect={selectDecision} />
-                : <div className={styles.decisionBlockPast}>{block.options.join(' / ')}</div>;
+            if (isLast) return null;
+            return <div className={styles.decisionBlockPast}>{block.options.join(' / ')}</div>;
         case 'awaiting_input':
             return isLast ? <AwaitingBlock context={block.context} /> : null;
         default:

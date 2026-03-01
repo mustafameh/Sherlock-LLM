@@ -12,11 +12,12 @@ const QUICK_ACTIONS = [
 ];
 
 export default function StoryInput() {
-    const { sendStoryAction, isStoryLoading, userCharacter, storyBlocks } = useStory();
+    const { sendStoryAction, selectDecision, isStoryLoading, userCharacter, storyBlocks } = useStory();
     const textareaRef = useRef<HTMLTextAreaElement>(null);
 
     const lastBlock = storyBlocks[storyBlocks.length - 1];
-    const isDecisionActive = lastBlock?.type === 'decision';
+    const isDecisionActive = lastBlock?.type === 'decision' && !isStoryLoading;
+    const decisionOptions = isDecisionActive && lastBlock.type === 'decision' ? lastBlock.options : [];
 
     const handleSend = useCallback(async () => {
         const text = textareaRef.current?.value.trim();
@@ -36,30 +37,48 @@ export default function StoryInput() {
         }
     };
 
-    if (isDecisionActive && !isStoryLoading) {
-        return null;
-    }
-
     return (
         <div className={styles.storyInputArea}>
-            <div className={styles.quickActions}>
-                {QUICK_ACTIONS.map((qa) => (
-                    <button
-                        key={qa.label}
-                        className={styles.quickActionBtn}
-                        onClick={() => handleQuickAction(qa.action)}
-                        disabled={isStoryLoading}
-                    >
-                        {qa.label}
-                    </button>
-                ))}
-            </div>
+            {isDecisionActive && decisionOptions.length > 0 && (
+                <div className={styles.inlineDecision}>
+                    <span className={styles.inlineDecisionLabel}>Choose an option:</span>
+                    <div className={styles.inlineDecisionOptions}>
+                        {decisionOptions.map((opt, i) => (
+                            <button
+                                key={i}
+                                className={styles.inlineDecisionBtn}
+                                onClick={() => selectDecision(opt)}
+                            >
+                                {opt}
+                            </button>
+                        ))}
+                    </div>
+                    <span className={styles.orDivider}>or type your own response below</span>
+                </div>
+            )}
+            {!isDecisionActive && (
+                <div className={styles.quickActions}>
+                    {QUICK_ACTIONS.map((qa) => (
+                        <button
+                            key={qa.label}
+                            className={styles.quickActionBtn}
+                            onClick={() => handleQuickAction(qa.action)}
+                            disabled={isStoryLoading}
+                        >
+                            {qa.label}
+                        </button>
+                    ))}
+                </div>
+            )}
             <div className={styles.storyInputRow}>
                 <textarea
                     ref={textareaRef}
                     className={styles.storyTextarea}
                     rows={1}
-                    placeholder={`What does ${userCharacter} say or do?`}
+                    placeholder={isDecisionActive
+                        ? `Or type what ${userCharacter} does instead...`
+                        : `What does ${userCharacter} say or do?`
+                    }
                     onKeyDown={handleKeyDown}
                     disabled={isStoryLoading}
                     onInput={(e) => {

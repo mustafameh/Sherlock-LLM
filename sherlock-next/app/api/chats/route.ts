@@ -17,7 +17,12 @@ export async function GET(request: NextRequest) {
         await dbConnect();
         const sessionUser = getUserFromSession(request);
 
-        const filter = sessionUser ? { user_id: sessionUser.id } : {};
+        const chatType = request.nextUrl.searchParams.get('type');
+
+        const filter: Record<string, unknown> = {};
+        if (sessionUser) filter.user_id = sessionUser.id;
+        if (chatType) filter.chat_type = chatType;
+
         const chats = await Chat.find(filter)
             .select('-full_content')
             .sort({ created_at: -1 })
@@ -29,6 +34,7 @@ export async function GET(request: NextRequest) {
             title: chat.title,
             preview: chat.preview,
             character: chat.character,
+            chat_type: chat.chat_type || 'roleplay',
             created_at: chat.created_at,
         }));
 
@@ -50,6 +56,7 @@ export async function POST(request: NextRequest) {
             preview: data.preview,
             full_content: data.full_content,
             character: data.character,
+            chat_type: data.chat_type || 'roleplay',
         });
 
         return NextResponse.json({ message: 'Chat saved successfully', id: newChat._id }, { status: 201 });

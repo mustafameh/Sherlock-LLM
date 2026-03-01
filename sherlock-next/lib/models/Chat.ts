@@ -6,6 +6,7 @@ export interface IChat extends Document {
     preview: string;
     full_content: string;
     character: string;
+    chat_type: string;
     created_at: Date;
 }
 
@@ -15,6 +16,7 @@ const ChatSchema = new Schema<IChat>({
     preview: { type: String, default: '' },
     full_content: { type: String, default: '[]' },
     character: { type: String, default: 'Dr. Watson' },
+    chat_type: { type: String, default: 'roleplay', enum: ['roleplay', 'story'] },
     created_at: { type: Date, default: Date.now },
 });
 

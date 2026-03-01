@@ -305,7 +305,8 @@ export function StoryProvider({ children }: { children: ReactNode }) {
     }, [isStoryLoading, storyMessages, storyBlocks, streamStoryApi]);
 
     const selectDecision = useCallback(async (optionText: string) => {
-        await sendStoryAction(`I choose: ${optionText}`);
+        const cleaned = optionText.replace(/^Option\s+[A-Z]:\s*/i, '').trim();
+        await sendStoryAction(cleaned);
     }, [sendStoryAction]);
 
     const deleteStory = useCallback(async (id: string) => {

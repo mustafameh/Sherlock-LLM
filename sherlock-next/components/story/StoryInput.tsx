@@ -41,7 +41,7 @@ export default function StoryInput() {
         <div className={styles.storyInputArea}>
             {isDecisionActive && decisionOptions.length > 0 && (
                 <div className={styles.inlineDecision}>
-                    <span className={styles.inlineDecisionLabel}>Choose an option:</span>
+                    <span className={styles.inlineDecisionLabel}>What will you do?</span>
                     <div className={styles.inlineDecisionOptions}>
                         {decisionOptions.map((opt, i) => (
                             <button
@@ -56,20 +56,18 @@ export default function StoryInput() {
                     <span className={styles.orDivider}>or type your own response below</span>
                 </div>
             )}
-            {!isDecisionActive && (
-                <div className={styles.quickActions}>
-                    {QUICK_ACTIONS.map((qa) => (
-                        <button
-                            key={qa.label}
-                            className={styles.quickActionBtn}
-                            onClick={() => handleQuickAction(qa.action)}
-                            disabled={isStoryLoading}
-                        >
-                            {qa.label}
-                        </button>
-                    ))}
-                </div>
-            )}
+            <div className={styles.quickActions}>
+                {QUICK_ACTIONS.map((qa) => (
+                    <button
+                        key={qa.label}
+                        className={styles.quickActionBtn}
+                        onClick={() => handleQuickAction(qa.action)}
+                        disabled={isStoryLoading}
+                    >
+                        {qa.label}
+                    </button>
+                ))}
+            </div>
             <div className={styles.storyInputRow}>
                 <textarea
                     ref={textareaRef}

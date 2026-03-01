@@ -33,11 +33,12 @@ function DialogueBubble({ character, content }: { character: string; content: st
 }
 
 function UserActionBubble({ content, characterName }: { content: string; characterName: string }) {
+    const displayText = content.replace(/^I choose:\s*/i, '');
     return (
         <div className={`${styles.bubbleWrapper} ${styles.bubbleWrapperRight}`}>
             <div className={styles.bubbleRight}>
                 <span className={styles.bubbleSpeakerUser}>{characterName}</span>
-                <span className={styles.bubbleContent}>{content}</span>
+                <span className={styles.bubbleContent}>{displayText}</span>
             </div>
         </div>
     );

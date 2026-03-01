@@ -1,5 +1,43 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+interface ChatMessage {
+    role: string;
+    content: string;
+}
+
+async function callOpenRouter(
+    model: string,
+    messages: ChatMessage[],
+    temperature: number,
+    apiKey: string,
+): Promise<Response> {
+    return fetch('https://openrouter.ai/api/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${apiKey}`,
+        },
+        body: JSON.stringify({ model, messages, temperature, max_tokens: 1000 }),
+    });
+}
+
+function foldSystemIntoUser(messages: ChatMessage[]): ChatMessage[] {
+    const systemMsg = messages.find(m => m.role === 'system');
+    if (!systemMsg) return messages;
+
+    const rest = messages.filter(m => m.role !== 'system');
+    const firstUserIdx = rest.findIndex(m => m.role === 'user');
+    if (firstUserIdx !== -1) {
+        rest[firstUserIdx] = {
+            ...rest[firstUserIdx],
+            content: `[System Instructions]\n${systemMsg.content}\n\n[User Message]\n${rest[firstUserIdx].content}`,
+        };
+    } else {
+        rest.unshift({ role: 'user', content: systemMsg.content });
+    }
+    return rest;
+}
+
 export async function POST(request: NextRequest) {
     try {
         const body = await request.json();
@@ -9,67 +47,36 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: 'API key is required' }, { status: 400 });
         }
 
-        const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${apiKey}`,
-            },
-            body: JSON.stringify({
-                model,
-                messages,
-                temperature,
-                max_tokens: 1000,
-            }),
-        });
+        let response = await callOpenRouter(model, messages, temperature, apiKey);
+
+        // 429 on a :free model → retry with the paid variant (uses account credits)
+        if (response.status === 429 && model.endsWith(':free')) {
+            const paidModel = model.replace(/:free$/, '');
+            response = await callOpenRouter(paidModel, messages, temperature, apiKey);
+
+            // If paid variant also fails with 400 (system role), fold and retry
+            if (response.status === 400 && messages.some((m: ChatMessage) => m.role === 'system')) {
+                response = await callOpenRouter(paidModel, foldSystemIntoUser(messages), temperature, apiKey);
+            }
+
+            if (response.ok) {
+                const data = await response.json();
+                return NextResponse.json(data);
+            }
+        }
+
+        // 400 with system message → fold system into user and retry same model
+        if (response.status === 400 && messages.some((m: ChatMessage) => m.role === 'system')) {
+            response = await callOpenRouter(model, foldSystemIntoUser(messages), temperature, apiKey);
+
+            if (response.ok) {
+                const data = await response.json();
+                return NextResponse.json(data);
+            }
+        }
 
         if (!response.ok) {
             const errorData = await response.text();
-
-            // Some providers (e.g. Google AI Studio) reject the "system" role.
-            // Retry once with the system message folded into the first user message.
-            const hasSystem = messages.some((m: { role: string }) => m.role === 'system');
-            if (response.status === 400 && hasSystem) {
-                const systemMsg = messages.find((m: { role: string }) => m.role === 'system');
-                const rest = messages.filter((m: { role: string }) => m.role !== 'system');
-
-                // Prepend system content to the first user message, or create one
-                const firstUserIdx = rest.findIndex((m: { role: string }) => m.role === 'user');
-                if (firstUserIdx !== -1) {
-                    rest[firstUserIdx] = {
-                        ...rest[firstUserIdx],
-                        content: `[System Instructions]\n${systemMsg.content}\n\n[User Message]\n${rest[firstUserIdx].content}`,
-                    };
-                } else {
-                    rest.unshift({ role: 'user', content: systemMsg.content });
-                }
-
-                const retry = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${apiKey}`,
-                    },
-                    body: JSON.stringify({
-                        model,
-                        messages: rest,
-                        temperature,
-                        max_tokens: 1000,
-                    }),
-                });
-
-                if (retry.ok) {
-                    const data = await retry.json();
-                    return NextResponse.json(data);
-                }
-
-                const retryError = await retry.text();
-                return NextResponse.json(
-                    { error: `OpenRouter API error: ${retry.status} - ${retryError}` },
-                    { status: retry.status }
-                );
-            }
-
             return NextResponse.json(
                 { error: `OpenRouter API error: ${response.status} - ${errorData}` },
                 { status: response.status }

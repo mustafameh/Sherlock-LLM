@@ -110,30 +110,32 @@ export default function StoryWindow() {
         || (storyScrollMode === 'as-ready' && !isNearBottomRef.current && isStoryLoading);
 
     return (
-        <div
-            className={styles.storyWindow}
-            ref={scrollContainerRef}
-            onScroll={handleScroll}
-        >
-            {visibleBlocks.map((block, i) => (
-                <StoryBlockRenderer
-                    key={i}
-                    block={block}
-                    isLast={i === visibleBlocks.length - 1}
-                    userCharacter={userCharacter}
-                />
-            ))}
-            {isStoryLoading && (
-                <div className={styles.streamingIndicator}>
-                    <span className={styles.streamingText}>{streamingHint || 'The story continues'}</span>
-                    <span className={styles.streamingDots}>
-                        <span className={styles.dot} />
-                        <span className={styles.dot} />
-                        <span className={styles.dot} />
-                    </span>
-                </div>
-            )}
-            <div ref={bottomRef} />
+        <div className={styles.storyWindowWrap}>
+            <div
+                className={styles.storyWindow}
+                ref={scrollContainerRef}
+                onScroll={handleScroll}
+            >
+                {visibleBlocks.map((block, i) => (
+                    <StoryBlockRenderer
+                        key={i}
+                        block={block}
+                        isLast={i === visibleBlocks.length - 1}
+                        userCharacter={userCharacter}
+                    />
+                ))}
+                {isStoryLoading && (
+                    <div className={styles.streamingIndicator}>
+                        <span className={styles.streamingText}>{streamingHint || 'The story continues'}</span>
+                        <span className={styles.streamingDots}>
+                            <span className={styles.dot} />
+                            <span className={styles.dot} />
+                            <span className={styles.dot} />
+                        </span>
+                    </div>
+                )}
+                <div ref={bottomRef} />
+            </div>
 
             {showArrow && (
                 <button

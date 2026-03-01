@@ -3,7 +3,7 @@ import "./globals.css";
 import { ChatProvider, SettingsProvider, AuthProvider } from '@/lib/contexts';
 
 export const metadata: Metadata = {
-  title: "Sherlock Holmes AI — ReAct Chatbot",
+  title: "Agent Sherlock — AI Detective Chatbot",
   description: "An AI chatbot embodying Sherlock Holmes with ReAct reasoning capabilities and tool use. Built as a Master's dissertation project.",
 };
 

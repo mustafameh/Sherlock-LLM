@@ -83,18 +83,18 @@ export interface OpenRouterModel {
 }
 
 export const AVAILABLE_MODELS: OpenRouterModel[] = [
-    { id: 'google/gemini-2.5-pro-exp-03-25:free', name: 'Gemini 2.5 Pro Experimental (Free, 1M ctx)' },
-    { id: 'google/gemini-2.0-flash-exp:free', name: 'Gemini 2.0 Flash Experimental (Free, 1M ctx)' },
+    { id: 'nousresearch/hermes-3-llama-3.1-405b:free', name: 'Hermes 3 Llama 405B (Free, 131K ctx)' },
     { id: 'qwen/qwen3-next-80b-a3b-instruct:free', name: 'Qwen3 Next 80B (Free, 262K ctx)' },
-    { id: 'qwen/qwen3-coder:free', name: 'Qwen3 Coder (Free, 262K ctx)' },
+    { id: 'qwen/qwen3-coder:free', name: 'Qwen3 Coder 480B (Free, 262K ctx)' },
     { id: 'meta-llama/llama-3.3-70b-instruct:free', name: 'Llama 3.3 70B Instruct (Free, 128K ctx)' },
+    { id: 'nvidia/nemotron-3-nano-30b-a3b:free', name: 'NVIDIA Nemotron 3 30B (Free, 256K ctx)' },
     { id: 'google/gemma-3-27b-it:free', name: 'Gemma 3 27B (Free, 131K ctx)' },
-    { id: 'google/gemma-3-12b-it:free', name: 'Gemma 3 12B (Free, 131K ctx)' },
-    { id: 'deepseek/deepseek-r1-distill-qwen-32b:free', name: 'DeepSeek R1 Distill 32B (Free, 16K ctx)' },
+    { id: 'mistralai/mistral-small-3.1-24b-instruct:free', name: 'Mistral Small 3.1 24B (Free, 128K ctx)' },
+    { id: 'stepfun/step-3.5-flash:free', name: 'StepFun 3.5 Flash (Free, 256K ctx)' },
+    { id: 'google/gemma-3-12b-it:free', name: 'Gemma 3 12B (Free, 32K ctx)' },
     { id: 'qwen/qwen3-4b:free', name: 'Qwen3 4B (Free, 41K ctx)' },
     { id: 'meta-llama/llama-3.2-3b-instruct:free', name: 'Llama 3.2 3B Instruct (Free, 131K ctx)' },
     { id: 'google/gemma-3-4b-it:free', name: 'Gemma 3 4B (Free, 33K ctx)' },
-    { id: 'mistralai/mistral-7b-instruct:free', name: 'Mistral 7B Instruct (Free)' },
 ];
 
 // ===== Auth =====

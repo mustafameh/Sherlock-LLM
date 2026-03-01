@@ -34,8 +34,7 @@ export default function Header() {
                         <Image src="/logo.png" alt="Sherlock Holmes Logo" width={40} height={40} style={{ objectFit: 'contain' }} />
                     </div>
                     <h1 className={styles.title}>
-                        Sherlock Holmes
-                        <span className={styles.subtitle}>ReAct AI Agent</span>
+                        Agent Sherlock
                     </h1>
                 </div>
 

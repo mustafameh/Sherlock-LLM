@@ -95,9 +95,9 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     const [modelSource, setModelSource] = useState<ModelSource>('openrouter');
     const [selectedModel, setSelectedModel] = useState(() => {
         if (typeof window !== 'undefined') {
-            return localStorage.getItem('SelectedModel') || 'meta-llama/llama-3.1-8b-instruct:free';
+            return localStorage.getItem('SelectedModel') || 'google/gemma-3-27b-it:free';
         }
-        return 'meta-llama/llama-3.1-8b-instruct:free';
+        return 'google/gemma-3-27b-it:free';
     });
     const [apiKey, setApiKey] = useState(() => {
         if (typeof window !== 'undefined') {

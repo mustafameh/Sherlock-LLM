@@ -8,7 +8,7 @@ import styles from './StorySettings.module.css';
 export default function StorySettings({ open, onClose }: { open: boolean; onClose: () => void }) {
     const {
         selectedModel, saveModel, apiKey, saveApiKey, clearApiKey, temperature, setTemperature,
-        apiKeyStorage, setApiKeyStorage,
+        apiKeyStorage, setApiKeyStorage, storyScrollMode, setStoryScrollMode,
     } = useSettings();
     const { isLoggedIn } = useAuth();
     const [keyInput, setKeyInput] = useState(apiKey);
@@ -64,6 +64,33 @@ export default function StorySettings({ open, onClose }: { open: boolean; onClos
                             className={styles.slider}
                         />
                         <span className={styles.sliderValue}>{temperature}</span>
+                    </div>
+                </div>
+
+                <div className={styles.section}>
+                    <label className={styles.label}>Story Pacing</label>
+                    <div className={styles.pacingOptions}>
+                        <button
+                            className={`${styles.pacingBtn} ${storyScrollMode === 'all-at-once' ? styles.pacingBtnActive : ''}`}
+                            onClick={() => setStoryScrollMode('all-at-once')}
+                        >
+                            <span className={styles.pacingBtnTitle}>All at once</span>
+                            <span className={styles.pacingBtnDesc}>Content appears and scrolls automatically</span>
+                        </button>
+                        <button
+                            className={`${styles.pacingBtn} ${storyScrollMode === 'block-by-block' ? styles.pacingBtnActive : ''}`}
+                            onClick={() => setStoryScrollMode('block-by-block')}
+                        >
+                            <span className={styles.pacingBtnTitle}>Block by block</span>
+                            <span className={styles.pacingBtnDesc}>New blocks wait for you to advance</span>
+                        </button>
+                        <button
+                            className={`${styles.pacingBtn} ${storyScrollMode === 'as-ready' ? styles.pacingBtnActive : ''}`}
+                            onClick={() => setStoryScrollMode('as-ready')}
+                        >
+                            <span className={styles.pacingBtnTitle}>As ready</span>
+                            <span className={styles.pacingBtnDesc}>Blocks appear live, scrolling is manual</span>
+                        </button>
                     </div>
                 </div>
 

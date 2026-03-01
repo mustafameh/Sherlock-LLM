@@ -15,9 +15,10 @@ export default function StoryInput() {
     const { sendStoryAction, selectDecision, isStoryLoading, userCharacter, storyBlocks } = useStory();
     const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-    const lastBlock = storyBlocks[storyBlocks.length - 1];
-    const isDecisionActive = lastBlock?.type === 'decision' && !isStoryLoading;
-    const decisionOptions = isDecisionActive && lastBlock.type === 'decision' ? lastBlock.options : [];
+    const recentBlocks = storyBlocks.slice(-3);
+    const decisionBlock = recentBlocks.reverse().find(b => b.type === 'decision');
+    const isDecisionActive = !!decisionBlock && !isStoryLoading;
+    const decisionOptions = decisionBlock?.type === 'decision' ? decisionBlock.options : [];
 
     const handleSend = useCallback(async () => {
         const text = textareaRef.current?.value.trim();

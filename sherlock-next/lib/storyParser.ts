@@ -11,6 +11,7 @@ export function parseStoryBlocks(raw: string): StoryBlock[] {
     const blocks: StoryBlock[] = [];
     const markers: { type: string; character?: string; index: number }[] = [];
 
+    BLOCK_PATTERN.lastIndex = 0;
     let match: RegExpExecArray | null;
     while ((match = BLOCK_PATTERN.exec(raw)) !== null) {
         const tag = match[1];

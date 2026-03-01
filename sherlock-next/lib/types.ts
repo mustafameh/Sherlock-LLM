@@ -83,6 +83,8 @@ export interface OpenRouterModel {
 }
 
 export const AVAILABLE_MODELS: OpenRouterModel[] = [
+    { id: 'google/gemini-2.5-pro-exp-03-25:free', name: 'Gemini 2.5 Pro Experimental (Free, 1M ctx)' },
+    { id: 'google/gemini-2.0-flash-exp:free', name: 'Gemini 2.0 Flash Experimental (Free, 1M ctx)' },
     { id: 'qwen/qwen3-next-80b-a3b-instruct:free', name: 'Qwen3 Next 80B (Free, 262K ctx)' },
     { id: 'qwen/qwen3-coder:free', name: 'Qwen3 Coder (Free, 262K ctx)' },
     { id: 'meta-llama/llama-3.3-70b-instruct:free', name: 'Llama 3.3 70B Instruct (Free, 128K ctx)' },

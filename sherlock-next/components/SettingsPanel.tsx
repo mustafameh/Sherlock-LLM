@@ -26,6 +26,23 @@ function CollapsibleSection({ title, defaultOpen = true, children }: {
     );
 }
 
+function InfoTooltip({ text }: { text: string }) {
+    const [visible, setVisible] = useState(false);
+    return (
+        <span
+            className={styles.infoIcon}
+            onMouseEnter={() => setVisible(true)}
+            onMouseLeave={() => setVisible(false)}
+            onClick={() => setVisible(!visible)}
+        >
+            ⓘ
+            {visible && <span className={styles.tooltip}>{text}</span>}
+        </span>
+    );
+}
+
+const CUSTOM_MODEL_OPTION = '__custom__';
+
 export default function SettingsPanel() {
     const {
         selectedModel, apiKey, temperature,
@@ -35,11 +52,29 @@ export default function SettingsPanel() {
     const { currentCharacter, characters, setCurrentCharacter, context, setContext } = useChat();
     const [showCharModal, setShowCharModal] = useState(false);
     const [localApiKey, setLocalApiKey] = useState(apiKey);
-    const [localModel, setLocalModel] = useState(selectedModel);
     const [collapsed, setCollapsed] = useState(typeof window !== 'undefined' && window.innerWidth <= 768);
     const [showApiKey, setShowApiKey] = useState(false);
 
+    const isPresetModel = AVAILABLE_MODELS.some(m => m.id === selectedModel);
+    const [dropdownValue, setDropdownValue] = useState(isPresetModel ? selectedModel : CUSTOM_MODEL_OPTION);
+    const [customModelId, setCustomModelId] = useState(isPresetModel ? '' : selectedModel);
+
     const isMobile = typeof window !== 'undefined' && window.innerWidth <= 768;
+
+    const handleDropdownChange = (value: string) => {
+        setDropdownValue(value);
+        if (value !== CUSTOM_MODEL_OPTION) {
+            setCustomModelId('');
+        }
+    };
+
+    const handleConfirmModel = () => {
+        if (dropdownValue === CUSTOM_MODEL_OPTION) {
+            if (customModelId.trim()) saveModel(customModelId.trim());
+        } else {
+            saveModel(dropdownValue);
+        }
+    };
 
     return (
         <>
@@ -75,18 +110,14 @@ export default function SettingsPanel() {
                         {/* ── CONNECTION ── */}
                         <CollapsibleSection title="Connection">
                             <div className={styles.modelOptions}>
-                                <div
-                                    className={`${styles.modelCard} ${styles.modelCardActive}`}
-                                >
+                                <div className={`${styles.modelCard} ${styles.modelCardActive}`}>
                                     <div className={`${styles.modelCardRadio} ${styles.modelCardRadioActive}`} />
                                     <div className={styles.modelCardInfo}>
                                         <h4>OpenRouter API</h4>
                                         <p>Access various AI models</p>
                                     </div>
                                 </div>
-                                <div
-                                    className={`${styles.modelCard} ${styles.modelCardDisabled}`}
-                                >
+                                <div className={`${styles.modelCard} ${styles.modelCardDisabled}`}>
                                     <div className={styles.modelCardRadio} />
                                     <div className={styles.modelCardInfo}>
                                         <h4>Local Fine-tuned Model</h4>
@@ -95,13 +126,16 @@ export default function SettingsPanel() {
                                 </div>
                             </div>
 
-                            {/* API Key — collapsible sub-section */}
+                            {/* API Key */}
                             <div className={styles.apiKeyGroup}>
                                 <button
                                     className={styles.apiKeyToggle}
                                     onClick={() => setShowApiKey(!showApiKey)}
                                 >
-                                    <span>Bring your own API Key</span>
+                                    <span>
+                                        Bring your own API Key
+                                        <InfoTooltip text="Get a free API key at openrouter.ai/keys. Free models have no cost — you just need an account. Your key is stored locally in your browser and never sent to our servers." />
+                                    </span>
                                     <span className={`${styles.chevron} ${showApiKey ? styles.chevronOpen : ''}`}>›</span>
                                 </button>
                                 {showApiKey && (
@@ -109,7 +143,7 @@ export default function SettingsPanel() {
                                         <input
                                             type="password"
                                             className={styles.input}
-                                            placeholder="Enter your OpenRouter API key"
+                                            placeholder="sk-or-v1-..."
                                             value={localApiKey}
                                             onChange={(e) => setLocalApiKey(e.target.value)}
                                         />
@@ -128,20 +162,41 @@ export default function SettingsPanel() {
 
                         {/* ── YOUR MODEL ── */}
                         <CollapsibleSection title="Your Model">
-                            <div className={styles.fieldLabel}>Model Name</div>
+                            <div className={styles.fieldLabel}>
+                                Choose a Model
+                                <InfoTooltip text="All listed models are free with rate limits of 20 req/min. You can also paste any model ID from openrouter.ai/models — paid models require OpenRouter credits on your account." />
+                            </div>
                             <select
                                 className={styles.select}
-                                value={localModel}
-                                onChange={(e) => setLocalModel(e.target.value)}
+                                value={dropdownValue}
+                                onChange={(e) => handleDropdownChange(e.target.value)}
                             >
                                 {AVAILABLE_MODELS.map(m => (
                                     <option key={m.id} value={m.id}>{m.name}</option>
                                 ))}
+                                <option value={CUSTOM_MODEL_OPTION}>— Use Custom Model ID —</option>
                             </select>
+
+                            {dropdownValue === CUSTOM_MODEL_OPTION && (
+                                <div className={styles.customModelGroup}>
+                                    <input
+                                        type="text"
+                                        className={styles.input}
+                                        placeholder="e.g. anthropic/claude-3.5-sonnet"
+                                        value={customModelId}
+                                        onChange={(e) => setCustomModelId(e.target.value)}
+                                    />
+                                    <p className={styles.customModelHint}>
+                                        Paste any model ID from <a href="https://openrouter.ai/models" target="_blank" rel="noopener noreferrer">openrouter.ai/models</a>. Paid models require credits.
+                                    </p>
+                                </div>
+                            )}
+
                             <button
                                 className={styles.btnPrimary}
                                 style={{ marginTop: '8px', width: '100%' }}
-                                onClick={() => saveModel(localModel)}
+                                onClick={handleConfirmModel}
+                                disabled={dropdownValue === CUSTOM_MODEL_OPTION && !customModelId.trim()}
                             >
                                 ✓ Confirm Model
                             </button>

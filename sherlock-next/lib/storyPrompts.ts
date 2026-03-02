@@ -8,12 +8,16 @@ export const VOICE_STYLES: { id: string; name: string; instruction: string }[] =
 
 import type { DecisionFrequency } from './contexts';
 
-const DECISION_FREQUENCY_RULES: Record<DecisionFrequency, string> = {
-    frequent: 'Present [DECISION] blocks frequently — roughly every 2-3 exchanges.',
-    normal: 'Present [DECISION] blocks at key dramatic moments — roughly every 3-5 exchanges.',
-    sparse: 'Present [DECISION] blocks sparingly — roughly every 6-8 exchanges. Let the story breathe between choices.',
-    very_rare: 'Present [DECISION] blocks only at major plot crossroads — roughly every 10-15 exchanges. Focus on narrative flow.',
+const BATCH_SIZES: Record<DecisionFrequency, number> = {
+    frequent: 1,
+    normal: 3,
+    sparse: 5,
+    very_rare: 8,
 };
+
+export function getBatchSize(freq: DecisionFrequency, zen: boolean): number {
+    return zen ? 5 : BATCH_SIZES[freq];
+}
 
 export function generateStorySystemPrompt(
     userCharacter: string,
@@ -32,13 +36,24 @@ export function generateStorySystemPrompt(
         : undefined;
     const voiceLine = voiceInstr ? `\n\nWRITING STYLE: ${voiceInstr}` : '';
 
-    const endingRule = zenMode
-        ? `3. End each response with narrative that flows naturally into the next scene. Do NOT include [DECISION] or [AWAITING_INPUT] blocks unless the story reaches a truly critical crossroads (once every 15+ exchanges at most). The story should feel continuous, like reading a novel.`
-        : `3. Every response MUST end with either a [DECISION] block (at dramatic turning points) or an [AWAITING_INPUT] block (when a character addresses ${userCharacter} directly).`;
+    const batchSize = getBatchSize(decisionFrequency, zenMode);
+    const isMultiScene = batchSize > 1;
 
-    const decisionRule = zenMode
-        ? '4. The user is in Zen Mode — the story auto-continues. Write longer, more immersive passages. Avoid interrupting the flow with choices.'
-        : `4. ${DECISION_FREQUENCY_RULES[decisionFrequency]}`;
+    let sceneBreakFormat = '';
+    let rules34: string;
+
+    if (!isMultiScene) {
+        rules34 = `3. Every response MUST end with either a [DECISION] block (at dramatic turning points) or an [AWAITING_INPUT] block (when a character addresses ${userCharacter} directly).
+4. Present [DECISION] blocks at key dramatic moments.`;
+    } else if (zenMode) {
+        sceneBreakFormat = `\n\n[SCENE_BREAK] Place this marker between distinct scenes within a single response. Each scene should have its own setting, narrative, and dialogue.`;
+        rules34 = `3. Output approximately ${batchSize} scenes of narrative per response, separated by [SCENE_BREAK] markers. Each scene should be a self-contained dramatic beat with its own [NARRATOR] and dialogue blocks.
+4. Do NOT include [DECISION] or [AWAITING_INPUT] blocks. End with narrative that flows naturally. The story should read like a novel.`;
+    } else {
+        sceneBreakFormat = `\n\n[SCENE_BREAK] Place this marker between distinct scenes within a single response. Each scene should have its own setting, narrative, and dialogue.`;
+        rules34 = `3. Output approximately ${batchSize} scenes of narrative per response, separated by [SCENE_BREAK] markers. Each scene should be a self-contained dramatic beat with its own [NARRATOR] and dialogue blocks.
+4. Include a [DECISION] block with 2-4 options ONLY in the final scene of your response. Do NOT place [DECISION] or [AWAITING_INPUT] between scenes.`;
+    }
 
     return `You are a master storyteller narrating an interactive Sherlock Holmes mystery. You control all characters except the user's character (${userCharacter}).${charLine}
 
@@ -56,7 +71,7 @@ OUTPUT FORMAT — You MUST structure every response using these exact markers:
 
 [WATSON] Dialogue from Dr. Watson, if present in the scene.
 
-[CHARACTER:Name] Dialogue from any other named character (e.g., [CHARACTER:Inspector Lestrade], [CHARACTER:Mrs. Hudson]).
+[CHARACTER:Name] Dialogue from any other named character (e.g., [CHARACTER:Inspector Lestrade], [CHARACTER:Mrs. Hudson]).${sceneBreakFormat}
 
 [DECISION]
 - Option A: a specific choice the user can make
@@ -68,8 +83,7 @@ OUTPUT FORMAT — You MUST structure every response using these exact markers:
 RULES:
 1. Begin the story with a [CHAPTER] block, then a [MOOD] block, then a [NARRATOR] block setting the scene, followed by character dialogue.
 2. Keep the narrative engaging. Build tension, plant clues, and create dramatic moments.
-${endingRule}
-${decisionRule}
+${rules34}
 5. When the user picks a decision option or types free text, continue the story naturally from that point.
 6. ${userCharacter} is the user's character. NEVER write dialogue or decisions for ${userCharacter} — that is the user's role.
 7. Maintain narrative continuity. Remember all prior events, clues, and character positions.

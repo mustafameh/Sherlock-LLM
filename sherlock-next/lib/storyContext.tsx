@@ -2,8 +2,8 @@
 
 import React, { createContext, useContext, useState, useCallback, useRef, useEffect, type ReactNode } from 'react';
 import { useSettings, useAuth } from '@/lib/contexts';
-import { generateStorySystemPrompt } from '@/lib/storyPrompts';
-import { parseStoryBlocks, type StoryBlock } from '@/lib/storyParser';
+import { generateStorySystemPrompt, getBatchSize } from '@/lib/storyPrompts';
+import { parseStoryBlocks, deriveScenes, type StoryBlock } from '@/lib/storyParser';
 import type { ChatMessage } from '@/lib/types';
 
 interface SavedStorySummary {
@@ -61,7 +61,7 @@ export function StoryProvider({ children }: { children: ReactNode }) {
     const saveTimerRef = useRef<NodeJS.Timeout | null>(null);
     const lastSavedRef = useRef<string>('');
     const savingRef = useRef(false);
-    const zenTimerRef = useRef<NodeJS.Timeout | null>(null);
+    const prefetchingRef = useRef(false);
 
     const refreshSavedStories = useCallback(async () => {
         if (!isLoggedIn) { setSavedStories([]); return; }
@@ -137,36 +137,8 @@ export function StoryProvider({ children }: { children: ReactNode }) {
         }
     }, [storyBlocks]);
 
-    const zenContinueRef = useRef<((text: string) => Promise<void>) | null>(null);
-
-    useEffect(() => {
-        if (zenTimerRef.current) {
-            clearTimeout(zenTimerRef.current);
-            zenTimerRef.current = null;
-        }
-
-        if (!zenMode || zenPaused || isStoryLoading || !isStoryStarted || storyBlocks.length === 0) return;
-
-        const hasDecision = storyBlocks.slice(-5).some(b => b.type === 'decision');
-        if (hasDecision) {
-            setZenPaused(true);
-            return;
-        }
-
-        zenTimerRef.current = setTimeout(() => {
-            zenContinueRef.current?.('Continue the story.');
-        }, 4000);
-
-        return () => {
-            if (zenTimerRef.current) {
-                clearTimeout(zenTimerRef.current);
-                zenTimerRef.current = null;
-            }
-        };
-    }, [zenMode, zenPaused, isStoryLoading, isStoryStarted, storyBlocks]);
-
     const deriveStreamingHint = useCallback((buffer: string): string => {
-        const markerMatch = buffer.match(/\[(NARRATOR|SHERLOCK|WATSON|CHARACTER:([^\]]+)|DECISION|AWAITING_INPUT|CHAPTER:[^\]]+|MOOD:[^\]]+)\]\s*$/);
+        const markerMatch = buffer.match(/\[(NARRATOR|SHERLOCK|WATSON|CHARACTER:([^\]]+)|DECISION|AWAITING_INPUT|CHAPTER:[^\]]+|MOOD:[^\]]+|SCENE_BREAK)\]\s*$/);
         if (markerMatch) {
             const tag = markerMatch[1];
             if (tag === 'NARRATOR') return 'Narrating';
@@ -177,6 +149,7 @@ export function StoryProvider({ children }: { children: ReactNode }) {
             if (tag === 'AWAITING_INPUT') return 'Waiting for your response';
             if (tag.startsWith('CHAPTER:')) return 'New chapter';
             if (tag.startsWith('MOOD:')) return 'Setting the mood';
+            if (tag === 'SCENE_BREAK') return 'Next scene';
         }
         const trailingMarker = buffer.match(/\[([A-Z_:]+[^\]]*?)$/);
         if (trailingMarker) return 'The story continues';
@@ -364,7 +337,57 @@ export function StoryProvider({ children }: { children: ReactNode }) {
         }
     }, [isStoryLoading, storyMessages, storyBlocks, streamStoryApi]);
 
-    zenContinueRef.current = sendStoryAction;
+    const continueSilently = useCallback(async () => {
+        if (isStoryLoading || prefetchingRef.current) return;
+        prefetchingRef.current = true;
+        setStoryError(null);
+        setIsStoryLoading(true);
+        abortRef.current = new AbortController();
+
+        const continueMsg: ChatMessage = { role: 'user', content: 'Continue the story.' };
+        const newMessages = [...storyMessages, continueMsg];
+        setStoryMessages(newMessages);
+
+        try {
+            const response = await streamStoryApi(newMessages, storyBlocks);
+            const assistantMsg: ChatMessage = { role: 'assistant', content: response };
+            setStoryMessages(prev => [...prev, assistantMsg]);
+        } catch (err) {
+            if ((err as Error).name !== 'AbortError') {
+                setStoryError(err instanceof Error ? err.message : 'Failed to continue story');
+            }
+            setStoryMessages(prev => prev.filter(m => m !== continueMsg));
+        } finally {
+            setIsStoryLoading(false);
+            setStreamingHint(null);
+            prefetchingRef.current = false;
+        }
+    }, [isStoryLoading, storyMessages, storyBlocks, streamStoryApi]);
+
+    useEffect(() => {
+        if (!isStoryStarted || isStoryLoading || storyBlocks.length === 0) return;
+        if (decisionFrequency === 'frequent' && !zenMode) return;
+        if (zenMode && zenPaused) return;
+
+        const scenes = deriveScenes(storyBlocks);
+        const totalScenes = scenes.length;
+        if (totalScenes < 2) return;
+
+        const lastSceneBlocks = scenes[totalScenes - 1]?.blocks ?? [];
+        const hasDecision = lastSceneBlocks.some(b => b.type === 'decision');
+        if (hasDecision) return;
+
+        const hasAwaitingInput = lastSceneBlocks.some(b => b.type === 'awaiting_input');
+        if (hasAwaitingInput) return;
+
+        const triggerIndex = zenMode
+            ? totalScenes - 1
+            : Math.max(0, totalScenes - 2);
+
+        if (currentSceneIndex >= triggerIndex) {
+            continueSilently();
+        }
+    }, [currentSceneIndex, isStoryStarted, isStoryLoading, storyBlocks, decisionFrequency, zenMode, zenPaused, continueSilently]);
 
     const selectDecision = useCallback(async (optionText: string) => {
         const cleaned = optionText.replace(/^Option\s+[A-Z]:\s*/i, '').trim();
@@ -392,7 +415,7 @@ export function StoryProvider({ children }: { children: ReactNode }) {
 
     const resetStory = useCallback(() => {
         abortRef.current?.abort();
-        if (zenTimerRef.current) { clearTimeout(zenTimerRef.current); zenTimerRef.current = null; }
+        prefetchingRef.current = false;
         setStoryBlocks([]);
         setStoryMessages([]);
         setUserCharacter('');

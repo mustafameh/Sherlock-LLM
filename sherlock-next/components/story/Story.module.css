@@ -509,6 +509,28 @@
     margin-top: var(--space-1);
 }
 
+/* ===== NEXT SCENE BUTTON (batch mode) ===== */
+.nextSceneBtn {
+    width: 100%;
+    padding: var(--space-3) var(--space-5);
+    background: linear-gradient(135deg, rgba(37, 99, 235, 0.12), rgba(37, 99, 235, 0.06));
+    border: 1px solid rgba(37, 99, 235, 0.3);
+    border-radius: var(--radius-lg);
+    color: var(--color-blue-300);
+    font-size: var(--text-base);
+    font-weight: 600;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    letter-spacing: 0.02em;
+}
+
+.nextSceneBtn:hover {
+    background: linear-gradient(135deg, rgba(37, 99, 235, 0.2), rgba(37, 99, 235, 0.1));
+    border-color: var(--color-blue-400);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.15);
+}
+
 /* ===== ZEN BAR ===== */
 .zenBar {
     display: flex;

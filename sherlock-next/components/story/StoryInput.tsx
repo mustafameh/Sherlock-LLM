@@ -14,12 +14,14 @@ const QUICK_ACTIONS = [
 ];
 
 export default function StoryInput() {
-    const { sendStoryAction, selectDecision, isStoryLoading, userCharacter, storyBlocks, currentSceneIndex, zenPaused, setZenPaused } = useStory();
-    const { zenMode } = useSettings();
+    const { sendStoryAction, selectDecision, isStoryLoading, userCharacter, storyBlocks, currentSceneIndex, setCurrentSceneIndex, zenPaused, setZenPaused } = useStory();
+    const { zenMode, decisionFrequency } = useSettings();
     const textareaRef = useRef<HTMLTextAreaElement>(null);
+    const isMultiScene = decisionFrequency !== 'frequent' || zenMode;
 
     const scenes = useMemo(() => deriveScenes(storyBlocks), [storyBlocks]);
-    const isOnLatest = currentSceneIndex >= scenes.length - 1;
+    const totalScenes = scenes.length;
+    const isOnLatest = currentSceneIndex >= totalScenes - 1;
 
     const currentBlocks = scenes[currentSceneIndex]?.blocks ?? [];
     const recentBlocks = currentBlocks.slice(-3);
@@ -31,14 +33,12 @@ export default function StoryInput() {
         const text = textareaRef.current?.value.trim();
         if (!text) return;
         if (textareaRef.current) textareaRef.current.value = '';
-        if (zenMode && !zenPaused) setZenPaused(true);
         await sendStoryAction(text);
-    }, [sendStoryAction, zenMode, zenPaused, setZenPaused]);
+    }, [sendStoryAction]);
 
     const handleQuickAction = useCallback(async (action: string) => {
-        if (zenMode && !zenPaused) setZenPaused(true);
         await sendStoryAction(action);
-    }, [sendStoryAction, zenMode, zenPaused, setZenPaused]);
+    }, [sendStoryAction]);
 
     const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
         if (e.key === 'Enter' && !e.shiftKey) {
@@ -47,20 +47,37 @@ export default function StoryInput() {
         }
     }, [handleSend]);
 
+    const handleNextScene = useCallback(() => {
+        setCurrentSceneIndex(Math.min(totalScenes - 1, currentSceneIndex + 1));
+    }, [setCurrentSceneIndex, totalScenes, currentSceneIndex]);
+
+    if (isMultiScene && !isOnLatest) {
+        return (
+            <div className={styles.storyInputArea}>
+                <button
+                    className={styles.nextSceneBtn}
+                    onClick={handleNextScene}
+                >
+                    Next Scene ›
+                </button>
+            </div>
+        );
+    }
+
     if (!isOnLatest) return null;
 
-    const zenActive = zenMode && !zenPaused && !isDecisionActive;
-    const showZenControls = zenMode && isOnLatest;
+    const showZenBar = zenMode && isOnLatest && !isDecisionActive;
+    const showInput = isDecisionActive || !zenMode || zenPaused;
 
     return (
         <div className={styles.storyInputArea}>
-            {showZenControls && (
+            {showZenBar && (
                 <div className={styles.zenBar}>
-                    {zenActive && !isStoryLoading && (
-                        <span className={styles.zenLabel}>Zen Mode — story will auto-continue</span>
+                    {!zenPaused && !isStoryLoading && (
+                        <span className={styles.zenLabel}>Zen Mode — more scenes loading in background</span>
                     )}
-                    {zenActive && isStoryLoading && (
-                        <span className={styles.zenLabel}>Zen Mode — writing next passage...</span>
+                    {!zenPaused && isStoryLoading && (
+                        <span className={styles.zenLabel}>Zen Mode — writing next passages...</span>
                     )}
                     {zenPaused && (
                         <span className={styles.zenLabel}>Zen Mode paused</span>
@@ -92,7 +109,7 @@ export default function StoryInput() {
                 </div>
             )}
 
-            {(!zenActive || zenPaused || isDecisionActive) && (
+            {showInput && (
                 <>
                     <div className={styles.quickActions}>
                         {QUICK_ACTIONS.map((qa) => (

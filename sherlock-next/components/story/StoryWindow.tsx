@@ -69,6 +69,7 @@ function StoryBlockRenderer({ block, isLast, userCharacter }: { block: StoryBloc
         case 'chapter':
             return <ChapterDivider title={block.title} />;
         case 'mood':
+        case 'scene_break':
             return null;
         case 'narrator':
             return <NarratorBlock content={block.content} />;
@@ -92,7 +93,8 @@ export default function StoryWindow() {
         streamingHint, currentSceneIndex, setCurrentSceneIndex,
         currentMood,
     } = useStory();
-    const { zenMode } = useSettings();
+    const { zenMode, decisionFrequency } = useSettings();
+    const isMultiScene = decisionFrequency !== 'frequent' || zenMode;
 
     const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -101,10 +103,10 @@ export default function StoryWindow() {
     const isOnLatest = currentSceneIndex >= totalScenes - 1;
 
     useEffect(() => {
-        if (isStoryLoading && !zenMode) {
+        if (isStoryLoading && !isMultiScene) {
             setCurrentSceneIndex(Math.max(0, totalScenes - 1));
         }
-    }, [totalScenes, isStoryLoading, setCurrentSceneIndex, zenMode]);
+    }, [totalScenes, isStoryLoading, setCurrentSceneIndex, isMultiScene]);
 
     useEffect(() => {
         if (currentSceneIndex >= totalScenes) {
@@ -138,7 +140,9 @@ export default function StoryWindow() {
 
             {isOnLatest && isStoryLoading && (
                 <div className={styles.streamingIndicator}>
-                    <span className={styles.streamingText}>{streamingHint || 'The story continues'}</span>
+                    <span className={styles.streamingText}>
+                        {isMultiScene ? 'Loading next scenes...' : (streamingHint || 'The story continues')}
+                    </span>
                     <span className={styles.streamingDots}>
                         <span className={styles.dot} />
                         <span className={styles.dot} />
@@ -167,7 +171,7 @@ export default function StoryWindow() {
                         Scene {currentSceneIndex + 1} of {totalScenes}
                     </span>
                     <button
-                        className={`${styles.sceneNavBtn} ${!isOnLatest && zenMode ? styles.sceneNavBtnNew : ''}`}
+                        className={`${styles.sceneNavBtn} ${!isOnLatest && isMultiScene ? styles.sceneNavBtnNew : ''}`}
                         onClick={() => setCurrentSceneIndex(Math.min(totalScenes - 1, currentSceneIndex + 1))}
                         disabled={isOnLatest}
                         title="Next scene"

@@ -19,6 +19,7 @@ function blocksToHtml(blocks: StoryBlock[]): string {
                 return `<p class="decision"><em>Choices presented: ${block.options.map(o => escapeHtml(o)).join(' / ')}</em></p>`;
             case 'mood':
             case 'awaiting_input':
+            case 'scene_break':
             default:
                 return '';
         }

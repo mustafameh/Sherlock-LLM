@@ -20,7 +20,7 @@ export default function SidebarLeft() {
     const fetchSavedChats = useCallback(async () => {
         if (!isLoggedIn) return;
         try {
-            const res = await fetch('/api/chats');
+            const res = await fetch('/api/chats?type=roleplay');
             if (res.ok) {
                 const data = await res.json();
                 setSavedChats(data);

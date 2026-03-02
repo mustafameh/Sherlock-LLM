@@ -3,11 +3,21 @@
 import React, { useState, useCallback } from 'react';
 import Link from 'next/link';
 import { useStory } from '@/lib/storyContext';
+import { useSettings } from '@/lib/contexts';
 import StorySettings from './StorySettings';
 import styles from './Story.module.css';
 
 export default function StoryHeader() {
-    const { userCharacter, storySetting, isStoryStarted, storyBlocks } = useStory();
+    const {
+        userCharacter,
+        storySetting,
+        isStoryStarted,
+        storyBlocks,
+        storyMessages,
+        storyError,
+        currentStoryId,
+    } = useStory();
+    const { selectedModel, temperature, decisionFrequency, zenMode } = useSettings();
     const [showSettings, setShowSettings] = useState(false);
     const [isExporting, setIsExporting] = useState(false);
 
@@ -24,6 +34,46 @@ export default function StoryHeader() {
         }
     }, [storyBlocks, storySetting, userCharacter, isExporting]);
 
+    const handleDownloadDebugLog = useCallback(() => {
+        const payload = {
+            exportedAt: new Date().toISOString(),
+            storyId: currentStoryId,
+            storySetting,
+            userCharacter,
+            model: selectedModel,
+            temperature,
+            decisionFrequency,
+            zenMode,
+            storyError,
+            counts: {
+                messages: storyMessages.length,
+                blocks: storyBlocks.length,
+            },
+            messages: storyMessages,
+            blocks: storyBlocks,
+        };
+        const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `${(storySetting || 'story').replace(/[^a-zA-Z0-9-_ ]/g, '').trim() || 'story'}-debug-log.json`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+    }, [
+        currentStoryId,
+        storySetting,
+        userCharacter,
+        selectedModel,
+        temperature,
+        decisionFrequency,
+        zenMode,
+        storyError,
+        storyMessages,
+        storyBlocks,
+    ]);
+
     return (
         <>
             <header className={styles.storyHeader}>
@@ -37,6 +87,15 @@ export default function StoryHeader() {
                     )}
                 </div>
                 <div className={styles.storyHeaderRight}>
+                    {isStoryStarted && (
+                        <button
+                            className={styles.headerIconBtn}
+                            onClick={handleDownloadDebugLog}
+                            title="Download debug log (JSON)"
+                        >
+                            🧾
+                        </button>
+                    )}
                     {isStoryStarted && (
                         <button
                             className={styles.headerIconBtn}

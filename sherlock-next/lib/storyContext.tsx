@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useState, useCallback, useRef, useEffect, type ReactNode } from 'react';
 import { useSettings, useAuth } from '@/lib/contexts';
-import { generateStorySystemPrompt, getBatchSize } from '@/lib/storyPrompts';
+import { generateStorySystemPrompt } from '@/lib/storyPrompts';
 import { parseStoryBlocks, deriveScenes, type StoryBlock } from '@/lib/storyParser';
 import type { ChatMessage } from '@/lib/types';
 
@@ -62,6 +62,7 @@ export function StoryProvider({ children }: { children: ReactNode }) {
     const lastSavedRef = useRef<string>('');
     const savingRef = useRef(false);
     const prefetchingRef = useRef(false);
+    const prefetchKeyRef = useRef<string | null>(null);
 
     const refreshSavedStories = useCallback(async () => {
         if (!isLoggedIn) { setSavedStories([]); return; }
@@ -251,6 +252,7 @@ export function StoryProvider({ children }: { children: ReactNode }) {
         setStoryBlocks([]);
         setCurrentStoryId(null);
         setCurrentMood('calm');
+        prefetchKeyRef.current = null;
         lastSavedRef.current = '';
         abortRef.current = new AbortController();
 
@@ -294,6 +296,7 @@ export function StoryProvider({ children }: { children: ReactNode }) {
             setUserCharacter(saved.userCharacter || data.character || '');
             setStorySetting(saved.storySetting || '');
             setCurrentStoryId(id);
+            prefetchKeyRef.current = null;
             lastSavedRef.current = data.full_content;
             setIsStoryStarted(true);
         } catch (err) {
@@ -307,6 +310,7 @@ export function StoryProvider({ children }: { children: ReactNode }) {
         if (isStoryLoading || !text.trim()) return;
         setStoryError(null);
         setIsStoryLoading(true);
+        prefetchKeyRef.current = null;
         abortRef.current = new AbortController();
 
         const userActionBlock: StoryBlock = { type: 'user_action', content: text };
@@ -356,6 +360,7 @@ export function StoryProvider({ children }: { children: ReactNode }) {
             if ((err as Error).name !== 'AbortError') {
                 setStoryError(err instanceof Error ? err.message : 'Failed to continue story');
             }
+            prefetchKeyRef.current = null;
             setStoryMessages(prev => prev.filter(m => m !== continueMsg));
         } finally {
             setIsStoryLoading(false);
@@ -375,16 +380,25 @@ export function StoryProvider({ children }: { children: ReactNode }) {
 
         const lastSceneBlocks = scenes[totalScenes - 1]?.blocks ?? [];
         const hasDecision = lastSceneBlocks.some(b => b.type === 'decision');
-        if (hasDecision) return;
+        if (hasDecision) {
+            prefetchKeyRef.current = null;
+            return;
+        }
 
         const hasAwaitingInput = lastSceneBlocks.some(b => b.type === 'awaiting_input');
-        if (hasAwaitingInput) return;
+        if (hasAwaitingInput) {
+            prefetchKeyRef.current = null;
+            return;
+        }
 
         const triggerIndex = zenMode
             ? totalScenes - 1
             : Math.max(0, totalScenes - 2);
 
         if (currentSceneIndex >= triggerIndex) {
+            const prefetchKey = `${totalScenes}:${lastSceneBlocks.length}:${zenMode ? 'zen' : decisionFrequency}`;
+            if (prefetchKeyRef.current === prefetchKey) return;
+            prefetchKeyRef.current = prefetchKey;
             continueSilently();
         }
     }, [currentSceneIndex, isStoryStarted, isStoryLoading, storyBlocks, decisionFrequency, zenMode, zenPaused, continueSilently]);
@@ -416,6 +430,7 @@ export function StoryProvider({ children }: { children: ReactNode }) {
     const resetStory = useCallback(() => {
         abortRef.current?.abort();
         prefetchingRef.current = false;
+        prefetchKeyRef.current = null;
         setStoryBlocks([]);
         setStoryMessages([]);
         setUserCharacter('');

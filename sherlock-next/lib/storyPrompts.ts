@@ -40,9 +40,20 @@ export function generateStorySystemPrompt(
     const isMultiScene = batchSize > 1;
 
     let sceneBreakFormat = '';
+    let decisionFormat = '';
+    let awaitingInputFormat = '';
     let rules34: string;
 
     if (!isMultiScene) {
+        decisionFormat = `
+
+[DECISION]
+- Option A: a specific choice the user can make
+- Option B: an alternative choice
+- Option C: a third option (optional, include 2-4 options)`;
+        awaitingInputFormat = `
+
+[AWAITING_INPUT] A brief line describing what ${userCharacter} should respond to — e.g., "Sherlock looks at you expectantly, waiting for your answer."`;
         rules34 = `3. Every response MUST end with either a [DECISION] block (at dramatic turning points) or an [AWAITING_INPUT] block (when a character addresses ${userCharacter} directly).
 4. Present [DECISION] blocks at key dramatic moments.`;
     } else if (zenMode) {
@@ -72,13 +83,7 @@ OUTPUT FORMAT — You MUST structure every response using these exact markers:
 [WATSON] Dialogue from Dr. Watson, if present in the scene.
 
 [CHARACTER:Name] Dialogue from any other named character (e.g., [CHARACTER:Inspector Lestrade], [CHARACTER:Mrs. Hudson]).${sceneBreakFormat}
-
-[DECISION]
-- Option A: a specific choice the user can make
-- Option B: an alternative choice
-- Option C: a third option (optional, include 2-4 options)
-
-[AWAITING_INPUT] A brief line describing what ${userCharacter} should respond to — e.g., "Sherlock looks at you expectantly, waiting for your answer."
+${decisionFormat}${awaitingInputFormat}
 
 RULES:
 1. Begin the story with a [CHAPTER] block, then a [MOOD] block, then a [NARRATOR] block setting the scene, followed by character dialogue.

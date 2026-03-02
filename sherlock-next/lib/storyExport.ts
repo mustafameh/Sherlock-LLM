@@ -65,13 +65,19 @@ export async function exportStoryAsPdf(
 ): Promise<void> {
     const container = document.createElement('div');
     container.innerHTML = buildContent(blocks, title, character);
-    container.style.position = 'absolute';
-    container.style.left = '-9999px';
+    // Keep renderable in-viewport but invisible to avoid blank captures in some browsers.
+    container.style.position = 'fixed';
+    container.style.left = '0';
     container.style.top = '0';
     container.style.width = '700px';
+    container.style.opacity = '0.01';
+    container.style.pointerEvents = 'none';
+    container.style.zIndex = '-1';
     document.body.appendChild(container);
 
     try {
+        const target = container.firstElementChild as HTMLElement | null;
+        if (!target) throw new Error('No export content to render');
         const html2pdf = (await import('html2pdf.js')).default;
         await html2pdf()
             .set({
@@ -81,7 +87,7 @@ export async function exportStoryAsPdf(
                 html2canvas: { scale: 2, useCORS: true, backgroundColor: '#fdf8f0' },
                 jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
             })
-            .from(container)
+            .from(target)
             .save();
     } finally {
         document.body.removeChild(container);

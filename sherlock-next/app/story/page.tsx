@@ -15,18 +15,23 @@ function SetupScreen() {
     const { isLoggedIn } = useAuth();
     const [selectedCharacter, setSelectedCharacter] = useState('');
     const [customCharacter, setCustomCharacter] = useState('');
+    const [customCharacterDesc, setCustomCharacterDesc] = useState('');
     const [selectedSetting, setSelectedSetting] = useState('');
 
+    const selectedPreset = CHARACTER_PRESETS.find(c => c.id === selectedCharacter);
     const characterName = selectedCharacter === 'custom'
         ? customCharacter.trim()
-        : CHARACTER_PRESETS.find(c => c.id === selectedCharacter)?.name || '';
+        : selectedPreset?.name || '';
+    const characterDescription = selectedCharacter === 'custom'
+        ? customCharacterDesc.trim()
+        : selectedPreset?.description || '';
 
     const setting = STORY_SETTINGS.find(s => s.id === selectedSetting);
     const canStart = characterName.length > 0 && setting != null;
 
     const handleStart = () => {
         if (!canStart || !setting) return;
-        startNewStory(characterName, setting.description, setting.title);
+        startNewStory(characterName, setting.description, setting.title, characterDescription || undefined);
     };
 
     return (
@@ -82,14 +87,23 @@ function SetupScreen() {
                     </button>
                 </div>
                 {selectedCharacter === 'custom' && (
-                    <input
-                        className={styles.customCharInput}
-                        type="text"
-                        placeholder="Enter your character's name..."
-                        value={customCharacter}
-                        onChange={e => setCustomCharacter(e.target.value)}
-                        autoFocus
-                    />
+                    <div className={styles.customCharFields}>
+                        <input
+                            className={styles.customCharInput}
+                            type="text"
+                            placeholder="Character name..."
+                            value={customCharacter}
+                            onChange={e => setCustomCharacter(e.target.value)}
+                            autoFocus
+                        />
+                        <textarea
+                            className={styles.customCharInput}
+                            rows={3}
+                            placeholder="Describe your character — who are they, what do they do, what brings them to this mystery?"
+                            value={customCharacterDesc}
+                            onChange={e => setCustomCharacterDesc(e.target.value)}
+                        />
+                    </div>
                 )}
             </div>
 

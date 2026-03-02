@@ -28,7 +28,7 @@ interface StoryContextType {
     setCurrentSceneIndex: (i: number) => void;
     sendStoryAction: (text: string) => Promise<void>;
     selectDecision: (optionText: string) => Promise<void>;
-    startNewStory: (character: string, setting: string, settingTitle: string) => Promise<void>;
+    startNewStory: (character: string, setting: string, settingTitle: string, characterDescription?: string) => Promise<void>;
     loadStory: (id: string) => Promise<void>;
     resetStory: () => void;
     setStoryError: (err: string | null) => void;
@@ -227,7 +227,7 @@ export function StoryProvider({ children }: { children: ReactNode }) {
         return buffer;
     }, [selectedModel, apiKey, temperature, deriveStreamingHint]);
 
-    const startNewStory = useCallback(async (character: string, setting: string, settingTitle: string) => {
+    const startNewStory = useCallback(async (character: string, setting: string, settingTitle: string, characterDescription?: string) => {
         setStoryError(null);
         setIsStoryLoading(true);
         setUserCharacter(character);
@@ -237,10 +237,13 @@ export function StoryProvider({ children }: { children: ReactNode }) {
         lastSavedRef.current = '';
         abortRef.current = new AbortController();
 
-        const systemPrompt = generateStorySystemPrompt(character, setting);
+        const systemPrompt = generateStorySystemPrompt(character, setting, characterDescription);
+        const charIntro = characterDescription
+            ? `Begin the story. Set the scene and introduce the first situation. I am playing as ${character} (${characterDescription}).`
+            : `Begin the story. Set the scene and introduce the first situation. Remember, I am playing as ${character}.`;
         const initialMessages: ChatMessage[] = [
             { role: 'system', content: systemPrompt },
-            { role: 'user', content: `Begin the story. Set the scene and introduce the first situation. Remember, I am playing as ${character}.` },
+            { role: 'user', content: charIntro },
         ];
 
         try {

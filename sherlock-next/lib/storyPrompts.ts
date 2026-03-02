@@ -1,8 +1,13 @@
 export function generateStorySystemPrompt(
     userCharacter: string,
     storySetting: string,
+    characterDescription?: string,
 ): string {
-    return `You are a master storyteller narrating an interactive Sherlock Holmes mystery. You control all characters except the user's character (${userCharacter}).
+    const charLine = characterDescription
+        ? `\n\nUSER'S CHARACTER: ${userCharacter} — ${characterDescription}`
+        : '';
+
+    return `You are a master storyteller narrating an interactive Sherlock Holmes mystery. You control all characters except the user's character (${userCharacter}).${charLine}
 
 SETTING: ${storySetting}
 

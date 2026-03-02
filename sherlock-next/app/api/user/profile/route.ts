@@ -28,12 +28,14 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    let decryptedApiKey: string | null = null;
-    if (user.apiKey) {
+    const hydrate = request.nextUrl.searchParams.get('hydrate') === '1';
+
+    let apiKeyField: string | null = null;
+    if (user.apiKey && hydrate) {
         try {
-            decryptedApiKey = decryptApiKey(user.apiKey);
+            apiKeyField = decryptApiKey(user.apiKey);
         } catch {
-            decryptedApiKey = null;
+            apiKeyField = null;
         }
     }
 
@@ -44,7 +46,8 @@ export async function GET(request: NextRequest) {
         displayName: user.displayName || user.username,
         avatar: user.avatar || 'detective',
         hasServerApiKey: !!user.apiKey,
-        apiKey: decryptedApiKey,
+        ...(hydrate && apiKeyField ? { apiKey: apiKeyField } : {}),
+        selectedModel: user.selectedModel || null,
     });
 }
 
@@ -57,7 +60,7 @@ export async function PUT(request: NextRequest) {
     try {
         await dbConnect();
         const body = await request.json();
-        const { displayName, avatar, apiKey } = body;
+        const { displayName, avatar, apiKey, selectedModel } = body;
 
         if (displayName && (typeof displayName !== 'string' || displayName.length > 30)) {
             return NextResponse.json({ error: 'Display name must be a string, max 30 chars' }, { status: 400 });
@@ -71,6 +74,9 @@ export async function PUT(request: NextRequest) {
         const updateFields: Record<string, unknown> = {};
         if (displayName) updateFields.displayName = displayName.trim();
         if (avatar) updateFields.avatar = avatar;
+        if (selectedModel !== undefined && typeof selectedModel === 'string') {
+            updateFields.selectedModel = selectedModel;
+        }
 
         const clearApiKey = apiKey !== undefined && (apiKey === null || apiKey === '');
         if (apiKey !== undefined && !clearApiKey) {
@@ -97,6 +103,7 @@ export async function PUT(request: NextRequest) {
             displayName: user.displayName || user.username,
             avatar: user.avatar || 'detective',
             hasServerApiKey: !!user.apiKey,
+            selectedModel: user.selectedModel || null,
         });
 
         response.cookies.set('session', JSON.stringify({

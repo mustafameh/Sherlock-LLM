@@ -170,16 +170,6 @@ export default function LandingPage() {
             </section>
 
             <section className={styles.modes}>
-                <Link href="/roleplay" className={styles.modeCard}>
-                    <div className={styles.modeIcon}>🎭</div>
-                    <h2 className={styles.modeTitle}>Character Roleplay</h2>
-                    <p className={styles.modeDesc}>
-                        Interact with Sherlock Holmes as Dr. Watson, Mrs. Hudson, or your own character.
-                        Features deep reasoning with a visible thought process, tool use, and adjustable settings.
-                    </p>
-                    <span className={styles.modeAction}>Enter Roleplay →</span>
-                </Link>
-
                 <Link href="/story" className={styles.modeCard}>
                     <div className={styles.modeIcon}>📖</div>
                     <h2 className={styles.modeTitle}>Interactive Storytelling</h2>
@@ -188,6 +178,16 @@ export default function LandingPage() {
                         and you influence the story through dialogue and decisions.
                     </p>
                     <span className={styles.modeAction}>Begin a Story →</span>
+                </Link>
+
+                <Link href="/roleplay" className={styles.modeCard}>
+                    <div className={styles.modeIcon}>🎭</div>
+                    <h2 className={styles.modeTitle}>Character Roleplay</h2>
+                    <p className={styles.modeDesc}>
+                        Interact with Sherlock Holmes as Dr. Watson, Mrs. Hudson, or your own character.
+                        Features deep reasoning with a visible thought process, tool use, and adjustable settings.
+                    </p>
+                    <span className={styles.modeAction}>Enter Roleplay →</span>
                 </Link>
             </section>
 

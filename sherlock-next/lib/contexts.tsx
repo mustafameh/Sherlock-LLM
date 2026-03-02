@@ -182,11 +182,18 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
         }
     }, []);
 
-    const saveModel = useCallback((model: string) => {
+    const saveModel = useCallback(async (model: string) => {
         setSelectedModel(model);
         if (typeof window !== 'undefined') {
             localStorage.setItem('SelectedModel', model);
         }
+        try {
+            await fetch('/api/user/profile', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ selectedModel: model }),
+            });
+        } catch { /* server sync failed silently */ }
     }, []);
 
     useEffect(() => {
@@ -199,7 +206,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
 
         (async () => {
             try {
-                const res = await fetch('/api/user/profile');
+                const res = await fetch('/api/user/profile?hydrate=1');
                 if (!res.ok) return;
                 const data = await res.json();
                 if (data.hasServerApiKey && data.apiKey) {
@@ -211,6 +218,15 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
                             localStorage.setItem('ApiKeyStorage', 'account');
                         }
                         setApiKeyStorageState('account');
+                    }
+                }
+                if (data.selectedModel) {
+                    const localModel = typeof window !== 'undefined' ? localStorage.getItem('SelectedModel') : '';
+                    if (!localModel) {
+                        setSelectedModel(data.selectedModel);
+                        if (typeof window !== 'undefined') {
+                            localStorage.setItem('SelectedModel', data.selectedModel);
+                        }
                     }
                 }
             } catch { /* hydration failed silently */ }

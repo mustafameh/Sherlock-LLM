@@ -7,6 +7,7 @@ export interface IUser extends Document {
     displayName?: string;
     avatar?: string;
     apiKey?: string;
+    selectedModel?: string;
     created_at: Date;
 }
 
@@ -17,6 +18,7 @@ const UserSchema = new Schema<IUser>({
     displayName: { type: String },
     avatar: { type: String, default: 'detective' },
     apiKey: { type: String },
+    selectedModel: { type: String },
     created_at: { type: Date, default: Date.now },
 });
 

@@ -9,10 +9,9 @@ import styles from './StorySettings.module.css';
 const CUSTOM_MODEL_OPTION = '__custom__';
 
 const FREQUENCY_OPTIONS: { value: DecisionFrequency; label: string; hint: string }[] = [
-    { value: 'frequent', label: 'Frequent', hint: 'Every 2-3 exchanges' },
-    { value: 'normal', label: 'Normal', hint: 'Every 3-5 exchanges' },
-    { value: 'sparse', label: 'Sparse', hint: 'Every 6-8 exchanges' },
-    { value: 'very_rare', label: 'Very Rare', hint: 'Only at major crossroads' },
+    { value: 'frequent', label: 'Frequent', hint: 'Every 1-2 scenes' },
+    { value: 'normal', label: 'Normal', hint: 'Every 3-5 scenes' },
+    { value: 'sparse', label: 'Sparse', hint: 'Every 6-8 scenes' },
 ];
 
 export default function StorySettings({ open, onClose }: { open: boolean; onClose: () => void }) {

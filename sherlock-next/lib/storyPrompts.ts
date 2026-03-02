@@ -8,12 +8,16 @@ export const VOICE_STYLES: { id: string; name: string; instruction: string }[] =
 
 import type { DecisionFrequency } from './contexts';
 
-export const DECISION_THRESHOLDS: Record<DecisionFrequency, number> = {
-    frequent: 1,
-    normal: 3,
-    sparse: 5,
-    very_rare: 8,
+export const DECISION_RANGES: Record<DecisionFrequency, [number, number]> = {
+    frequent: [1, 2],
+    normal: [3, 5],
+    sparse: [6, 8],
 };
+
+export function rollDecisionThreshold(freq: DecisionFrequency): number {
+    const [min, max] = DECISION_RANGES[freq];
+    return Math.floor(Math.random() * (max - min + 1)) + min;
+}
 
 export function generateStorySystemPrompt(
     userCharacter: string,

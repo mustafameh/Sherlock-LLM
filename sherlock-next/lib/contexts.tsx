@@ -73,7 +73,7 @@ export function useChat() {
 // ===== Settings Context =====
 type ApiKeyStorageMode = 'browser' | 'account';
 
-export type DecisionFrequency = 'frequent' | 'normal' | 'sparse' | 'very_rare';
+export type DecisionFrequency = 'frequent' | 'normal' | 'sparse';
 
 interface SettingsContextType {
     modelSource: ModelSource;

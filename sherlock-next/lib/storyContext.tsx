@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useState, useCallback, useRef, useEffect, type ReactNode } from 'react';
 import { useSettings, useAuth } from '@/lib/contexts';
-import { generateStorySystemPrompt, DECISION_THRESHOLDS } from '@/lib/storyPrompts';
+import { generateStorySystemPrompt, rollDecisionThreshold } from '@/lib/storyPrompts';
 import { parseStoryBlocks, type StoryBlock } from '@/lib/storyParser';
 import type { ChatMessage } from '@/lib/types';
 
@@ -69,6 +69,7 @@ export function StoryProvider({ children }: { children: ReactNode }) {
     const lastSavedRef = useRef<string>('');
     const savingRef = useRef(false);
     const sceneCountRef = useRef(0);
+    const thresholdRef = useRef(zenMode ? Infinity : rollDecisionThreshold(decisionFrequency));
     const prefetchedRef = useRef<{ blocks: StoryBlock[]; raw: string; messages: ChatMessage[] } | null>(null);
 
     const refreshSavedStories = useCallback(async () => {
@@ -248,8 +249,8 @@ export function StoryProvider({ children }: { children: ReactNode }) {
         return { raw: buffer, blocks: finalBlocks };
     }, [selectedModel, apiKey, temperature, deriveStreamingHint]);
 
-    const getThreshold = useCallback(() => {
-        return zenMode ? Infinity : DECISION_THRESHOLDS[decisionFrequency];
+    const rerollThreshold = useCallback(() => {
+        thresholdRef.current = zenMode ? Infinity : rollDecisionThreshold(decisionFrequency);
     }, [zenMode, decisionFrequency]);
 
     const prefetchNextScene = useCallback(async (
@@ -262,9 +263,8 @@ export function StoryProvider({ children }: { children: ReactNode }) {
         if (lastBlockHasDecision) return;
 
         setIsPrefetching(true);
-        const threshold = zenMode ? Infinity : DECISION_THRESHOLDS[decisionFrequency];
         const nextCount = sceneCountRef.current + 1;
-        const suffix = buildDecisionSuffix(nextCount, threshold, zenMode);
+        const suffix = buildDecisionSuffix(nextCount, thresholdRef.current, zenMode);
         const continueMsg: ChatMessage = { role: 'user', content: `Continue the story. Output one scene.${suffix}` };
         const prefetchMessages = [...currentMessages, continueMsg];
 
@@ -300,8 +300,8 @@ export function StoryProvider({ children }: { children: ReactNode }) {
         abortRef.current = new AbortController();
 
         const systemPrompt = generateStorySystemPrompt(character, setting, characterDescription, voiceStyle);
-        const threshold = zenMode ? Infinity : DECISION_THRESHOLDS[decisionFrequency];
-        const suffix = buildDecisionSuffix(1, threshold, zenMode);
+        rerollThreshold();
+        const suffix = buildDecisionSuffix(1, thresholdRef.current, zenMode);
         const charIntro = characterDescription
             ? `Begin the story. Set the scene and introduce the first situation. I am playing as ${character} (${characterDescription}).${suffix}`
             : `Begin the story. Set the scene and introduce the first situation. Remember, I am playing as ${character}.${suffix}`;
@@ -319,7 +319,7 @@ export function StoryProvider({ children }: { children: ReactNode }) {
             setIsStoryStarted(true);
 
             const hasDecision = result.blocks.some(b => b.type === 'decision');
-            if (hasDecision) sceneCountRef.current = 0;
+            if (hasDecision) { sceneCountRef.current = 0; rerollThreshold(); }
 
             prefetchNextScene(newMessages, result.blocks);
         } catch (err) {
@@ -366,8 +366,7 @@ export function StoryProvider({ children }: { children: ReactNode }) {
         abortRef.current = new AbortController();
 
         sceneCountRef.current += 1;
-        const threshold = zenMode ? Infinity : DECISION_THRESHOLDS[decisionFrequency];
-        const suffix = buildDecisionSuffix(sceneCountRef.current, threshold, zenMode);
+        const suffix = buildDecisionSuffix(sceneCountRef.current, thresholdRef.current, zenMode);
 
         const userActionBlock: StoryBlock = { type: 'user_action', content: text };
         const blocksBeforeStream = [...storyBlocks, userActionBlock];
@@ -385,7 +384,7 @@ export function StoryProvider({ children }: { children: ReactNode }) {
 
             const allBlocks = [...blocksBeforeStream, ...result.blocks];
             const hasDecision = result.blocks.some(b => b.type === 'decision');
-            if (hasDecision) sceneCountRef.current = 0;
+            if (hasDecision) { sceneCountRef.current = 0; rerollThreshold(); }
 
             prefetchNextScene(updatedMessages, allBlocks);
         } catch (err) {
@@ -422,7 +421,7 @@ export function StoryProvider({ children }: { children: ReactNode }) {
             setStoryMessages(updatedMessages);
 
             const hasDecision = cached.blocks.some(b => b.type === 'decision');
-            if (hasDecision) sceneCountRef.current = 0;
+            if (hasDecision) { sceneCountRef.current = 0; rerollThreshold(); }
 
             prefetchNextScene(updatedMessages, allBlocks);
             return;
@@ -432,8 +431,7 @@ export function StoryProvider({ children }: { children: ReactNode }) {
         abortRef.current = new AbortController();
         sceneCountRef.current += 1;
 
-        const threshold = zenMode ? Infinity : DECISION_THRESHOLDS[decisionFrequency];
-        const suffix = buildDecisionSuffix(sceneCountRef.current, threshold, zenMode);
+        const suffix = buildDecisionSuffix(sceneCountRef.current, thresholdRef.current, zenMode);
         const continueMsg: ChatMessage = { role: 'user', content: `Continue the story. Output one scene.${suffix}` };
         const newMessages = [...storyMessages, continueMsg];
         setStoryMessages(newMessages);
@@ -446,7 +444,7 @@ export function StoryProvider({ children }: { children: ReactNode }) {
 
             const allBlocks = [...storyBlocks, ...result.blocks];
             const hasDecision = result.blocks.some(b => b.type === 'decision');
-            if (hasDecision) sceneCountRef.current = 0;
+            if (hasDecision) { sceneCountRef.current = 0; rerollThreshold(); }
 
             prefetchNextScene(updatedMessages, allBlocks);
         } catch (err) {
@@ -464,6 +462,7 @@ export function StoryProvider({ children }: { children: ReactNode }) {
     const selectDecision = useCallback(async (optionText: string) => {
         const cleaned = optionText.replace(/^Option\s+[A-Z]:\s*/i, '').trim();
         sceneCountRef.current = 0;
+        rerollThreshold();
         await sendStoryAction(cleaned);
     }, [sendStoryAction]);
 
@@ -490,6 +489,7 @@ export function StoryProvider({ children }: { children: ReactNode }) {
         abortRef.current?.abort();
         prefetchedRef.current = null;
         sceneCountRef.current = 0;
+        rerollThreshold();
         setStoryBlocks([]);
         setStoryMessages([]);
         setUserCharacter('');

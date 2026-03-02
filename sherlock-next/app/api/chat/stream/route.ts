@@ -24,7 +24,7 @@ function foldSystemIntoUser(messages: ChatMessage[]): ChatMessage[] {
     return rest;
 }
 
-async function callOpenRouterStream(
+async function callStream(
     model: string,
     messages: ChatMessage[],
     temperature: number,
@@ -40,54 +40,41 @@ async function callOpenRouterStream(
     });
 }
 
-async function callOpenRouterNonStream(
-    model: string,
-    messages: ChatMessage[],
-    temperature: number,
-    apiKey: string,
-): Promise<Response> {
-    return fetch('https://openrouter.ai/api/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${apiKey}`,
+function pipeStream(upstream: Response): Response {
+    const reader = upstream.body!.getReader();
+    const readable = new ReadableStream({
+        async start(controller) {
+            try {
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) {
+                        controller.enqueue(new TextEncoder().encode('data: [DONE]\n\n'));
+                        controller.close();
+                        break;
+                    }
+                    controller.enqueue(value);
+                }
+            } catch {
+                controller.close();
+            }
         },
-        body: JSON.stringify({ model, messages, temperature, max_tokens: 2000 }),
+        cancel() { reader.cancel(); },
+    });
+
+    return new Response(readable, {
+        headers: {
+            'Content-Type': 'text/event-stream',
+            'Cache-Control': 'no-cache',
+            'Connection': 'keep-alive',
+        },
     });
 }
 
-async function resolveWorkingParams(
-    model: string,
-    messages: ChatMessage[],
-    temperature: number,
-    apiKey: string,
-): Promise<{ model: string; messages: ChatMessage[] }> {
-    const probe = await callOpenRouterNonStream(model, messages, temperature, apiKey);
-
-    if (probe.ok) {
-        return { model, messages };
-    }
-
-    if (probe.status === 429 && model.endsWith(':free')) {
-        const paidModel = model.replace(/:free$/, '');
-        const retry = await callOpenRouterNonStream(paidModel, messages, temperature, apiKey);
-        if (retry.ok) return { model: paidModel, messages };
-
-        if (retry.status === 400 && messages.some(m => m.role === 'system')) {
-            const folded = foldSystemIntoUser(messages);
-            const retry2 = await callOpenRouterNonStream(paidModel, folded, temperature, apiKey);
-            if (retry2.ok) return { model: paidModel, messages: folded };
-        }
-    }
-
-    if (probe.status === 400 && messages.some(m => m.role === 'system')) {
-        const folded = foldSystemIntoUser(messages);
-        const retry = await callOpenRouterNonStream(model, folded, temperature, apiKey);
-        if (retry.ok) return { model, messages: folded };
-    }
-
-    const errorData = await probe.text();
-    throw new Error(`OpenRouter API error: ${probe.status} - ${errorData}`);
+function jsonError(message: string, status: number): Response {
+    return new Response(JSON.stringify({ error: message }), {
+        status,
+        headers: { 'Content-Type': 'application/json' },
+    });
 }
 
 export async function POST(request: NextRequest) {
@@ -96,70 +83,40 @@ export async function POST(request: NextRequest) {
         const { model, messages, temperature, apiKey } = body;
 
         if (!apiKey) {
-            return new Response(JSON.stringify({ error: 'API key is required' }), {
-                status: 400,
-                headers: { 'Content-Type': 'application/json' },
-            });
+            return jsonError('API key is required', 400);
         }
 
-        let streamResponse = await callOpenRouterStream(model, messages, temperature, apiKey);
+        let response = await callStream(model, messages, temperature, apiKey);
 
-        if (!streamResponse.ok) {
-            const resolved = await resolveWorkingParams(model, messages, temperature, apiKey);
-            streamResponse = await callOpenRouterStream(resolved.model, resolved.messages, temperature, apiKey);
+        if (response.status === 429 && model.endsWith(':free')) {
+            const paidModel = model.replace(/:free$/, '');
+            response = await callStream(paidModel, messages, temperature, apiKey);
 
-            if (!streamResponse.ok) {
-                const errorText = await streamResponse.text();
-                return new Response(JSON.stringify({ error: `OpenRouter API error: ${streamResponse.status} - ${errorText}` }), {
-                    status: streamResponse.status,
-                    headers: { 'Content-Type': 'application/json' },
-                });
+            if (response.status === 400 && messages.some((m: ChatMessage) => m.role === 'system')) {
+                response = await callStream(paidModel, foldSystemIntoUser(messages), temperature, apiKey);
             }
+
+            if (response.ok && response.body) return pipeStream(response);
         }
 
-        if (!streamResponse.body) {
-            return new Response(JSON.stringify({ error: 'No response body from upstream' }), {
-                status: 502,
-                headers: { 'Content-Type': 'application/json' },
-            });
+        if (response.status === 400 && messages.some((m: ChatMessage) => m.role === 'system')) {
+            response = await callStream(model, foldSystemIntoUser(messages), temperature, apiKey);
+
+            if (response.ok && response.body) return pipeStream(response);
         }
 
-        const reader = streamResponse.body.getReader();
-        const decoder = new TextDecoder();
+        if (!response.ok) {
+            const errorText = await response.text();
+            return jsonError(`OpenRouter API error: ${response.status} - ${errorText}`, response.status);
+        }
 
-        const readable = new ReadableStream({
-            async start(controller) {
-                try {
-                    while (true) {
-                        const { done, value } = await reader.read();
-                        if (done) {
-                            controller.enqueue(new TextEncoder().encode('data: [DONE]\n\n'));
-                            controller.close();
-                            break;
-                        }
-                        controller.enqueue(value);
-                    }
-                } catch {
-                    controller.close();
-                }
-            },
-            cancel() {
-                reader.cancel();
-            },
-        });
+        if (!response.body) {
+            return jsonError('No response body from upstream', 502);
+        }
 
-        return new Response(readable, {
-            headers: {
-                'Content-Type': 'text/event-stream',
-                'Cache-Control': 'no-cache',
-                'Connection': 'keep-alive',
-            },
-        });
+        return pipeStream(response);
     } catch (error) {
         console.error('Stream API error:', error);
-        return new Response(
-            JSON.stringify({ error: error instanceof Error ? error.message : 'Internal server error' }),
-            { status: 500, headers: { 'Content-Type': 'application/json' } },
-        );
+        return jsonError(error instanceof Error ? error.message : 'Internal server error', 500);
     }
 }

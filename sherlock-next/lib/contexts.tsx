@@ -322,6 +322,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
     }, []);
 
+    useEffect(() => { checkAuth(); }, [checkAuth]);
+
     const login = useCallback(async (username: string, password: string): Promise<boolean> => {
         try {
             const res = await fetch('/api/auth/login', {

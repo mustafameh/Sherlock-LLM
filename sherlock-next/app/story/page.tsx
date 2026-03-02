@@ -1,9 +1,9 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { StoryProvider, useStory } from '@/lib/storyContext';
-import { useAuth } from '@/lib/contexts';
-import { STORY_SETTINGS, CHARACTER_PRESETS } from '@/lib/storyPrompts';
+import { useAuth, useSettings } from '@/lib/contexts';
+import { STORY_SETTINGS, CHARACTER_PRESETS, VOICE_STYLES, GENRE_TAGS } from '@/lib/storyPrompts';
 import StoryHeader from '@/components/story/StoryHeader';
 import StoryWindow from '@/components/story/StoryWindow';
 import StoryInput from '@/components/story/StoryInput';
@@ -13,10 +13,19 @@ import styles from '@/components/story/Story.module.css';
 function SetupScreen() {
     const { startNewStory, isStoryLoading, savedStories, loadStory } = useStory();
     const { isLoggedIn } = useAuth();
+    const { selectedModel, apiKey, temperature } = useSettings();
     const [selectedCharacter, setSelectedCharacter] = useState('');
     const [customCharacter, setCustomCharacter] = useState('');
     const [customCharacterDesc, setCustomCharacterDesc] = useState('');
     const [selectedSetting, setSelectedSetting] = useState('');
+    const [voiceStyle, setVoiceStyle] = useState('classic');
+    const [customPremise, setCustomPremise] = useState('');
+    const [genreHint, setGenreHint] = useState('');
+    const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
+    const [genTitle, setGenTitle] = useState('');
+    const [genDesc, setGenDesc] = useState('');
+    const [isGenerating, setIsGenerating] = useState(false);
+    const [genReady, setGenReady] = useState(false);
 
     const selectedPreset = CHARACTER_PRESETS.find(c => c.id === selectedCharacter);
     const characterName = selectedCharacter === 'custom'
@@ -26,13 +35,75 @@ function SetupScreen() {
         ? customCharacterDesc.trim()
         : selectedPreset?.description || '';
 
-    const setting = STORY_SETTINGS.find(s => s.id === selectedSetting);
-    const canStart = characterName.length > 0 && setting != null;
+    const getSettingData = () => {
+        if (selectedSetting === 'custom') {
+            return { description: customPremise.trim(), title: 'Custom Mystery' };
+        }
+        if (selectedSetting === 'generate') {
+            return genReady ? { description: genDesc.trim(), title: genTitle.trim() } : null;
+        }
+        const setting = STORY_SETTINGS.find(s => s.id === selectedSetting);
+        return setting ? { description: setting.description, title: setting.title } : null;
+    };
+
+    const settingData = getSettingData();
+    const canStart = characterName.length > 0 && settingData != null
+        && settingData.description.length > 0;
 
     const handleStart = () => {
-        if (!canStart || !setting) return;
-        startNewStory(characterName, setting.description, setting.title, characterDescription || undefined);
+        if (!canStart || !settingData) return;
+        startNewStory(characterName, settingData.description, settingData.title, characterDescription || undefined, voiceStyle);
     };
+
+    const toggleGenre = (genre: string) => {
+        setSelectedGenres(prev =>
+            prev.includes(genre) ? prev.filter(g => g !== genre) : [...prev, genre]
+        );
+    };
+
+    const handleGenerate = useCallback(async () => {
+        if (!apiKey) return;
+        setIsGenerating(true);
+        setGenReady(false);
+        try {
+            const genres = selectedGenres.length > 0 ? selectedGenres.join(', ') : 'any genre';
+            const hint = genreHint.trim() || 'surprise me';
+            const res = await fetch('/api/chat', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    model: selectedModel,
+                    temperature: Math.min(temperature, 0.7),
+                    apiKey,
+                    messages: [
+                        {
+                            role: 'user',
+                            content: `Generate a Sherlock Holmes mystery premise. Genre: ${genres}. Additional idea: ${hint}.\nReturn ONLY a valid JSON object with two fields: "title" (short, dramatic title) and "description" (2-3 sentences setting the scene). No markdown, no code fences, just raw JSON.`,
+                        },
+                    ],
+                }),
+            });
+            if (!res.ok) throw new Error('Generation failed');
+            const data = await res.json();
+            const text = data.choices?.[0]?.message?.content?.trim() || '';
+            const jsonMatch = text.match(/\{[\s\S]*\}/);
+            if (jsonMatch) {
+                const parsed = JSON.parse(jsonMatch[0]);
+                setGenTitle(parsed.title || 'Generated Mystery');
+                setGenDesc(parsed.description || '');
+                setGenReady(true);
+            } else {
+                setGenTitle('Generated Mystery');
+                setGenDesc(text);
+                setGenReady(true);
+            }
+        } catch {
+            setGenTitle('');
+            setGenDesc('Failed to generate. Try again or write your own.');
+        } finally {
+            setIsGenerating(false);
+        }
+    }, [apiKey, selectedModel, temperature, selectedGenres, genreHint]);
 
     return (
         <div className={styles.setupScreen}>
@@ -108,6 +179,21 @@ function SetupScreen() {
             </div>
 
             <div className={styles.setupSection}>
+                <span className={styles.setupLabel}>Writing Style</span>
+                <div className={styles.voiceStyleGrid}>
+                    {VOICE_STYLES.map(v => (
+                        <button
+                            key={v.id}
+                            className={`${styles.voiceStyleBtn} ${voiceStyle === v.id ? styles.voiceStyleBtnActive : ''}`}
+                            onClick={() => setVoiceStyle(v.id)}
+                        >
+                            {v.name}
+                        </button>
+                    ))}
+                </div>
+            </div>
+
+            <div className={styles.setupSection}>
                 <span className={styles.setupLabel}>Choose a Mystery</span>
                 <div className={styles.settingGrid}>
                     {STORY_SETTINGS.map(s => (
@@ -120,7 +206,82 @@ function SetupScreen() {
                             <span>{s.description}</span>
                         </button>
                     ))}
+                    <button
+                        className={`${styles.settingOption} ${selectedSetting === 'custom' ? styles.settingOptionSelected : ''}`}
+                        onClick={() => setSelectedSetting('custom')}
+                    >
+                        <strong>Write Your Own</strong>
+                        <span>Describe your own mystery premise</span>
+                    </button>
+                    <button
+                        className={`${styles.settingOption} ${selectedSetting === 'generate' ? styles.settingOptionSelected : ''}`}
+                        onClick={() => setSelectedSetting('generate')}
+                    >
+                        <strong>Generate a Mystery</strong>
+                        <span>AI creates a unique premise for you</span>
+                    </button>
                 </div>
+
+                {selectedSetting === 'custom' && (
+                    <div className={styles.customPremiseArea}>
+                        <textarea
+                            className={styles.customCharInput}
+                            rows={4}
+                            placeholder="Describe your mystery premise... e.g., 'A famous opera singer receives a death threat before her final performance at the Royal Opera House.'"
+                            value={customPremise}
+                            onChange={e => setCustomPremise(e.target.value)}
+                        />
+                    </div>
+                )}
+
+                {selectedSetting === 'generate' && (
+                    <div className={styles.generateArea}>
+                        <span className={styles.genSubLabel}>Pick genres (optional)</span>
+                        <div className={styles.genreTagGrid}>
+                            {GENRE_TAGS.map(g => (
+                                <button
+                                    key={g}
+                                    className={`${styles.genreTag} ${selectedGenres.includes(g) ? styles.genreTagActive : ''}`}
+                                    onClick={() => toggleGenre(g)}
+                                >
+                                    {g}
+                                </button>
+                            ))}
+                        </div>
+                        <textarea
+                            className={styles.customCharInput}
+                            rows={2}
+                            placeholder="Add a vibe or idea (e.g., 'something spooky on a train')..."
+                            value={genreHint}
+                            onChange={e => setGenreHint(e.target.value)}
+                        />
+                        <button
+                            className={styles.generateBtn}
+                            onClick={handleGenerate}
+                            disabled={isGenerating || !apiKey}
+                        >
+                            {isGenerating ? 'Generating...' : !apiKey ? 'Set API Key First' : 'Generate'}
+                        </button>
+                        {genReady && (
+                            <div className={styles.genResult}>
+                                <input
+                                    className={styles.customCharInput}
+                                    type="text"
+                                    placeholder="Mystery title..."
+                                    value={genTitle}
+                                    onChange={e => setGenTitle(e.target.value)}
+                                />
+                                <textarea
+                                    className={styles.customCharInput}
+                                    rows={3}
+                                    value={genDesc}
+                                    onChange={e => setGenDesc(e.target.value)}
+                                />
+                                <span className={styles.genHint}>You can edit both fields before starting.</span>
+                            </div>
+                        )}
+                    </div>
+                )}
             </div>
 
             <button

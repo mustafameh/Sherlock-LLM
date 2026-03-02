@@ -1,14 +1,28 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import Link from 'next/link';
 import { useStory } from '@/lib/storyContext';
 import StorySettings from './StorySettings';
 import styles from './Story.module.css';
 
 export default function StoryHeader() {
-    const { userCharacter, storySetting, isStoryStarted } = useStory();
+    const { userCharacter, storySetting, isStoryStarted, storyBlocks } = useStory();
     const [showSettings, setShowSettings] = useState(false);
+    const [isExporting, setIsExporting] = useState(false);
+
+    const handleExport = useCallback(async () => {
+        if (isExporting) return;
+        setIsExporting(true);
+        try {
+            const { exportStoryAsPdf } = await import('@/lib/storyExport');
+            await exportStoryAsPdf(storyBlocks, storySetting || 'Sherlock Holmes Mystery', userCharacter);
+        } catch {
+            alert('Export failed. Please try again.');
+        } finally {
+            setIsExporting(false);
+        }
+    }, [storyBlocks, storySetting, userCharacter, isExporting]);
 
     return (
         <>
@@ -23,6 +37,16 @@ export default function StoryHeader() {
                     )}
                 </div>
                 <div className={styles.storyHeaderRight}>
+                    {isStoryStarted && (
+                        <button
+                            className={styles.headerIconBtn}
+                            onClick={handleExport}
+                            disabled={isExporting}
+                            title="Export story as PDF"
+                        >
+                            {isExporting ? '⏳' : '📥'}
+                        </button>
+                    )}
                     <button
                         className={styles.headerIconBtn}
                         onClick={() => setShowSettings(true)}

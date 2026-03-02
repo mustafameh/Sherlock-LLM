@@ -45,6 +45,16 @@ function UserActionBubble({ content, characterName }: { content: string; charact
     );
 }
 
+function ChapterDivider({ title }: { title: string }) {
+    return (
+        <div className={styles.chapterDivider}>
+            <span className={styles.chapterLine} />
+            <h2 className={styles.chapterTitle}>{title}</h2>
+            <span className={styles.chapterLine} />
+        </div>
+    );
+}
+
 function AwaitingBlock({ context }: { context: string }) {
     return (
         <div className={styles.awaitingBlock}>
@@ -55,6 +65,10 @@ function AwaitingBlock({ context }: { context: string }) {
 
 function StoryBlockRenderer({ block, isLast, userCharacter }: { block: StoryBlock; isLast: boolean; userCharacter: string }) {
     switch (block.type) {
+        case 'chapter':
+            return <ChapterDivider title={block.title} />;
+        case 'mood':
+            return null;
         case 'narrator':
             return <NarratorBlock content={block.content} />;
         case 'dialogue':
@@ -75,6 +89,7 @@ export default function StoryWindow() {
     const {
         storyBlocks, isStoryLoading, userCharacter,
         streamingHint, currentSceneIndex, setCurrentSceneIndex,
+        currentMood,
     } = useStory();
 
     const scrollRef = useRef<HTMLDivElement>(null);
@@ -103,7 +118,7 @@ export default function StoryWindow() {
     const blocksToRender = scene?.blocks ?? [];
 
     return (
-        <div className={styles.storyWindow} ref={scrollRef}>
+        <div className={styles.storyWindow} ref={scrollRef} data-mood={currentMood}>
             {currentSceneIndex > 0 && scenes[currentSceneIndex - 1]?.userAction && (
                 <div className={styles.userActionDivider}>
                     You said: &ldquo;{scenes[currentSceneIndex - 1].userAction}&rdquo;

@@ -1,17 +1,35 @@
+export const VOICE_STYLES: { id: string; name: string; instruction: string }[] = [
+    { id: 'classic', name: 'Classic Doyle', instruction: 'Write in the style of Arthur Conan Doyle: formal Victorian English, rich vocabulary, long descriptive sentences.' },
+    { id: 'modern', name: 'BBC Modern', instruction: 'Write in modern, accessible English similar to BBC\'s Sherlock: sharp, witty, contemporary phrasing.' },
+    { id: 'eccentric', name: 'Eccentric (RDJ)', instruction: 'Write in a playful, eccentric tone inspired by Guy Ritchie\'s Sherlock Holmes films: punchy, humorous, cinematic.' },
+    { id: 'simple', name: 'Simple English', instruction: 'Write in simple, clear English suitable for younger readers or non-native speakers. Short sentences, common vocabulary.' },
+    { id: 'noir', name: 'Noir', instruction: 'Write in a hardboiled noir style: terse prose, cynical observations, atmospheric and moody.' },
+];
+
 export function generateStorySystemPrompt(
     userCharacter: string,
     storySetting: string,
     characterDescription?: string,
+    voiceStyle?: string,
 ): string {
     const charLine = characterDescription
         ? `\n\nUSER'S CHARACTER: ${userCharacter} — ${characterDescription}`
         : '';
 
+    const voiceInstr = voiceStyle
+        ? VOICE_STYLES.find(v => v.id === voiceStyle)?.instruction
+        : undefined;
+    const voiceLine = voiceInstr ? `\n\nWRITING STYLE: ${voiceInstr}` : '';
+
     return `You are a master storyteller narrating an interactive Sherlock Holmes mystery. You control all characters except the user's character (${userCharacter}).${charLine}
 
-SETTING: ${storySetting}
+SETTING: ${storySetting}${voiceLine}
 
 OUTPUT FORMAT — You MUST structure every response using these exact markers:
+
+[CHAPTER:Title] Use at major story beats to mark a new chapter. Include a short, dramatic title (e.g., [CHAPTER:The Locked Room], [CHAPTER:A Visitor at Baker Street]).
+
+[MOOD:word] Use before narrative sections when the atmosphere shifts. Options: tense, calm, danger, mysterious, discovery. This sets the visual tone.
 
 [NARRATOR] Use this for scene descriptions, atmosphere, sounds, time passages, and narrative transitions. Write in vivid, literary prose.
 
@@ -29,7 +47,7 @@ OUTPUT FORMAT — You MUST structure every response using these exact markers:
 [AWAITING_INPUT] A brief line describing what ${userCharacter} should respond to — e.g., "Sherlock looks at you expectantly, waiting for your answer."
 
 RULES:
-1. Always begin the story with a [NARRATOR] block setting the scene, followed by character dialogue.
+1. Begin the story with a [CHAPTER] block, then a [MOOD] block, then a [NARRATOR] block setting the scene, followed by character dialogue.
 2. Keep the narrative engaging. Build tension, plant clues, and create dramatic moments.
 3. Every response MUST end with either a [DECISION] block (at dramatic turning points) or an [AWAITING_INPUT] block (when a character addresses ${userCharacter} directly).
 4. Present [DECISION] blocks at key dramatic moments — roughly every 3-5 exchanges.
@@ -38,7 +56,9 @@ RULES:
 7. Maintain narrative continuity. Remember all prior events, clues, and character positions.
 8. Use varied pacing — mix tense moments with quieter investigative scenes.
 9. Introduce new characters and twists organically.
-10. Keep individual sections concise but atmospheric. Each [NARRATOR] block should be 2-4 sentences. Each dialogue block should be 1-3 sentences.`;
+10. Keep individual sections concise but atmospheric. Each [NARRATOR] block should be 2-4 sentences. Each dialogue block should be 1-3 sentences.
+11. Introduce new [CHAPTER] blocks at significant turning points (roughly every 4-6 user interactions).
+12. Include a [MOOD] marker when the atmosphere shifts significantly.`;
 }
 
 export const STORY_SETTINGS = [
@@ -62,6 +82,11 @@ export const STORY_SETTINGS = [
         title: 'Surprise Me',
         description: 'Let the narrator craft a unique mystery from scratch. Expect the unexpected.',
     },
+];
+
+export const GENRE_TAGS = [
+    'Gothic Horror', 'Political Intrigue', 'Supernatural', 'Heist',
+    'Espionage', 'Romantic Mystery', 'Revenge', 'Conspiracy',
 ];
 
 export const CHARACTER_PRESETS = [

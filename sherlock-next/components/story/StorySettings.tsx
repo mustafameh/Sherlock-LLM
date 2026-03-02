@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { useSettings, useAuth } from '@/lib/contexts';
 import { AVAILABLE_MODELS } from '@/lib/types';
+import { VOICE_STYLES } from '@/lib/storyPrompts';
 import styles from './StorySettings.module.css';
 
 export default function StorySettings({ open, onClose }: { open: boolean; onClose: () => void }) {
@@ -49,6 +50,19 @@ export default function StorySettings({ open, onClose }: { open: boolean; onClos
                             <option key={m.id} value={m.id}>{m.name}</option>
                         ))}
                     </select>
+                </div>
+
+                <div className={styles.section}>
+                    <label className={styles.label}>Writing Style</label>
+                    <select
+                        className={styles.select}
+                        defaultValue="classic"
+                    >
+                        {VOICE_STYLES.map(v => (
+                            <option key={v.id} value={v.id}>{v.name}</option>
+                        ))}
+                    </select>
+                    <p className={styles.storageHint}>Applies to new stories only.</p>
                 </div>
 
                 <div className={styles.section}>

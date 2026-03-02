@@ -25,10 +25,11 @@ interface StoryContextType {
     savedStories: SavedStorySummary[];
     streamingHint: string | null;
     currentSceneIndex: number;
+    currentMood: string;
     setCurrentSceneIndex: (i: number) => void;
     sendStoryAction: (text: string) => Promise<void>;
     selectDecision: (optionText: string) => Promise<void>;
-    startNewStory: (character: string, setting: string, settingTitle: string, characterDescription?: string) => Promise<void>;
+    startNewStory: (character: string, setting: string, settingTitle: string, characterDescription?: string, voiceStyle?: string) => Promise<void>;
     loadStory: (id: string) => Promise<void>;
     resetStory: () => void;
     setStoryError: (err: string | null) => void;
@@ -52,6 +53,7 @@ export function StoryProvider({ children }: { children: ReactNode }) {
     const [savedStories, setSavedStories] = useState<SavedStorySummary[]>([]);
     const [streamingHint, setStreamingHint] = useState<string | null>(null);
     const [currentSceneIndex, setCurrentSceneIndex] = useState(0);
+    const [currentMood, setCurrentMood] = useState('calm');
     const abortRef = useRef<AbortController | null>(null);
     const saveTimerRef = useRef<NodeJS.Timeout | null>(null);
     const lastSavedRef = useRef<string>('');
@@ -124,8 +126,15 @@ export function StoryProvider({ children }: { children: ReactNode }) {
         return () => { if (saveTimerRef.current) clearTimeout(saveTimerRef.current); };
     }, [storyMessages, isLoggedIn, isStoryStarted, saveStory]);
 
+    useEffect(() => {
+        const lastMood = [...storyBlocks].reverse().find(b => b.type === 'mood');
+        if (lastMood && lastMood.type === 'mood') {
+            setCurrentMood(lastMood.mood);
+        }
+    }, [storyBlocks]);
+
     const deriveStreamingHint = useCallback((buffer: string): string => {
-        const markerMatch = buffer.match(/\[(NARRATOR|SHERLOCK|WATSON|CHARACTER:([^\]]+)|DECISION|AWAITING_INPUT)\]\s*$/);
+        const markerMatch = buffer.match(/\[(NARRATOR|SHERLOCK|WATSON|CHARACTER:([^\]]+)|DECISION|AWAITING_INPUT|CHAPTER:[^\]]+|MOOD:[^\]]+)\]\s*$/);
         if (markerMatch) {
             const tag = markerMatch[1];
             if (tag === 'NARRATOR') return 'Narrating';
@@ -134,6 +143,8 @@ export function StoryProvider({ children }: { children: ReactNode }) {
             if (tag.startsWith('CHARACTER:')) return `${markerMatch[2]?.trim()} speaking`;
             if (tag === 'DECISION') return 'Presenting choices';
             if (tag === 'AWAITING_INPUT') return 'Waiting for your response';
+            if (tag.startsWith('CHAPTER:')) return 'New chapter';
+            if (tag.startsWith('MOOD:')) return 'Setting the mood';
         }
         const trailingMarker = buffer.match(/\[([A-Z_:]+[^\]]*?)$/);
         if (trailingMarker) return 'The story continues';
@@ -227,17 +238,18 @@ export function StoryProvider({ children }: { children: ReactNode }) {
         return buffer;
     }, [selectedModel, apiKey, temperature, deriveStreamingHint]);
 
-    const startNewStory = useCallback(async (character: string, setting: string, settingTitle: string, characterDescription?: string) => {
+    const startNewStory = useCallback(async (character: string, setting: string, settingTitle: string, characterDescription?: string, voiceStyle?: string) => {
         setStoryError(null);
         setIsStoryLoading(true);
         setUserCharacter(character);
         setStorySetting(settingTitle);
         setStoryBlocks([]);
         setCurrentStoryId(null);
+        setCurrentMood('calm');
         lastSavedRef.current = '';
         abortRef.current = new AbortController();
 
-        const systemPrompt = generateStorySystemPrompt(character, setting, characterDescription);
+        const systemPrompt = generateStorySystemPrompt(character, setting, characterDescription, voiceStyle);
         const charIntro = characterDescription
             ? `Begin the story. Set the scene and introduce the first situation. I am playing as ${character} (${characterDescription}).`
             : `Begin the story. Set the scene and introduce the first situation. Remember, I am playing as ${character}.`;
@@ -371,6 +383,7 @@ export function StoryProvider({ children }: { children: ReactNode }) {
             savedStories,
             streamingHint,
             currentSceneIndex,
+            currentMood,
             setCurrentSceneIndex,
             sendStoryAction,
             selectDecision,

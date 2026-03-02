@@ -3,9 +3,11 @@ export type StoryBlock =
     | { type: 'dialogue'; character: string; content: string }
     | { type: 'decision'; options: string[] }
     | { type: 'awaiting_input'; context: string }
-    | { type: 'user_action'; content: string };
+    | { type: 'user_action'; content: string }
+    | { type: 'chapter'; title: string }
+    | { type: 'mood'; mood: string };
 
-const BLOCK_PATTERN = /\[(NARRATOR|SHERLOCK|WATSON|CHARACTER:([^\]]+)|DECISION|AWAITING_INPUT)\]/g;
+const BLOCK_PATTERN = /\[(NARRATOR|SHERLOCK|WATSON|CHARACTER:([^\]]+)|DECISION|AWAITING_INPUT|CHAPTER:([^\]]+)|MOOD:([^\]]+))\]/g;
 
 export function parseStoryBlocks(raw: string): StoryBlock[] {
     const blocks: StoryBlock[] = [];
@@ -15,7 +17,11 @@ export function parseStoryBlocks(raw: string): StoryBlock[] {
     let match: RegExpExecArray | null;
     while ((match = BLOCK_PATTERN.exec(raw)) !== null) {
         const tag = match[1];
-        if (tag.startsWith('CHARACTER:')) {
+        if (tag.startsWith('CHAPTER:')) {
+            markers.push({ type: 'chapter', character: match[3].trim(), index: match.index });
+        } else if (tag.startsWith('MOOD:')) {
+            markers.push({ type: 'mood', character: match[4].trim().toLowerCase(), index: match.index });
+        } else if (tag.startsWith('CHARACTER:')) {
             markers.push({ type: 'dialogue', character: match[2].trim(), index: match.index });
         } else if (tag === 'SHERLOCK') {
             markers.push({ type: 'dialogue', character: 'Sherlock Holmes', index: match.index });
@@ -47,6 +53,12 @@ export function parseStoryBlocks(raw: string): StoryBlock[] {
         if (!content) continue;
 
         switch (marker.type) {
+            case 'chapter':
+                blocks.push({ type: 'chapter', title: marker.character! });
+                break;
+            case 'mood':
+                blocks.push({ type: 'mood', mood: marker.character! });
+                break;
             case 'narrator':
                 blocks.push({ type: 'narrator', content });
                 break;

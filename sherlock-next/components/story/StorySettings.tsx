@@ -1,15 +1,23 @@
 'use client';
 
 import React, { useState } from 'react';
-import { useSettings, useAuth } from '@/lib/contexts';
+import { useSettings, useAuth, type DecisionFrequency } from '@/lib/contexts';
 import { AVAILABLE_MODELS } from '@/lib/types';
 import { VOICE_STYLES } from '@/lib/storyPrompts';
 import styles from './StorySettings.module.css';
 
+const FREQUENCY_OPTIONS: { value: DecisionFrequency; label: string; hint: string }[] = [
+    { value: 'frequent', label: 'Frequent', hint: 'Every 2-3 exchanges' },
+    { value: 'normal', label: 'Normal', hint: 'Every 3-5 exchanges' },
+    { value: 'sparse', label: 'Sparse', hint: 'Every 6-8 exchanges' },
+    { value: 'very_rare', label: 'Very Rare', hint: 'Only at major crossroads' },
+];
+
 export default function StorySettings({ open, onClose }: { open: boolean; onClose: () => void }) {
     const {
         selectedModel, saveModel, apiKey, saveApiKey, clearApiKey, temperature, setTemperature,
-        apiKeyStorage, setApiKeyStorage,
+        apiKeyStorage, setApiKeyStorage, decisionFrequency, setDecisionFrequency,
+        zenMode, setZenMode,
     } = useSettings();
     const { isLoggedIn } = useAuth();
     const [keyInput, setKeyInput] = useState(apiKey);
@@ -63,6 +71,39 @@ export default function StorySettings({ open, onClose }: { open: boolean; onClos
                         ))}
                     </select>
                     <p className={styles.storageHint}>Applies to new stories only.</p>
+                </div>
+
+                <div className={styles.section}>
+                    <label className={styles.label}>Decision Frequency</label>
+                    <select
+                        className={styles.select}
+                        value={decisionFrequency}
+                        onChange={e => setDecisionFrequency(e.target.value as DecisionFrequency)}
+                        disabled={zenMode}
+                    >
+                        {FREQUENCY_OPTIONS.map(o => (
+                            <option key={o.value} value={o.value}>{o.label} — {o.hint}</option>
+                        ))}
+                    </select>
+                    {zenMode && <p className={styles.storageHint}>Overridden by Zen Mode.</p>}
+                    <p className={styles.storageHint}>Applies to new stories only.</p>
+                </div>
+
+                <div className={styles.section}>
+                    <div className={styles.zenRow}>
+                        <label className={styles.label} style={{ marginBottom: 0 }}>Zen Mode</label>
+                        <button
+                            className={`${styles.zenToggle} ${zenMode ? styles.zenToggleOn : ''}`}
+                            onClick={() => setZenMode(!zenMode)}
+                            role="switch"
+                            aria-checked={zenMode}
+                        >
+                            <span className={styles.zenKnob} />
+                        </button>
+                    </div>
+                    <p className={styles.storageHint}>
+                        Story flows continuously like a novel. Decisions are rare. Auto-continues after each response.
+                    </p>
                 </div>
 
                 <div className={styles.section}>

@@ -73,6 +73,8 @@ export function useChat() {
 // ===== Settings Context =====
 type ApiKeyStorageMode = 'browser' | 'account';
 
+export type DecisionFrequency = 'frequent' | 'normal' | 'sparse' | 'very_rare';
+
 interface SettingsContextType {
     modelSource: ModelSource;
     selectedModel: string;
@@ -80,6 +82,8 @@ interface SettingsContextType {
     temperature: number;
     deepReasoning: boolean;
     apiKeyStorage: ApiKeyStorageMode;
+    decisionFrequency: DecisionFrequency;
+    zenMode: boolean;
     localModelStatus: ModelStatus;
     showDebugWindow: boolean;
     setModelSource: (source: ModelSource) => void;
@@ -88,6 +92,8 @@ interface SettingsContextType {
     setTemperature: (temp: number) => void;
     setDeepReasoning: (on: boolean) => void;
     setApiKeyStorage: (mode: ApiKeyStorageMode) => void;
+    setDecisionFrequency: (freq: DecisionFrequency) => void;
+    setZenMode: (on: boolean) => void;
     setLocalModelStatus: (status: ModelStatus) => void;
     setShowDebugWindow: (show: boolean) => void;
     saveApiKey: (key: string) => void;
@@ -126,6 +132,18 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
         }
         return 'browser';
     });
+    const [decisionFrequency, setDecisionFrequencyState] = useState<DecisionFrequency>(() => {
+        if (typeof window !== 'undefined') {
+            return (localStorage.getItem('DecisionFrequency') as DecisionFrequency) || 'normal';
+        }
+        return 'normal';
+    });
+    const [zenMode, setZenModeState] = useState(() => {
+        if (typeof window !== 'undefined') {
+            return localStorage.getItem('ZenMode') === 'true';
+        }
+        return false;
+    });
     const [localModelStatus, setLocalModelStatus] = useState<ModelStatus>('not_loaded');
     const [showDebugWindow, setShowDebugWindow] = useState(false);
     const hydratedForUser = useRef<string | null>(null);
@@ -141,6 +159,20 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
         setApiKeyStorageState(mode);
         if (typeof window !== 'undefined') {
             localStorage.setItem('ApiKeyStorage', mode);
+        }
+    }, []);
+
+    const setDecisionFrequency = useCallback((freq: DecisionFrequency) => {
+        setDecisionFrequencyState(freq);
+        if (typeof window !== 'undefined') {
+            localStorage.setItem('DecisionFrequency', freq);
+        }
+    }, []);
+
+    const setZenMode = useCallback((on: boolean) => {
+        setZenModeState(on);
+        if (typeof window !== 'undefined') {
+            localStorage.setItem('ZenMode', String(on));
         }
     }, []);
 
@@ -236,9 +268,11 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     return (
         <SettingsContext.Provider value={{
             modelSource, selectedModel, apiKey, temperature, deepReasoning, apiKeyStorage,
+            decisionFrequency, zenMode,
             localModelStatus, showDebugWindow,
             setModelSource, setSelectedModel, setApiKey, setTemperature, setDeepReasoning,
-            setApiKeyStorage, setLocalModelStatus, setShowDebugWindow,
+            setApiKeyStorage, setDecisionFrequency, setZenMode,
+            setLocalModelStatus, setShowDebugWindow,
             saveApiKey, clearApiKey, saveModel,
         }}>
             {children}

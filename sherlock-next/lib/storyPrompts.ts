@@ -6,11 +6,22 @@ export const VOICE_STYLES: { id: string; name: string; instruction: string }[] =
     { id: 'noir', name: 'Noir', instruction: 'Write in a hardboiled noir style: terse prose, cynical observations, atmospheric and moody.' },
 ];
 
+import type { DecisionFrequency } from './contexts';
+
+const DECISION_FREQUENCY_RULES: Record<DecisionFrequency, string> = {
+    frequent: 'Present [DECISION] blocks frequently — roughly every 2-3 exchanges.',
+    normal: 'Present [DECISION] blocks at key dramatic moments — roughly every 3-5 exchanges.',
+    sparse: 'Present [DECISION] blocks sparingly — roughly every 6-8 exchanges. Let the story breathe between choices.',
+    very_rare: 'Present [DECISION] blocks only at major plot crossroads — roughly every 10-15 exchanges. Focus on narrative flow.',
+};
+
 export function generateStorySystemPrompt(
     userCharacter: string,
     storySetting: string,
     characterDescription?: string,
     voiceStyle?: string,
+    decisionFrequency: DecisionFrequency = 'normal',
+    zenMode: boolean = false,
 ): string {
     const charLine = characterDescription
         ? `\n\nUSER'S CHARACTER: ${userCharacter} — ${characterDescription}`
@@ -20,6 +31,14 @@ export function generateStorySystemPrompt(
         ? VOICE_STYLES.find(v => v.id === voiceStyle)?.instruction
         : undefined;
     const voiceLine = voiceInstr ? `\n\nWRITING STYLE: ${voiceInstr}` : '';
+
+    const endingRule = zenMode
+        ? `3. End each response with narrative that flows naturally into the next scene. Do NOT include [DECISION] or [AWAITING_INPUT] blocks unless the story reaches a truly critical crossroads (once every 15+ exchanges at most). The story should feel continuous, like reading a novel.`
+        : `3. Every response MUST end with either a [DECISION] block (at dramatic turning points) or an [AWAITING_INPUT] block (when a character addresses ${userCharacter} directly).`;
+
+    const decisionRule = zenMode
+        ? '4. The user is in Zen Mode — the story auto-continues. Write longer, more immersive passages. Avoid interrupting the flow with choices.'
+        : `4. ${DECISION_FREQUENCY_RULES[decisionFrequency]}`;
 
     return `You are a master storyteller narrating an interactive Sherlock Holmes mystery. You control all characters except the user's character (${userCharacter}).${charLine}
 
@@ -49,8 +68,8 @@ OUTPUT FORMAT — You MUST structure every response using these exact markers:
 RULES:
 1. Begin the story with a [CHAPTER] block, then a [MOOD] block, then a [NARRATOR] block setting the scene, followed by character dialogue.
 2. Keep the narrative engaging. Build tension, plant clues, and create dramatic moments.
-3. Every response MUST end with either a [DECISION] block (at dramatic turning points) or an [AWAITING_INPUT] block (when a character addresses ${userCharacter} directly).
-4. Present [DECISION] blocks at key dramatic moments — roughly every 3-5 exchanges.
+${endingRule}
+${decisionRule}
 5. When the user picks a decision option or types free text, continue the story naturally from that point.
 6. ${userCharacter} is the user's character. NEVER write dialogue or decisions for ${userCharacter} — that is the user's role.
 7. Maintain narrative continuity. Remember all prior events, clues, and character positions.

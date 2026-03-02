@@ -26,6 +26,8 @@ interface StoryContextType {
     streamingHint: string | null;
     currentSceneIndex: number;
     currentMood: string;
+    zenPaused: boolean;
+    setZenPaused: (paused: boolean) => void;
     setCurrentSceneIndex: (i: number) => void;
     sendStoryAction: (text: string) => Promise<void>;
     selectDecision: (optionText: string) => Promise<void>;
@@ -40,7 +42,7 @@ interface StoryContextType {
 const StoryContext = createContext<StoryContextType | undefined>(undefined);
 
 export function StoryProvider({ children }: { children: ReactNode }) {
-    const { selectedModel, apiKey, temperature } = useSettings();
+    const { selectedModel, apiKey, temperature, decisionFrequency, zenMode } = useSettings();
     const { isLoggedIn } = useAuth();
     const [storyBlocks, setStoryBlocks] = useState<StoryBlock[]>([]);
     const [storyMessages, setStoryMessages] = useState<ChatMessage[]>([]);
@@ -54,10 +56,12 @@ export function StoryProvider({ children }: { children: ReactNode }) {
     const [streamingHint, setStreamingHint] = useState<string | null>(null);
     const [currentSceneIndex, setCurrentSceneIndex] = useState(0);
     const [currentMood, setCurrentMood] = useState('calm');
+    const [zenPaused, setZenPaused] = useState(false);
     const abortRef = useRef<AbortController | null>(null);
     const saveTimerRef = useRef<NodeJS.Timeout | null>(null);
     const lastSavedRef = useRef<string>('');
     const savingRef = useRef(false);
+    const zenTimerRef = useRef<NodeJS.Timeout | null>(null);
 
     const refreshSavedStories = useCallback(async () => {
         if (!isLoggedIn) { setSavedStories([]); return; }
@@ -132,6 +136,34 @@ export function StoryProvider({ children }: { children: ReactNode }) {
             setCurrentMood(lastMood.mood);
         }
     }, [storyBlocks]);
+
+    const zenContinueRef = useRef<((text: string) => Promise<void>) | null>(null);
+
+    useEffect(() => {
+        if (zenTimerRef.current) {
+            clearTimeout(zenTimerRef.current);
+            zenTimerRef.current = null;
+        }
+
+        if (!zenMode || zenPaused || isStoryLoading || !isStoryStarted || storyBlocks.length === 0) return;
+
+        const hasDecision = storyBlocks.slice(-5).some(b => b.type === 'decision');
+        if (hasDecision) {
+            setZenPaused(true);
+            return;
+        }
+
+        zenTimerRef.current = setTimeout(() => {
+            zenContinueRef.current?.('Continue the story.');
+        }, 4000);
+
+        return () => {
+            if (zenTimerRef.current) {
+                clearTimeout(zenTimerRef.current);
+                zenTimerRef.current = null;
+            }
+        };
+    }, [zenMode, zenPaused, isStoryLoading, isStoryStarted, storyBlocks]);
 
     const deriveStreamingHint = useCallback((buffer: string): string => {
         const markerMatch = buffer.match(/\[(NARRATOR|SHERLOCK|WATSON|CHARACTER:([^\]]+)|DECISION|AWAITING_INPUT|CHAPTER:[^\]]+|MOOD:[^\]]+)\]\s*$/);
@@ -249,7 +281,7 @@ export function StoryProvider({ children }: { children: ReactNode }) {
         lastSavedRef.current = '';
         abortRef.current = new AbortController();
 
-        const systemPrompt = generateStorySystemPrompt(character, setting, characterDescription, voiceStyle);
+        const systemPrompt = generateStorySystemPrompt(character, setting, characterDescription, voiceStyle, decisionFrequency, zenMode);
         const charIntro = characterDescription
             ? `Begin the story. Set the scene and introduce the first situation. I am playing as ${character} (${characterDescription}).`
             : `Begin the story. Set the scene and introduce the first situation. Remember, I am playing as ${character}.`;
@@ -272,7 +304,7 @@ export function StoryProvider({ children }: { children: ReactNode }) {
             setIsStoryLoading(false);
             setStreamingHint(null);
         }
-    }, [streamStoryApi]);
+    }, [streamStoryApi, decisionFrequency, zenMode]);
 
     const loadStory = useCallback(async (id: string) => {
         setStoryError(null);
@@ -332,6 +364,8 @@ export function StoryProvider({ children }: { children: ReactNode }) {
         }
     }, [isStoryLoading, storyMessages, storyBlocks, streamStoryApi]);
 
+    zenContinueRef.current = sendStoryAction;
+
     const selectDecision = useCallback(async (optionText: string) => {
         const cleaned = optionText.replace(/^Option\s+[A-Z]:\s*/i, '').trim();
         await sendStoryAction(cleaned);
@@ -358,6 +392,7 @@ export function StoryProvider({ children }: { children: ReactNode }) {
 
     const resetStory = useCallback(() => {
         abortRef.current?.abort();
+        if (zenTimerRef.current) { clearTimeout(zenTimerRef.current); zenTimerRef.current = null; }
         setStoryBlocks([]);
         setStoryMessages([]);
         setUserCharacter('');
@@ -367,6 +402,7 @@ export function StoryProvider({ children }: { children: ReactNode }) {
         setStoryError(null);
         setCurrentStoryId(null);
         setStreamingHint(null);
+        setZenPaused(false);
         lastSavedRef.current = '';
     }, []);
 
@@ -384,6 +420,8 @@ export function StoryProvider({ children }: { children: ReactNode }) {
             streamingHint,
             currentSceneIndex,
             currentMood,
+            zenPaused,
+            setZenPaused,
             setCurrentSceneIndex,
             sendStoryAction,
             selectDecision,

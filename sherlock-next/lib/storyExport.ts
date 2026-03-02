@@ -12,7 +12,7 @@ function blocksToHtml(blocks: StoryBlock[]): string {
             case 'narrator':
                 return `<p class="narrator">${escapeHtml(block.content)}</p>`;
             case 'dialogue':
-                return `<p class="dialogue"><strong>${escapeHtml(block.character)}:</strong> &ldquo;${escapeHtml(block.content)}&rdquo;</p>`;
+                return `<p class="dialogue"><strong>${escapeHtml(block.character)}:</strong> \u201c${escapeHtml(block.content)}\u201d</p>`;
             case 'user_action':
                 return `<p class="user-action"><em>${escapeHtml(block.content)}</em></p>`;
             case 'decision':
@@ -25,33 +25,36 @@ function blocksToHtml(blocks: StoryBlock[]): string {
     }).filter(Boolean).join('\n');
 }
 
-function buildDocument(blocks: StoryBlock[], title: string, character: string): string {
-    return `<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<style>
-  @import url('https://fonts.googleapis.com/css2?family=Crimson+Text:ital,wght@0,400;0,600;0,700;1,400&display=swap');
+const PDF_STYLES = `
   * { margin: 0; padding: 0; box-sizing: border-box; }
-  body { font-family: 'Crimson Text', Georgia, serif; color: #1a1a1a; max-width: 700px; margin: 0 auto; padding: 40px 32px; line-height: 1.8; font-size: 14px; }
-  h1 { text-align: center; font-size: 28px; font-weight: 700; margin-bottom: 4px; }
-  .subtitle { text-align: center; font-size: 14px; color: #666; margin-bottom: 32px; font-style: italic; }
-  h2.chapter { text-align: center; font-size: 20px; font-weight: 700; margin-top: 36px; margin-bottom: 4px; letter-spacing: 0.02em; }
-  hr.chapter-rule { border: none; border-top: 1px solid #ccc; width: 40%; margin: 0 auto 20px; }
-  .narrator { font-style: italic; color: #333; margin-bottom: 14px; }
+  .pdf-root {
+      font-family: Georgia, 'Times New Roman', serif;
+      color: #1a1a1a;
+      max-width: 700px;
+      margin: 0 auto;
+      padding: 40px 32px;
+      line-height: 1.8;
+      font-size: 14px;
+      background: #fdf8f0;
+  }
+  h1 { text-align: center; font-size: 28px; font-weight: 700; margin-bottom: 4px; color: #2c1810; }
+  .subtitle { text-align: center; font-size: 14px; color: #6b5a4e; margin-bottom: 32px; font-style: italic; }
+  h2.chapter { text-align: center; font-size: 20px; font-weight: 700; margin-top: 36px; margin-bottom: 4px; letter-spacing: 0.02em; color: #4a3728; }
+  hr.chapter-rule { border: none; border-top: 1px solid #c9b99a; width: 40%; margin: 0 auto 20px; }
+  .narrator { font-style: italic; color: #3d3d3d; margin-bottom: 14px; padding-left: 12px; border-left: 3px solid #c9b99a; }
   .dialogue { margin-bottom: 14px; }
   .dialogue strong { color: #8b5e3c; }
-  .user-action { color: #2563eb; margin-bottom: 14px; }
+  .user-action { color: #2563eb; margin-bottom: 14px; font-style: italic; }
   .decision { color: #888; font-size: 12px; margin-bottom: 14px; }
-  @media print { body { padding: 0; } h2.chapter { page-break-before: always; } }
-</style>
-</head>
-<body>
+`;
+
+function buildContent(blocks: StoryBlock[], title: string, character: string): string {
+    return `<style>${PDF_STYLES}</style>
+<div class="pdf-root">
 <h1>${escapeHtml(title)}</h1>
-<p class="subtitle">An interactive adventure — playing as ${escapeHtml(character)}</p>
+<p class="subtitle">An interactive adventure \u2014 playing as ${escapeHtml(character)}</p>
 ${blocksToHtml(blocks)}
-</body>
-</html>`;
+</div>`;
 }
 
 export async function exportStoryAsPdf(
@@ -59,12 +62,12 @@ export async function exportStoryAsPdf(
     title: string,
     character: string,
 ): Promise<void> {
-    const html = buildDocument(blocks, title, character);
-
     const container = document.createElement('div');
-    container.innerHTML = html;
+    container.innerHTML = buildContent(blocks, title, character);
     container.style.position = 'absolute';
     container.style.left = '-9999px';
+    container.style.top = '0';
+    container.style.width = '700px';
     document.body.appendChild(container);
 
     try {
@@ -74,7 +77,7 @@ export async function exportStoryAsPdf(
                 margin: [10, 10, 10, 10],
                 filename: `${title.replace(/[^a-zA-Z0-9 ]/g, '').trim() || 'story'}.pdf`,
                 image: { type: 'jpeg', quality: 0.95 },
-                html2canvas: { scale: 2, useCORS: true },
+                html2canvas: { scale: 2, useCORS: true, backgroundColor: '#fdf8f0' },
                 jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
             })
             .from(container)

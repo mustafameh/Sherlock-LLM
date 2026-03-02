@@ -4,6 +4,7 @@ import React, { useState, useCallback } from 'react';
 import { StoryProvider, useStory } from '@/lib/storyContext';
 import { useAuth, useSettings } from '@/lib/contexts';
 import { STORY_SETTINGS, CHARACTER_PRESETS, VOICE_STYLES, GENRE_TAGS } from '@/lib/storyPrompts';
+import type { DecisionFrequency } from '@/lib/contexts';
 import StoryHeader from '@/components/story/StoryHeader';
 import StoryWindow from '@/components/story/StoryWindow';
 import StoryInput from '@/components/story/StoryInput';
@@ -13,7 +14,7 @@ import styles from '@/components/story/Story.module.css';
 function SetupScreen() {
     const { startNewStory, isStoryLoading, savedStories, loadStory } = useStory();
     const { isLoggedIn } = useAuth();
-    const { selectedModel, apiKey, temperature } = useSettings();
+    const { selectedModel, apiKey, temperature, decisionFrequency, setDecisionFrequency, zenMode, setZenMode } = useSettings();
     const [selectedCharacter, setSelectedCharacter] = useState('');
     const [customCharacter, setCustomCharacter] = useState('');
     const [customCharacterDesc, setCustomCharacterDesc] = useState('');
@@ -191,6 +192,41 @@ function SetupScreen() {
                         </button>
                     ))}
                 </div>
+            </div>
+
+            <div className={styles.setupSection}>
+                <span className={styles.setupLabel}>Story Pacing</span>
+                <div className={styles.voiceStyleGrid}>
+                    {([
+                        { value: 'frequent' as DecisionFrequency, label: 'Frequent', hint: 'Choices every 2-3 turns' },
+                        { value: 'normal' as DecisionFrequency, label: 'Normal', hint: 'Choices every 3-5 turns' },
+                        { value: 'sparse' as DecisionFrequency, label: 'Sparse', hint: 'Choices every 6-8 turns' },
+                        { value: 'very_rare' as DecisionFrequency, label: 'Very Rare', hint: 'Only at key crossroads' },
+                    ]).map(o => (
+                        <button
+                            key={o.value}
+                            className={`${styles.voiceStyleBtn} ${!zenMode && decisionFrequency === o.value ? styles.voiceStyleBtnActive : ''}`}
+                            onClick={() => { setDecisionFrequency(o.value); if (zenMode) setZenMode(false); }}
+                            title={o.hint}
+                            disabled={zenMode}
+                        >
+                            {o.label}
+                        </button>
+                    ))}
+                    <button
+                        className={`${styles.voiceStyleBtn} ${zenMode ? styles.voiceStyleBtnActive : ''}`}
+                        onClick={() => setZenMode(!zenMode)}
+                        title="Story auto-continues like a novel. Minimal decisions."
+                        style={zenMode ? { borderColor: 'var(--color-gold-500)', background: 'rgba(245,158,11,0.15)', color: 'var(--color-gold-300)' } : {}}
+                    >
+                        Zen Mode
+                    </button>
+                </div>
+                <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '6px' }}>
+                    {zenMode
+                        ? 'Zen Mode: Story flows like a novel. Auto-continues with minimal decisions.'
+                        : `Decisions appear ${decisionFrequency === 'frequent' ? 'every 2-3' : decisionFrequency === 'normal' ? 'every 3-5' : decisionFrequency === 'sparse' ? 'every 6-8' : 'every 10-15'} exchanges.`}
+                </p>
             </div>
 
             <div className={styles.setupSection}>

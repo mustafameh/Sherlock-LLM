@@ -2,6 +2,7 @@
 
 import React, { useEffect, useMemo, useRef } from 'react';
 import { useStory } from '@/lib/storyContext';
+import { useSettings } from '@/lib/contexts';
 import { deriveScenes } from '@/lib/storyParser';
 import type { StoryBlock } from '@/lib/storyParser';
 import styles from './Story.module.css';
@@ -91,6 +92,7 @@ export default function StoryWindow() {
         streamingHint, currentSceneIndex, setCurrentSceneIndex,
         currentMood,
     } = useStory();
+    const { zenMode } = useSettings();
 
     const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -99,10 +101,10 @@ export default function StoryWindow() {
     const isOnLatest = currentSceneIndex >= totalScenes - 1;
 
     useEffect(() => {
-        if (isStoryLoading) {
+        if (isStoryLoading && !zenMode) {
             setCurrentSceneIndex(Math.max(0, totalScenes - 1));
         }
-    }, [totalScenes, isStoryLoading, setCurrentSceneIndex]);
+    }, [totalScenes, isStoryLoading, setCurrentSceneIndex, zenMode]);
 
     useEffect(() => {
         if (currentSceneIndex >= totalScenes) {
@@ -165,7 +167,7 @@ export default function StoryWindow() {
                         Scene {currentSceneIndex + 1} of {totalScenes}
                     </span>
                     <button
-                        className={styles.sceneNavBtn}
+                        className={`${styles.sceneNavBtn} ${!isOnLatest && zenMode ? styles.sceneNavBtnNew : ''}`}
                         onClick={() => setCurrentSceneIndex(Math.min(totalScenes - 1, currentSceneIndex + 1))}
                         disabled={isOnLatest}
                         title="Next scene"

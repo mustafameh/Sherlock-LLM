@@ -6,6 +6,8 @@ import { AVAILABLE_MODELS } from '@/lib/types';
 import { VOICE_STYLES } from '@/lib/storyPrompts';
 import styles from './StorySettings.module.css';
 
+const CUSTOM_MODEL_OPTION = '__custom__';
+
 const FREQUENCY_OPTIONS: { value: DecisionFrequency; label: string; hint: string }[] = [
     { value: 'frequent', label: 'Frequent', hint: 'Every 2-3 exchanges' },
     { value: 'normal', label: 'Normal', hint: 'Every 3-5 exchanges' },
@@ -20,6 +22,9 @@ export default function StorySettings({ open, onClose }: { open: boolean; onClos
         zenMode, setZenMode,
     } = useSettings();
     const { isLoggedIn } = useAuth();
+    const isPresetModel = AVAILABLE_MODELS.some(m => m.id === selectedModel);
+    const [dropdownValue, setDropdownValue] = useState(isPresetModel ? selectedModel : CUSTOM_MODEL_OPTION);
+    const [customModelId, setCustomModelId] = useState(isPresetModel ? '' : selectedModel);
     const [keyInput, setKeyInput] = useState(apiKey);
     const [showApiKey, setShowApiKey] = useState(false);
     const [saveStatus, setSaveStatus] = useState<'idle' | 'saved' | 'cleared'>('idle');
@@ -51,13 +56,41 @@ export default function StorySettings({ open, onClose }: { open: boolean; onClos
                     <label className={styles.label}>Your Model</label>
                     <select
                         className={styles.select}
-                        value={selectedModel}
-                        onChange={e => saveModel(e.target.value)}
+                        value={dropdownValue}
+                        onChange={e => {
+                            const value = e.target.value;
+                            setDropdownValue(value);
+                            if (value !== CUSTOM_MODEL_OPTION) {
+                                saveModel(value);
+                            }
+                        }}
                     >
                         {AVAILABLE_MODELS.map(m => (
                             <option key={m.id} value={m.id}>{m.name}</option>
                         ))}
+                        <option value={CUSTOM_MODEL_OPTION}>-- Use Custom Model ID --</option>
                     </select>
+                    {dropdownValue === CUSTOM_MODEL_OPTION && (
+                        <div className={styles.customModelGroup}>
+                            <input
+                                className={styles.input}
+                                type="text"
+                                placeholder="e.g. meta-llama/llama-3-70b-instruct"
+                                value={customModelId}
+                                onChange={e => setCustomModelId(e.target.value)}
+                            />
+                            <button
+                                className={styles.saveBtn}
+                                disabled={!customModelId.trim()}
+                                onClick={() => { if (customModelId.trim()) saveModel(customModelId.trim()); }}
+                            >
+                                Confirm
+                            </button>
+                            <p className={styles.storageHint}>
+                                Paste any model ID from openrouter.ai/models
+                            </p>
+                        </div>
+                    )}
                 </div>
 
                 <div className={styles.section}>

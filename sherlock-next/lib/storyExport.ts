@@ -30,9 +30,7 @@ function blocksToHtml(blocks: StoryBlock[]): string {
                 return `<p style="${S.userAction}"><em>${esc(block.content)}</em></p>`;
             case 'decision':
                 return `<p style="${S.decision}"><em>Choices presented: ${block.options.map(o => esc(o)).join(' / ')}</em></p>`;
-            case 'mood':
             case 'awaiting_input':
-            case 'scene_break':
             default:
                 return '';
         }

@@ -68,9 +68,6 @@ function StoryBlockRenderer({ block, isLast, userCharacter }: { block: StoryBloc
     switch (block.type) {
         case 'chapter':
             return <ChapterDivider title={block.title} />;
-        case 'mood':
-        case 'scene_break':
-            return null;
         case 'narrator':
             return <NarratorBlock content={block.content} />;
         case 'dialogue':
@@ -91,10 +88,8 @@ export default function StoryWindow() {
     const {
         storyBlocks, isStoryLoading, userCharacter,
         streamingHint, currentSceneIndex, setCurrentSceneIndex,
-        currentMood,
     } = useStory();
-    const { zenMode, decisionFrequency } = useSettings();
-    const isMultiScene = decisionFrequency !== 'frequent' || zenMode;
+    const { decisionFrequency } = useSettings();
 
     const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -103,10 +98,10 @@ export default function StoryWindow() {
     const isOnLatest = currentSceneIndex >= totalScenes - 1;
 
     useEffect(() => {
-        if (isStoryLoading && !isMultiScene) {
+        if (isStoryLoading && decisionFrequency === 'frequent') {
             setCurrentSceneIndex(Math.max(0, totalScenes - 1));
         }
-    }, [totalScenes, isStoryLoading, setCurrentSceneIndex, isMultiScene]);
+    }, [totalScenes, isStoryLoading, setCurrentSceneIndex, decisionFrequency]);
 
     useEffect(() => {
         if (currentSceneIndex >= totalScenes) {
@@ -122,7 +117,7 @@ export default function StoryWindow() {
     const blocksToRender = scene?.blocks ?? [];
 
     return (
-        <div className={styles.storyWindow} ref={scrollRef} data-mood={currentMood}>
+        <div className={styles.storyWindow} ref={scrollRef}>
             {currentSceneIndex > 0 && scenes[currentSceneIndex - 1]?.userAction && (
                 <div className={styles.userActionDivider}>
                     You said: &ldquo;{scenes[currentSceneIndex - 1].userAction}&rdquo;
@@ -141,7 +136,7 @@ export default function StoryWindow() {
             {isOnLatest && isStoryLoading && (
                 <div className={styles.streamingIndicator}>
                     <span className={styles.streamingText}>
-                        {isMultiScene ? 'Loading next scenes...' : (streamingHint || 'The story continues')}
+                        {streamingHint || 'The story continues'}
                     </span>
                     <span className={styles.streamingDots}>
                         <span className={styles.dot} />
@@ -171,7 +166,7 @@ export default function StoryWindow() {
                         Scene {currentSceneIndex + 1} of {totalScenes}
                     </span>
                     <button
-                        className={`${styles.sceneNavBtn} ${!isOnLatest && isMultiScene ? styles.sceneNavBtnNew : ''}`}
+                        className={`${styles.sceneNavBtn} ${!isOnLatest ? styles.sceneNavBtnNew : ''}`}
                         onClick={() => setCurrentSceneIndex(Math.min(totalScenes - 1, currentSceneIndex + 1))}
                         disabled={isOnLatest}
                         title="Next scene"

@@ -4,11 +4,9 @@ export type StoryBlock =
     | { type: 'decision'; options: string[] }
     | { type: 'awaiting_input'; context: string }
     | { type: 'user_action'; content: string }
-    | { type: 'chapter'; title: string }
-    | { type: 'mood'; mood: string }
-    | { type: 'scene_break' };
+    | { type: 'chapter'; title: string };
 
-const BLOCK_PATTERN = /\[(NARRATOR|SHERLOCK|WATSON|CHARACTER:([^\]]+)|DECISION|AWAITING_INPUT|CHAPTER:([^\]]+)|MOOD:([^\]]+)|SCENE_BREAK)\]/g;
+const BLOCK_PATTERN = /\[(NARRATOR|SHERLOCK|WATSON|CHARACTER:([^\]]+)|DECISION|AWAITING_INPUT|CHAPTER:([^\]]+))\]/g;
 
 export function parseStoryBlocks(raw: string): StoryBlock[] {
     const blocks: StoryBlock[] = [];
@@ -20,8 +18,6 @@ export function parseStoryBlocks(raw: string): StoryBlock[] {
         const tag = match[1];
         if (tag.startsWith('CHAPTER:')) {
             markers.push({ type: 'chapter', character: match[3].trim(), index: match.index });
-        } else if (tag.startsWith('MOOD:')) {
-            markers.push({ type: 'mood', character: match[4].trim().toLowerCase(), index: match.index });
         } else if (tag.startsWith('CHARACTER:')) {
             markers.push({ type: 'dialogue', character: match[2].trim(), index: match.index });
         } else if (tag === 'SHERLOCK') {
@@ -34,8 +30,6 @@ export function parseStoryBlocks(raw: string): StoryBlock[] {
             markers.push({ type: 'decision', index: match.index });
         } else if (tag === 'AWAITING_INPUT') {
             markers.push({ type: 'awaiting_input', index: match.index });
-        } else if (tag === 'SCENE_BREAK') {
-            markers.push({ type: 'scene_break', index: match.index });
         }
     }
 
@@ -53,19 +47,11 @@ export function parseStoryBlocks(raw: string): StoryBlock[] {
         const contentEnd = i + 1 < markers.length ? markers[i + 1].index : raw.length;
         const content = raw.slice(tagEnd, contentEnd).trim();
 
-        if (marker.type === 'scene_break') {
-            blocks.push({ type: 'scene_break' });
-            continue;
-        }
-
         if (!content) continue;
 
         switch (marker.type) {
             case 'chapter':
                 blocks.push({ type: 'chapter', title: marker.character! });
-                break;
-            case 'mood':
-                blocks.push({ type: 'mood', mood: marker.character! });
                 break;
             case 'narrator':
                 blocks.push({ type: 'narrator', content });
@@ -105,11 +91,6 @@ export function deriveScenes(blocks: StoryBlock[]): Scene[] {
         if (block.type === 'user_action') {
             scenes.push({ blocks: current, userAction: block.content });
             current = [];
-        } else if (block.type === 'scene_break') {
-            if (current.length > 0) {
-                scenes.push({ blocks: current });
-                current = [];
-            }
         } else {
             current.push(block);
         }

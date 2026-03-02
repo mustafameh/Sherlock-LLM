@@ -14,7 +14,7 @@ const QUICK_ACTIONS = [
 ];
 
 export default function StoryInput() {
-    const { sendStoryAction, selectDecision, isStoryLoading, userCharacter, storyBlocks, currentSceneIndex, setCurrentSceneIndex, zenPaused, setZenPaused } = useStory();
+    const { sendStoryAction, selectDecision, advanceScene, isStoryLoading, isPrefetching, userCharacter, storyBlocks, currentSceneIndex, setCurrentSceneIndex, zenPaused, setZenPaused } = useStory();
     const { zenMode, decisionFrequency } = useSettings();
     const textareaRef = useRef<HTMLTextAreaElement>(null);
     const isMultiScene = decisionFrequency !== 'frequent' || zenMode;
@@ -47,9 +47,13 @@ export default function StoryInput() {
         }
     }, [handleSend]);
 
-    const handleNextScene = useCallback(() => {
-        setCurrentSceneIndex(Math.min(totalScenes - 1, currentSceneIndex + 1));
-    }, [setCurrentSceneIndex, totalScenes, currentSceneIndex]);
+    const handleNextScene = useCallback(async () => {
+        if (currentSceneIndex < totalScenes - 1) {
+            setCurrentSceneIndex(currentSceneIndex + 1);
+        } else {
+            await advanceScene();
+        }
+    }, [setCurrentSceneIndex, totalScenes, currentSceneIndex, advanceScene]);
 
     if (isMultiScene && !isOnLatest) {
         return (
@@ -66,8 +70,10 @@ export default function StoryInput() {
 
     if (!isOnLatest) return null;
 
+    const hasDecisionInScene = isDecisionActive;
+    const canAdvance = !hasDecisionInScene && isMultiScene;
     const showZenBar = zenMode && isOnLatest && !isDecisionActive;
-    const showInput = isDecisionActive || !zenMode || zenPaused;
+    const showInput = isDecisionActive || !isMultiScene || zenPaused;
 
     return (
         <div className={styles.storyInputArea}>
@@ -107,6 +113,16 @@ export default function StoryInput() {
                     </div>
                     <span className={styles.orDivider}>or type your own response below</span>
                 </div>
+            )}
+
+            {canAdvance && !showZenBar && (
+                <button
+                    className={styles.nextSceneBtn}
+                    onClick={handleNextScene}
+                    disabled={isStoryLoading || isPrefetching}
+                >
+                    {isStoryLoading || isPrefetching ? 'Loading...' : 'Next Scene ›'}
+                </button>
             )}
 
             {showInput && (

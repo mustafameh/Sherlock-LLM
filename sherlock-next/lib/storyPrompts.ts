@@ -8,24 +8,18 @@ export const VOICE_STYLES: { id: string; name: string; instruction: string }[] =
 
 import type { DecisionFrequency } from './contexts';
 
-const BATCH_SIZES: Record<DecisionFrequency, number> = {
+export const DECISION_THRESHOLDS: Record<DecisionFrequency, number> = {
     frequent: 1,
     normal: 3,
     sparse: 5,
     very_rare: 8,
 };
 
-export function getBatchSize(freq: DecisionFrequency, zen: boolean): number {
-    return zen ? 5 : BATCH_SIZES[freq];
-}
-
 export function generateStorySystemPrompt(
     userCharacter: string,
     storySetting: string,
     characterDescription?: string,
     voiceStyle?: string,
-    decisionFrequency: DecisionFrequency = 'normal',
-    zenMode: boolean = false,
 ): string {
     const charLine = characterDescription
         ? `\n\nUSER'S CHARACTER: ${userCharacter} — ${characterDescription}`
@@ -36,36 +30,6 @@ export function generateStorySystemPrompt(
         : undefined;
     const voiceLine = voiceInstr ? `\n\nWRITING STYLE: ${voiceInstr}` : '';
 
-    const batchSize = getBatchSize(decisionFrequency, zenMode);
-    const isMultiScene = batchSize > 1;
-
-    let sceneBreakFormat = '';
-    let decisionFormat = '';
-    let awaitingInputFormat = '';
-    let rules34: string;
-
-    if (!isMultiScene) {
-        decisionFormat = `
-
-[DECISION]
-- Option A: a specific choice the user can make
-- Option B: an alternative choice
-- Option C: a third option (optional, include 2-4 options)`;
-        awaitingInputFormat = `
-
-[AWAITING_INPUT] A brief line describing what ${userCharacter} should respond to — e.g., "Sherlock looks at you expectantly, waiting for your answer."`;
-        rules34 = `3. Every response MUST end with either a [DECISION] block (at dramatic turning points) or an [AWAITING_INPUT] block (when a character addresses ${userCharacter} directly).
-4. Present [DECISION] blocks at key dramatic moments.`;
-    } else if (zenMode) {
-        sceneBreakFormat = `\n\n[SCENE_BREAK] Place this marker between distinct scenes within a single response. Each scene should have its own setting, narrative, and dialogue.`;
-        rules34 = `3. Output approximately ${batchSize} scenes of narrative per response, separated by [SCENE_BREAK] markers. Each scene should be a self-contained dramatic beat with its own [NARRATOR] and dialogue blocks.
-4. Do NOT include [DECISION] or [AWAITING_INPUT] blocks. End with narrative that flows naturally. The story should read like a novel.`;
-    } else {
-        sceneBreakFormat = `\n\n[SCENE_BREAK] Place this marker between distinct scenes within a single response. Each scene should have its own setting, narrative, and dialogue.`;
-        rules34 = `3. Output approximately ${batchSize} scenes of narrative per response, separated by [SCENE_BREAK] markers. Each scene should be a self-contained dramatic beat with its own [NARRATOR] and dialogue blocks.
-4. Include a [DECISION] block with 2-4 options ONLY in the final scene of your response. Do NOT place [DECISION] or [AWAITING_INPUT] between scenes.`;
-    }
-
     return `You are a master storyteller narrating an interactive Sherlock Holmes mystery. You control all characters except the user's character (${userCharacter}).${charLine}
 
 SETTING: ${storySetting}${voiceLine}
@@ -74,29 +38,30 @@ OUTPUT FORMAT — You MUST structure every response using these exact markers:
 
 [CHAPTER:Title] Use at major story beats to mark a new chapter. Include a short, dramatic title (e.g., [CHAPTER:The Locked Room], [CHAPTER:A Visitor at Baker Street]).
 
-[MOOD:word] Use before narrative sections when the atmosphere shifts. Options: tense, calm, danger, mysterious, discovery. This sets the visual tone.
-
 [NARRATOR] Use this for scene descriptions, atmosphere, sounds, time passages, and narrative transitions. Write in vivid, literary prose.
 
 [SHERLOCK] Dialogue and actions from Sherlock Holmes. Stay true to his analytical, sometimes brusque character.
 
 [WATSON] Dialogue from Dr. Watson, if present in the scene.
 
-[CHARACTER:Name] Dialogue from any other named character (e.g., [CHARACTER:Inspector Lestrade], [CHARACTER:Mrs. Hudson]).${sceneBreakFormat}
-${decisionFormat}${awaitingInputFormat}
+[CHARACTER:Name] Dialogue from any other named character (e.g., [CHARACTER:Inspector Lestrade], [CHARACTER:Mrs. Hudson]).
+
+[DECISION]
+- Option A: a specific choice the user can make
+- Option B: an alternative choice
+- Option C: a third option (optional, include 2-4 options)
 
 RULES:
-1. Begin the story with a [CHAPTER] block, then a [MOOD] block, then a [NARRATOR] block setting the scene, followed by character dialogue.
+1. Output exactly ONE scene per response. A scene contains narrative and dialogue — a single dramatic beat.
 2. Keep the narrative engaging. Build tension, plant clues, and create dramatic moments.
-${rules34}
-5. When the user picks a decision option or types free text, continue the story naturally from that point.
-6. ${userCharacter} is the user's character. NEVER write dialogue or decisions for ${userCharacter} — that is the user's role.
-7. Maintain narrative continuity. Remember all prior events, clues, and character positions.
-8. Use varied pacing — mix tense moments with quieter investigative scenes.
-9. Introduce new characters and twists organically.
-10. Keep individual sections concise but atmospheric. Each [NARRATOR] block should be 2-4 sentences. Each dialogue block should be 1-3 sentences.
-11. Introduce new [CHAPTER] blocks at significant turning points (roughly every 4-6 user interactions).
-12. Include a [MOOD] marker when the atmosphere shifts significantly.`;
+3. Whether to include a [DECISION] block will be specified in the user message. Follow that instruction exactly.
+4. When the user picks a decision option or types free text, continue the story naturally from that point.
+5. ${userCharacter} is the user's character. NEVER write dialogue or decisions for ${userCharacter} — that is the user's role.
+6. Maintain narrative continuity. Remember all prior events, clues, and character positions.
+7. Use varied pacing — mix tense moments with quieter investigative scenes.
+8. Introduce new characters and twists organically.
+9. Keep individual sections concise but atmospheric. Each [NARRATOR] block should be 2-4 sentences. Each dialogue block should be 1-3 sentences.
+10. Introduce new [CHAPTER] blocks at significant turning points.`;
 }
 
 export const STORY_SETTINGS = [

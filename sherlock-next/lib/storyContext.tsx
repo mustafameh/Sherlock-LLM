@@ -2,8 +2,8 @@
 
 import React, { createContext, useContext, useState, useCallback, useRef, useEffect, type ReactNode } from 'react';
 import { useSettings, useAuth } from '@/lib/contexts';
-import { generateStorySystemPrompt, rollDecisionThreshold } from '@/lib/storyPrompts';
-import { parseStoryBlocks, type StoryBlock } from '@/lib/storyParser';
+import { generateStorySystemPrompt } from '@/lib/storyPrompts';
+import { parseStoryBlocks, deriveScenes, type StoryBlock } from '@/lib/storyParser';
 import type { ChatMessage } from '@/lib/types';
 
 interface SavedStorySummary {
@@ -25,13 +25,12 @@ interface StoryContextType {
     savedStories: SavedStorySummary[];
     streamingHint: string | null;
     currentSceneIndex: number;
-    isPrefetching: boolean;
+    currentMood: string;
     zenPaused: boolean;
     setZenPaused: (paused: boolean) => void;
     setCurrentSceneIndex: (i: number) => void;
     sendStoryAction: (text: string) => Promise<void>;
     selectDecision: (optionText: string) => Promise<void>;
-    advanceScene: () => Promise<void>;
     startNewStory: (character: string, setting: string, settingTitle: string, characterDescription?: string, voiceStyle?: string) => Promise<void>;
     loadStory: (id: string) => Promise<void>;
     resetStory: () => void;
@@ -41,12 +40,6 @@ interface StoryContextType {
 }
 
 const StoryContext = createContext<StoryContextType | undefined>(undefined);
-
-function buildDecisionSuffix(sceneCount: number, threshold: number, zenMode: boolean): string {
-    if (zenMode) return ' Do NOT include a [DECISION] block. End with narrative.';
-    if (sceneCount >= threshold) return ' End this scene with a [DECISION] block offering 2-4 options.';
-    return ' Do NOT include a [DECISION] block. End with narrative.';
-}
 
 export function StoryProvider({ children }: { children: ReactNode }) {
     const { selectedModel, apiKey, temperature, decisionFrequency, zenMode } = useSettings();
@@ -62,15 +55,14 @@ export function StoryProvider({ children }: { children: ReactNode }) {
     const [savedStories, setSavedStories] = useState<SavedStorySummary[]>([]);
     const [streamingHint, setStreamingHint] = useState<string | null>(null);
     const [currentSceneIndex, setCurrentSceneIndex] = useState(0);
-    const [isPrefetching, setIsPrefetching] = useState(false);
+    const [currentMood, setCurrentMood] = useState('calm');
     const [zenPaused, setZenPaused] = useState(false);
     const abortRef = useRef<AbortController | null>(null);
     const saveTimerRef = useRef<NodeJS.Timeout | null>(null);
     const lastSavedRef = useRef<string>('');
     const savingRef = useRef(false);
-    const sceneCountRef = useRef(0);
-    const thresholdRef = useRef(zenMode ? Infinity : rollDecisionThreshold(decisionFrequency));
-    const prefetchedRef = useRef<{ blocks: StoryBlock[]; raw: string; messages: ChatMessage[] } | null>(null);
+    const prefetchingRef = useRef(false);
+    const prefetchKeyRef = useRef<string | null>(null);
 
     const refreshSavedStories = useCallback(async () => {
         if (!isLoggedIn) { setSavedStories([]); return; }
@@ -94,7 +86,6 @@ export function StoryProvider({ children }: { children: ReactNode }) {
             blocks: storyBlocks,
             userCharacter,
             storySetting,
-            sceneCount: sceneCountRef.current,
         });
 
         if (fullContent === lastSavedRef.current) return;
@@ -140,8 +131,15 @@ export function StoryProvider({ children }: { children: ReactNode }) {
         return () => { if (saveTimerRef.current) clearTimeout(saveTimerRef.current); };
     }, [storyMessages, isLoggedIn, isStoryStarted, saveStory]);
 
+    useEffect(() => {
+        const lastMood = [...storyBlocks].reverse().find(b => b.type === 'mood');
+        if (lastMood && lastMood.type === 'mood') {
+            setCurrentMood(lastMood.mood);
+        }
+    }, [storyBlocks]);
+
     const deriveStreamingHint = useCallback((buffer: string): string => {
-        const markerMatch = buffer.match(/\[(NARRATOR|SHERLOCK|WATSON|CHARACTER:([^\]]+)|DECISION|AWAITING_INPUT|CHAPTER:[^\]]+)\]\s*$/);
+        const markerMatch = buffer.match(/\[(NARRATOR|SHERLOCK|WATSON|CHARACTER:([^\]]+)|DECISION|AWAITING_INPUT|CHAPTER:[^\]]+|MOOD:[^\]]+|SCENE_BREAK)\]\s*$/);
         if (markerMatch) {
             const tag = markerMatch[1];
             if (tag === 'NARRATOR') return 'Narrating';
@@ -151,6 +149,8 @@ export function StoryProvider({ children }: { children: ReactNode }) {
             if (tag === 'DECISION') return 'Presenting choices';
             if (tag === 'AWAITING_INPUT') return 'Waiting for your response';
             if (tag.startsWith('CHAPTER:')) return 'New chapter';
+            if (tag.startsWith('MOOD:')) return 'Setting the mood';
+            if (tag === 'SCENE_BREAK') return 'Next scene';
         }
         const trailingMarker = buffer.match(/\[([A-Z_:]+[^\]]*?)$/);
         if (trailingMarker) return 'The story continues';
@@ -160,8 +160,7 @@ export function StoryProvider({ children }: { children: ReactNode }) {
     const streamStoryApi = useCallback(async (
         messages: ChatMessage[],
         baseBlocks: StoryBlock[],
-        updateUI: boolean = true,
-    ): Promise<{ raw: string; blocks: StoryBlock[] }> => {
+    ): Promise<string> => {
         if (!apiKey) throw new Error('Please set your OpenRouter API key first.');
 
         const res = await fetch('/api/chat/stream', {
@@ -190,7 +189,7 @@ export function StoryProvider({ children }: { children: ReactNode }) {
         let lastUpdateTime = 0;
         const THROTTLE_MS = 80;
 
-        if (updateUI) setStreamingHint('The story continues');
+        setStreamingHint('The story continues');
 
         try {
             while (true) {
@@ -211,27 +210,25 @@ export function StoryProvider({ children }: { children: ReactNode }) {
                         if (delta) {
                             buffer += delta;
 
-                            if (updateUI) {
-                                const parsed = parseStoryBlocks(buffer);
-                                const now = Date.now();
-                                const newBlockAppeared = parsed.length > lastBlockCount;
+                            const parsed = parseStoryBlocks(buffer);
+                            const now = Date.now();
+                            const newBlockAppeared = parsed.length > lastBlockCount;
 
-                                if (newBlockAppeared) {
-                                    const newBlocks = parsed.slice(lastBlockCount);
-                                    setStoryBlocks([...baseBlocks, ...parsed]);
-                                    lastBlockCount = parsed.length;
-                                    lastUpdateTime = now;
+                            if (newBlockAppeared) {
+                                const newBlocks = parsed.slice(lastBlockCount);
+                                setStoryBlocks([...baseBlocks, ...parsed]);
+                                lastBlockCount = parsed.length;
+                                lastUpdateTime = now;
 
-                                    const lastNew = newBlocks[newBlocks.length - 1];
-                                    if (lastNew.type === 'narrator') setStreamingHint('Narrating');
-                                    else if (lastNew.type === 'dialogue') setStreamingHint(`${lastNew.character} speaking`);
-                                } else if (now - lastUpdateTime >= THROTTLE_MS) {
-                                    setStoryBlocks([...baseBlocks, ...parsed]);
-                                    lastUpdateTime = now;
-                                }
-
-                                setStreamingHint(deriveStreamingHint(buffer));
+                                const lastNew = newBlocks[newBlocks.length - 1];
+                                if (lastNew.type === 'narrator') setStreamingHint('Narrating');
+                                else if (lastNew.type === 'dialogue') setStreamingHint(`${lastNew.character} speaking`);
+                            } else if (now - lastUpdateTime >= THROTTLE_MS) {
+                                setStoryBlocks([...baseBlocks, ...parsed]);
+                                lastUpdateTime = now;
                             }
+
+                            setStreamingHint(deriveStreamingHint(buffer));
                         }
                     } catch { /* skip malformed SSE lines */ }
                 }
@@ -241,51 +238,11 @@ export function StoryProvider({ children }: { children: ReactNode }) {
         }
 
         const finalBlocks = parseStoryBlocks(buffer);
-        if (updateUI) {
-            setStoryBlocks([...baseBlocks, ...finalBlocks]);
-            setStreamingHint(null);
-        }
+        setStoryBlocks([...baseBlocks, ...finalBlocks]);
+        setStreamingHint(null);
 
-        return { raw: buffer, blocks: finalBlocks };
+        return buffer;
     }, [selectedModel, apiKey, temperature, deriveStreamingHint]);
-
-    const rerollThreshold = useCallback(() => {
-        thresholdRef.current = zenMode ? Infinity : rollDecisionThreshold(decisionFrequency);
-    }, [zenMode, decisionFrequency]);
-
-    const prefetchNextScene = useCallback(async (
-        currentMessages: ChatMessage[],
-        currentBlocks: StoryBlock[],
-    ) => {
-        if (!apiKey || isPrefetching) return;
-
-        const lastBlockHasDecision = currentBlocks.slice(-5).some(b => b.type === 'decision');
-        if (lastBlockHasDecision) return;
-
-        setIsPrefetching(true);
-        const nextCount = sceneCountRef.current + 1;
-        const suffix = buildDecisionSuffix(nextCount, thresholdRef.current, zenMode);
-        const continueMsg: ChatMessage = { role: 'user', content: `Continue the story. Output one scene.${suffix}` };
-        const prefetchMessages = [...currentMessages, continueMsg];
-
-        const prefetchAbort = new AbortController();
-        const oldAbort = abortRef.current;
-        abortRef.current = prefetchAbort;
-
-        try {
-            const result = await streamStoryApi(prefetchMessages, currentBlocks, false);
-            prefetchedRef.current = {
-                blocks: result.blocks,
-                raw: result.raw,
-                messages: prefetchMessages,
-            };
-        } catch {
-            prefetchedRef.current = null;
-        } finally {
-            setIsPrefetching(false);
-            abortRef.current = oldAbort;
-        }
-    }, [apiKey, isPrefetching, zenMode, decisionFrequency, streamStoryApi]);
 
     const startNewStory = useCallback(async (character: string, setting: string, settingTitle: string, characterDescription?: string, voiceStyle?: string) => {
         setStoryError(null);
@@ -294,34 +251,26 @@ export function StoryProvider({ children }: { children: ReactNode }) {
         setStorySetting(settingTitle);
         setStoryBlocks([]);
         setCurrentStoryId(null);
-        sceneCountRef.current = 0;
-        prefetchedRef.current = null;
+        setCurrentMood('calm');
+        prefetchKeyRef.current = null;
         lastSavedRef.current = '';
         abortRef.current = new AbortController();
 
-        const systemPrompt = generateStorySystemPrompt(character, setting, characterDescription, voiceStyle);
-        rerollThreshold();
-        const suffix = buildDecisionSuffix(1, thresholdRef.current, zenMode);
+        const systemPrompt = generateStorySystemPrompt(character, setting, characterDescription, voiceStyle, decisionFrequency, zenMode);
         const charIntro = characterDescription
-            ? `Begin the story. Set the scene and introduce the first situation. I am playing as ${character} (${characterDescription}).${suffix}`
-            : `Begin the story. Set the scene and introduce the first situation. Remember, I am playing as ${character}.${suffix}`;
+            ? `Begin the story. Set the scene and introduce the first situation. I am playing as ${character} (${characterDescription}).`
+            : `Begin the story. Set the scene and introduce the first situation. Remember, I am playing as ${character}.`;
         const initialMessages: ChatMessage[] = [
             { role: 'system', content: systemPrompt },
             { role: 'user', content: charIntro },
         ];
 
         try {
-            const result = await streamStoryApi(initialMessages, []);
-            sceneCountRef.current = 1;
-            const assistantMsg: ChatMessage = { role: 'assistant', content: result.raw };
+            const response = await streamStoryApi(initialMessages, []);
+            const assistantMsg: ChatMessage = { role: 'assistant', content: response };
             const newMessages = [...initialMessages, assistantMsg];
             setStoryMessages(newMessages);
             setIsStoryStarted(true);
-
-            const hasDecision = result.blocks.some(b => b.type === 'decision');
-            if (hasDecision) { sceneCountRef.current = 0; rerollThreshold(); }
-
-            prefetchNextScene(newMessages, result.blocks);
         } catch (err) {
             if ((err as Error).name !== 'AbortError') {
                 setStoryError(err instanceof Error ? err.message : 'Failed to start story');
@@ -330,7 +279,7 @@ export function StoryProvider({ children }: { children: ReactNode }) {
             setIsStoryLoading(false);
             setStreamingHint(null);
         }
-    }, [streamStoryApi, decisionFrequency, zenMode, prefetchNextScene]);
+    }, [streamStoryApi, decisionFrequency, zenMode]);
 
     const loadStory = useCallback(async (id: string) => {
         setStoryError(null);
@@ -347,8 +296,7 @@ export function StoryProvider({ children }: { children: ReactNode }) {
             setUserCharacter(saved.userCharacter || data.character || '');
             setStorySetting(saved.storySetting || '');
             setCurrentStoryId(id);
-            sceneCountRef.current = saved.sceneCount ?? 0;
-            prefetchedRef.current = null;
+            prefetchKeyRef.current = null;
             lastSavedRef.current = data.full_content;
             setIsStoryStarted(true);
         } catch (err) {
@@ -362,36 +310,25 @@ export function StoryProvider({ children }: { children: ReactNode }) {
         if (isStoryLoading || !text.trim()) return;
         setStoryError(null);
         setIsStoryLoading(true);
-        prefetchedRef.current = null;
+        prefetchKeyRef.current = null;
         abortRef.current = new AbortController();
-
-        sceneCountRef.current += 1;
-        const suffix = buildDecisionSuffix(sceneCountRef.current, thresholdRef.current, zenMode);
 
         const userActionBlock: StoryBlock = { type: 'user_action', content: text };
         const blocksBeforeStream = [...storyBlocks, userActionBlock];
         setStoryBlocks(blocksBeforeStream);
 
-        const userMsg: ChatMessage = { role: 'user', content: text + suffix };
+        const userMsg: ChatMessage = { role: 'user', content: text };
         const newMessages = [...storyMessages, userMsg];
         setStoryMessages(newMessages);
 
         try {
-            const result = await streamStoryApi(newMessages, blocksBeforeStream);
-            const assistantMsg: ChatMessage = { role: 'assistant', content: result.raw };
-            const updatedMessages = [...newMessages, assistantMsg];
-            setStoryMessages(updatedMessages);
-
-            const allBlocks = [...blocksBeforeStream, ...result.blocks];
-            const hasDecision = result.blocks.some(b => b.type === 'decision');
-            if (hasDecision) { sceneCountRef.current = 0; rerollThreshold(); }
-
-            prefetchNextScene(updatedMessages, allBlocks);
+            const response = await streamStoryApi(newMessages, blocksBeforeStream);
+            const assistantMsg: ChatMessage = { role: 'assistant', content: response };
+            setStoryMessages(prev => [...prev, assistantMsg]);
         } catch (err) {
             if ((err as Error).name !== 'AbortError') {
                 setStoryError(err instanceof Error ? err.message : 'Failed to continue story');
             }
-            sceneCountRef.current -= 1;
             setStoryMessages(prev => prev.filter(m => m !== userMsg));
             setStoryBlocks(prev => {
                 const idx = prev.findIndex(b => b === userActionBlock);
@@ -402,67 +339,72 @@ export function StoryProvider({ children }: { children: ReactNode }) {
             setIsStoryLoading(false);
             setStreamingHint(null);
         }
-    }, [isStoryLoading, storyMessages, storyBlocks, streamStoryApi, decisionFrequency, zenMode, prefetchNextScene]);
+    }, [isStoryLoading, storyMessages, storyBlocks, streamStoryApi]);
 
-    const advanceScene = useCallback(async () => {
-        if (isStoryLoading) return;
-
-        if (prefetchedRef.current) {
-            const cached = prefetchedRef.current;
-            prefetchedRef.current = null;
-            sceneCountRef.current += 1;
-
-            const allBlocks = [...storyBlocks, ...cached.blocks];
-            setStoryBlocks(allBlocks);
-
-            const assistantMsg: ChatMessage = { role: 'assistant', content: cached.raw };
-            const continueMsg = cached.messages[cached.messages.length - 1];
-            const updatedMessages = [...storyMessages, continueMsg, assistantMsg];
-            setStoryMessages(updatedMessages);
-
-            const hasDecision = cached.blocks.some(b => b.type === 'decision');
-            if (hasDecision) { sceneCountRef.current = 0; rerollThreshold(); }
-
-            prefetchNextScene(updatedMessages, allBlocks);
-            return;
-        }
-
+    const continueSilently = useCallback(async () => {
+        if (isStoryLoading || prefetchingRef.current) return;
+        prefetchingRef.current = true;
+        setStoryError(null);
         setIsStoryLoading(true);
         abortRef.current = new AbortController();
-        sceneCountRef.current += 1;
 
-        const suffix = buildDecisionSuffix(sceneCountRef.current, thresholdRef.current, zenMode);
-        const continueMsg: ChatMessage = { role: 'user', content: `Continue the story. Output one scene.${suffix}` };
+        const continueMsg: ChatMessage = { role: 'user', content: 'Continue the story.' };
         const newMessages = [...storyMessages, continueMsg];
         setStoryMessages(newMessages);
 
         try {
-            const result = await streamStoryApi(newMessages, storyBlocks);
-            const assistantMsg: ChatMessage = { role: 'assistant', content: result.raw };
-            const updatedMessages = [...newMessages, assistantMsg];
-            setStoryMessages(updatedMessages);
-
-            const allBlocks = [...storyBlocks, ...result.blocks];
-            const hasDecision = result.blocks.some(b => b.type === 'decision');
-            if (hasDecision) { sceneCountRef.current = 0; rerollThreshold(); }
-
-            prefetchNextScene(updatedMessages, allBlocks);
+            const response = await streamStoryApi(newMessages, storyBlocks);
+            const assistantMsg: ChatMessage = { role: 'assistant', content: response };
+            setStoryMessages(prev => [...prev, assistantMsg]);
         } catch (err) {
             if ((err as Error).name !== 'AbortError') {
                 setStoryError(err instanceof Error ? err.message : 'Failed to continue story');
             }
-            sceneCountRef.current -= 1;
+            prefetchKeyRef.current = null;
             setStoryMessages(prev => prev.filter(m => m !== continueMsg));
         } finally {
             setIsStoryLoading(false);
             setStreamingHint(null);
+            prefetchingRef.current = false;
         }
-    }, [isStoryLoading, storyMessages, storyBlocks, streamStoryApi, decisionFrequency, zenMode, prefetchNextScene]);
+    }, [isStoryLoading, storyMessages, storyBlocks, streamStoryApi]);
+
+    useEffect(() => {
+        if (!isStoryStarted || isStoryLoading || storyBlocks.length === 0) return;
+        if (decisionFrequency === 'frequent' && !zenMode) return;
+        if (zenMode && zenPaused) return;
+
+        const scenes = deriveScenes(storyBlocks);
+        const totalScenes = scenes.length;
+        if (totalScenes < 2) return;
+
+        const lastSceneBlocks = scenes[totalScenes - 1]?.blocks ?? [];
+        const hasDecision = lastSceneBlocks.some(b => b.type === 'decision');
+        if (hasDecision) {
+            prefetchKeyRef.current = null;
+            return;
+        }
+
+        const hasAwaitingInput = lastSceneBlocks.some(b => b.type === 'awaiting_input');
+        if (hasAwaitingInput) {
+            prefetchKeyRef.current = null;
+            return;
+        }
+
+        const triggerIndex = zenMode
+            ? totalScenes - 1
+            : Math.max(0, totalScenes - 2);
+
+        if (currentSceneIndex >= triggerIndex) {
+            const prefetchKey = `${totalScenes}:${lastSceneBlocks.length}:${zenMode ? 'zen' : decisionFrequency}`;
+            if (prefetchKeyRef.current === prefetchKey) return;
+            prefetchKeyRef.current = prefetchKey;
+            continueSilently();
+        }
+    }, [currentSceneIndex, isStoryStarted, isStoryLoading, storyBlocks, decisionFrequency, zenMode, zenPaused, continueSilently]);
 
     const selectDecision = useCallback(async (optionText: string) => {
         const cleaned = optionText.replace(/^Option\s+[A-Z]:\s*/i, '').trim();
-        sceneCountRef.current = 0;
-        rerollThreshold();
         await sendStoryAction(cleaned);
     }, [sendStoryAction]);
 
@@ -487,9 +429,8 @@ export function StoryProvider({ children }: { children: ReactNode }) {
 
     const resetStory = useCallback(() => {
         abortRef.current?.abort();
-        prefetchedRef.current = null;
-        sceneCountRef.current = 0;
-        rerollThreshold();
+        prefetchingRef.current = false;
+        prefetchKeyRef.current = null;
         setStoryBlocks([]);
         setStoryMessages([]);
         setUserCharacter('');
@@ -500,7 +441,6 @@ export function StoryProvider({ children }: { children: ReactNode }) {
         setCurrentStoryId(null);
         setStreamingHint(null);
         setZenPaused(false);
-        setIsPrefetching(false);
         lastSavedRef.current = '';
     }, []);
 
@@ -517,13 +457,12 @@ export function StoryProvider({ children }: { children: ReactNode }) {
             savedStories,
             streamingHint,
             currentSceneIndex,
-            isPrefetching,
+            currentMood,
             zenPaused,
             setZenPaused,
             setCurrentSceneIndex,
             sendStoryAction,
             selectDecision,
-            advanceScene,
             startNewStory,
             loadStory,
             resetStory,

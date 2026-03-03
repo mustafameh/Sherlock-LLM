@@ -198,9 +198,10 @@ function SetupScreen() {
                 <span className={styles.setupLabel}>Story Pacing</span>
                 <div className={styles.voiceStyleGrid}>
                     {([
-                        { value: 'frequent' as DecisionFrequency, label: 'Frequent', hint: 'Choices every 1-2 scenes' },
-                        { value: 'normal' as DecisionFrequency, label: 'Normal', hint: 'Choices every 3-5 scenes' },
-                        { value: 'sparse' as DecisionFrequency, label: 'Sparse', hint: 'Choices every 6-8 scenes' },
+                        { value: 'frequent' as DecisionFrequency, label: 'Frequent', hint: 'Choices every 2-3 turns' },
+                        { value: 'normal' as DecisionFrequency, label: 'Normal', hint: 'Choices every 3-5 turns' },
+                        { value: 'sparse' as DecisionFrequency, label: 'Sparse', hint: 'Choices every 6-8 turns' },
+                        { value: 'very_rare' as DecisionFrequency, label: 'Very Rare', hint: 'Only at key crossroads' },
                     ]).map(o => (
                         <button
                             key={o.value}
@@ -224,7 +225,7 @@ function SetupScreen() {
                 <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '6px' }}>
                     {zenMode
                         ? 'Zen Mode: Story flows like a novel. Auto-continues with minimal decisions.'
-                        : `Decisions appear ${decisionFrequency === 'frequent' ? 'every 1-2' : decisionFrequency === 'normal' ? 'every 3-5' : 'every 6-8'} scenes.`}
+                        : `Decisions appear ${decisionFrequency === 'frequent' ? 'every 2-3' : decisionFrequency === 'normal' ? 'every 3-5' : decisionFrequency === 'sparse' ? 'every 6-8' : 'every 10-15'} exchanges.`}
                 </p>
             </div>
 

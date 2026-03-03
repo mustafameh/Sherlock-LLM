@@ -1,0 +1,37 @@
+---
+description: Prompt file organization and templating conventions for LLM system prompts
+globs: lib/prompts/**
+alwaysApply: false
+---
+
+# Prompt Organization
+
+All LLM system prompts live in `lib/prompts/`. Each API call that sends a system prompt has a dedicated prompt file.
+
+## File structure
+
+```
+lib/prompts/
+  renderer.ts          # Jinja-style template engine ({{ }}, {% if %}, {% for %})
+  index.ts             # Barrel exports
+  roleplay.yaml.ts     # Roleplay mode system prompt
+  story.yaml.ts        # Interactive storytelling system prompt
+  story-generate.yaml.ts  # Mystery generation prompt
+```
+
+## Conventions
+
+- **One file per API call**: Each distinct LLM call gets its own `.yaml.ts` file
+- **Jinja syntax in templates**: Use `{{ variable }}`, `{% if var %}...{% endif %}`, `{% for item in list %}...{% endfor %}`
+- **Metadata exports**: Every prompt file exports a `meta` object with `name`, `description`, and `usedBy`
+- **Template exports**: Export named template strings (e.g., `template`, `persona`, `characterBlock`)
+- **Use `render()` from `renderer.ts`**: Never build prompts with manual string concatenation
+- **No inline prompts**: Never hardcode prompt text in components, context files, or API routes
+
+## Adding a new prompt
+
+1. Create `lib/prompts/my-prompt.yaml.ts`
+2. Export `meta` with name/description/usedBy
+3. Export template strings using Jinja syntax
+4. Add re-export in `lib/prompts/index.ts`
+5. Import and `render()` in the consuming file

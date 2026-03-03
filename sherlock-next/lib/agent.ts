@@ -1,46 +1,42 @@
 import { Character } from './types';
+import { render } from './prompts/renderer';
 import {
-    SHERLOCK_PERSONA,
-    reactInstructionsWithTools,
-    REACT_INSTRUCTIONS_NO_TOOLS,
-    DIRECT_RESPONSE_INSTRUCTIONS,
-} from './prompts';
+    persona,
+    characterBlock,
+    reactWithTools,
+    reactNoTools,
+    directResponse,
+} from './prompts/roleplay.yaml';
 
-/**
- * Generate the Sherlock Holmes system prompt based on character, context,
- * available tools, and whether deep reasoning is enabled.
- */
 export function generateSystemPrompt(
     character: Character | null,
     context: string,
     toolDescriptions: string,
     deepReasoning: boolean
 ): string {
-    let message = SHERLOCK_PERSONA;
+    let message = persona;
 
     if (context) {
         message += ` Context: ${context}`;
     }
 
-    message += ` You are currently in a conversation with `;
-
-    if (character) {
-        message += `${character.name}. ${character.description} `;
-        if (character.relationship) message += `Their relationship to you is ${character.relationship}. `;
-        if (character.traits && character.traits.length > 0) message += `They have the following traits: ${character.traits.join(', ')}. `;
-        if (character.speakingStyle) message += `Their speaking style: ${character.speakingStyle}. `;
-        if (character.sherlockApproach) message += `Your approach to them: ${character.sherlockApproach}. `;
-        message += `Adjust your tone and manner of speaking accordingly.`;
-    } else {
-        message += `an unknown individual. Treat them as a stranger who has come to seek your help.`;
-    }
+    message += ' ' + render(characterBlock, {
+        character: character ? {
+            name: character.name,
+            description: character.description,
+            relationship: character.relationship || '',
+            traits: character.traits?.join(', ') || '',
+            speakingStyle: character.speakingStyle || '',
+            sherlockApproach: character.sherlockApproach || '',
+        } : null,
+    });
 
     if (!deepReasoning) {
-        message += DIRECT_RESPONSE_INSTRUCTIONS;
+        message += directResponse;
     } else if (toolDescriptions) {
-        message += reactInstructionsWithTools(toolDescriptions);
+        message += render(reactWithTools, { toolDescriptions });
     } else {
-        message += REACT_INSTRUCTIONS_NO_TOOLS;
+        message += reactNoTools;
     }
 
     return message;

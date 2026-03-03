@@ -4,6 +4,8 @@ import React, { useState, useCallback } from 'react';
 import { StoryProvider, useStory } from '@/lib/storyContext';
 import { useAuth, useSettings } from '@/lib/contexts';
 import { STORY_SETTINGS, CHARACTER_PRESETS, VOICE_STYLES, GENRE_TAGS } from '@/lib/storyPrompts';
+import { render } from '@/lib/prompts/renderer';
+import { template as generateTemplate } from '@/lib/prompts/story-generate.yaml';
 import type { DecisionFrequency } from '@/lib/contexts';
 import StoryHeader from '@/components/story/StoryHeader';
 import StoryWindow from '@/components/story/StoryWindow';
@@ -79,7 +81,7 @@ function SetupScreen() {
                     messages: [
                         {
                             role: 'user',
-                            content: `Generate a Sherlock Holmes mystery premise. Genre: ${genres}. Additional idea: ${hint}.\nReturn ONLY a valid JSON object with two fields: "title" (short, dramatic title) and "description" (2-3 sentences setting the scene). No markdown, no code fences, just raw JSON.`,
+                            content: render(generateTemplate, { genres, hint }),
                         },
                     ],
                 }),

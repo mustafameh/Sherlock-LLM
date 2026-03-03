@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import dbConnect from '@/lib/mongodb';
+import dbConnect from '@/lib/server/mongodb';
 import User from '@/lib/models/User';
-import { encryptApiKey, decryptApiKey } from '@/lib/crypto';
+import { encryptApiKey, decryptApiKey } from '@/lib/server/crypto';
 
 const isProduction = process.env.NODE_ENV === 'production';
 

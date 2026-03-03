@@ -1,8 +1,8 @@
 'use client';
 
 import React, { useState } from 'react';
-import { useChat, useSettings, useAuth } from '@/lib/contexts';
-import { AVAILABLE_MODELS } from '@/lib/types';
+import { useChat, useSettings, useAuth } from '@/lib/client/contexts';
+import { AVAILABLE_MODELS } from '@/lib/shared/types';
 import CharacterModal from './CharacterModal';
 import styles from './SettingsPanel.module.css';
 

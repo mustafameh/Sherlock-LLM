@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import { ChatProvider, SettingsProvider, AuthProvider } from '@/lib/contexts';
+import { ChatProvider, SettingsProvider, AuthProvider } from '@/lib/client/contexts';
 
 export const metadata: Metadata = {
   title: "Agent Sherlock — AI Detective Chatbot",

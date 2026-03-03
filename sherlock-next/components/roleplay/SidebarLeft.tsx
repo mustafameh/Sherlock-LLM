@@ -2,9 +2,9 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
-import { useChat, useAuth } from '@/lib/contexts';
-import { AVATAR_OPTIONS, SavedChat } from '@/lib/types';
-import EditProfileModal from './EditProfileModal';
+import { useChat, useAuth } from '@/lib/client/contexts';
+import { AVATAR_OPTIONS, SavedChat } from '@/lib/shared/types';
+import EditProfileModal from '@/components/shared/EditProfileModal';
 import styles from './SidebarLeft.module.css';
 
 export default function SidebarLeft() {

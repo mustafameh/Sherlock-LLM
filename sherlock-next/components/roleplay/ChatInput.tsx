@@ -1,9 +1,9 @@
 'use client';
 
 import React, { useRef, useCallback } from 'react';
-import { useChat, useSettings } from '@/lib/contexts';
-import { UIMessage } from '@/lib/types';
-import { parseReActResponse } from '@/lib/agent';
+import { useChat, useSettings } from '@/lib/client/contexts';
+import { UIMessage } from '@/lib/shared/types';
+import { parseReActResponse } from '@/lib/shared/agent';
 import { toolRegistry } from '@/lib/tools/registry';
 import styles from './ChatInput.module.css';
 

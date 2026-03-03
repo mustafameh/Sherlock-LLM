@@ -1,3 +1,4 @@
+import 'server-only';
 import { render } from './renderer';
 import roleplayData from './roleplay.yaml';
 import storyData from './story.yaml';

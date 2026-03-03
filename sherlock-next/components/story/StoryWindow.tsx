@@ -1,10 +1,10 @@
 'use client';
 
 import React, { useEffect, useMemo, useRef } from 'react';
-import { useStory } from '@/lib/storyContext';
-import { useSettings } from '@/lib/contexts';
-import { deriveScenes } from '@/lib/storyParser';
-import type { StoryBlock } from '@/lib/storyParser';
+import { useStory } from '@/lib/client/story/context';
+import { useSettings } from '@/lib/client/contexts';
+import { deriveScenes } from '@/lib/shared/story/parser';
+import type { StoryBlock } from '@/lib/shared/story/parser';
 import styles from './Story.module.css';
 
 const CHARACTER_COLORS: Record<string, string> = {

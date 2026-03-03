@@ -2,10 +2,10 @@
 
 import React, { useState } from 'react';
 import Image from 'next/image';
-import { useStory } from '@/lib/storyContext';
-import { useAuth } from '@/lib/contexts';
-import { AVATAR_OPTIONS } from '@/lib/types';
-import EditProfileModal from '@/components/EditProfileModal';
+import { useStory } from '@/lib/client/story/context';
+import { useAuth } from '@/lib/client/contexts';
+import { AVATAR_OPTIONS } from '@/lib/shared/types';
+import EditProfileModal from '@/components/shared/EditProfileModal';
 import styles from './StorySidebar.module.css';
 
 export default function StorySidebar() {

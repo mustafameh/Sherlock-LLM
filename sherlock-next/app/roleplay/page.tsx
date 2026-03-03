@@ -1,14 +1,14 @@
 'use client';
 
 import React, { useEffect } from 'react';
-import Header from '@/components/Header';
-import SidebarLeft from '@/components/SidebarLeft';
-import ChatWindow from '@/components/ChatWindow';
-import ChatInput from '@/components/ChatInput';
-import ErrorToast from '@/components/ErrorToast';
-import SettingsPanel from '@/components/SettingsPanel';
-import { useAuth } from '@/lib/contexts';
-import { useAutoSave } from '@/lib/useAutoSave';
+import Header from '@/components/shared/Header';
+import SidebarLeft from '@/components/roleplay/SidebarLeft';
+import ChatWindow from '@/components/roleplay/ChatWindow';
+import ChatInput from '@/components/roleplay/ChatInput';
+import ErrorToast from '@/components/shared/ErrorToast';
+import SettingsPanel from '@/components/roleplay/SettingsPanel';
+import { useAuth } from '@/lib/client/contexts';
+import { useAutoSave } from '@/lib/shared/useAutoSave';
 
 export default function RoleplayPage() {
   const { checkAuth } = useAuth();

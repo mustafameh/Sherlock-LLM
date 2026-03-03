@@ -1,4 +1,4 @@
-import type { DecisionFrequency } from './contexts';
+import type { DecisionFrequency } from '@/lib/client/contexts';
 
 export const VOICE_STYLES: { id: string; name: string; instruction: string }[] = [
     { id: 'classic', name: 'Classic Doyle', instruction: 'Write in the style of Arthur Conan Doyle: formal Victorian English, rich vocabulary, long descriptive sentences.' },

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useCallback } from 'react';
-import { useChat } from '@/lib/contexts';
+import { useChat } from '@/lib/client/contexts';
 import styles from './ErrorToast.module.css';
 
 export default function ErrorToast() {

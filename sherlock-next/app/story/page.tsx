@@ -1,10 +1,10 @@
 'use client';
 
 import React, { useState, useCallback } from 'react';
-import { StoryProvider, useStory } from '@/lib/storyContext';
-import { useAuth, useSettings } from '@/lib/contexts';
-import { STORY_SETTINGS, CHARACTER_PRESETS, VOICE_STYLES, GENRE_TAGS } from '@/lib/storyPrompts';
-import type { DecisionFrequency } from '@/lib/contexts';
+import { StoryProvider, useStory } from '@/lib/client/story/context';
+import { useAuth, useSettings } from '@/lib/client/contexts';
+import { STORY_SETTINGS, CHARACTER_PRESETS, VOICE_STYLES, GENRE_TAGS } from '@/lib/shared/story/prompts';
+import type { DecisionFrequency } from '@/lib/client/contexts';
 import StoryHeader from '@/components/story/StoryHeader';
 import StoryWindow from '@/components/story/StoryWindow';
 import StoryInput from '@/components/story/StoryInput';

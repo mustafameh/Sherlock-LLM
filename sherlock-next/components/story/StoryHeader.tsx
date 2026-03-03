@@ -2,8 +2,8 @@
 
 import React, { useState, useCallback } from 'react';
 import Link from 'next/link';
-import { useStory } from '@/lib/storyContext';
-import { useSettings } from '@/lib/contexts';
+import { useStory } from '@/lib/client/story/context';
+import { useSettings } from '@/lib/client/contexts';
 import StorySettings from './StorySettings';
 import styles from './Story.module.css';
 
@@ -25,7 +25,7 @@ export default function StoryHeader() {
         if (isExporting) return;
         setIsExporting(true);
         try {
-            const { exportStoryAsPdf } = await import('@/lib/storyExport');
+            const { exportStoryAsPdf } = await import('@/lib/client/story/export');
             await exportStoryAsPdf(storyBlocks, storySetting || 'Sherlock Holmes Mystery', userCharacter);
         } catch {
             alert('Export failed. Please try again.');

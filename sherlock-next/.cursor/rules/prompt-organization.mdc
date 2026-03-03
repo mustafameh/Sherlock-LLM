@@ -1,44 +1,46 @@
 ---
-description: Prompt file organization and templating conventions for LLM system prompts
-globs: lib/prompts/**
-alwaysApply: false
+description: Project file organization with physical client/server/shared separation
+globs: lib/**
+alwaysApply: true
 ---
 
-# Prompt Organization
+# Project Structure
 
-All LLM system prompts live in `lib/prompts/` as real `.yaml` files. Prompts are built **server-side only** in API routes — never on the client.
-
-## File structure
+## lib/ directory — physical client/server boundary
 
 ```
-lib/prompts/
-  renderer.ts            # Jinja-style template engine ({{ }}, {% if %}, {% for %})
-  builder.ts             # Server-side prompt assembly (imported by API routes only)
-  index.ts               # Barrel exports
-  yaml.d.ts              # TypeScript declarations for .yaml imports
-  roleplay.yaml          # Roleplay mode system prompt
-  story.yaml             # Interactive storytelling system prompt
-  story-generate.yaml    # Mystery generation prompt
+lib/
+  server/              # NEVER import from 'use client' components (enforced by server-only)
+    mongodb.ts
+    crypto.ts
+    prompts/           # YAML templates + builder.ts + renderer.ts
+  client/              # All 'use client' code
+    contexts/          # auth.tsx, settings.tsx, chat.tsx (split, barrel index.ts)
+    story/             # context.tsx, export.ts
+  shared/              # Pure functions + types — safe to import from anywhere
+    types.ts
+    characters.ts
+    agent.ts
+    useAutoSave.ts
+    story/             # parser.ts, prompts.ts (constants)
+  models/              # Mongoose schemas
+  tools/               # Tool registry
 ```
 
-## Architecture
+## Rules
 
-- **Prompts are server-side only**: YAML files are imported in `builder.ts` which is only used by API routes
-- **Client sends `promptParams`**: Client components send intent parameters (character, setting, mode), not built prompts
-- **API routes build prompts**: `/api/chat` and `/api/chat/stream` call `buildSystemPrompt(promptParams)` and prepend to messages
-- **YAML + Jinja**: Templates use `{{ variable }}`, `{% if var %}...{% endif %}`, `{% for item in list %}...{% endfor %}`
-- **yaml-loader**: Configured in `next.config.ts` for both Turbopack and webpack
+- **`lib/server/`**: Has `import 'server-only'` — build error if imported from client code
+- **`lib/client/`**: All files use `'use client'` — React contexts, hooks, browser-only code
+- **`lib/shared/`**: No side effects, no server/client dependencies — importable everywhere
+- **Never import from `lib/server/` in components or client code**
+- **Prompts are server-side only**: Client sends `promptParams`, API routes call `buildSystemPrompt()`
+- **One `.yaml` file per prompt type** in `lib/server/prompts/`
 
-## Conventions
+## components/ directory
 
-- **One `.yaml` file per prompt type**: Each distinct system prompt gets its own YAML file
-- **Never import prompt YAML in client components**: Only `builder.ts` and API routes import them
-- **Use `render()` from `renderer.ts`**: Never build prompts with manual string concatenation
-- **No inline prompts**: Never hardcode prompt text in components, context files, or API routes
-
-## Adding a new prompt
-
-1. Create `lib/prompts/my-prompt.yaml` with metadata and Jinja template
-2. Add a builder function in `builder.ts` with typed params
-3. Add the type to the `PromptParams` union
-4. Client sends `promptParams: { type: 'my-prompt', ... }` to the API route
+```
+components/
+  roleplay/            # ChatInput, ChatWindow, ChatMessage, SettingsPanel, SidebarLeft, etc.
+  story/               # StoryWindow, StoryInput, StoryHeader, StorySettings, StorySidebar
+  shared/              # Header, ErrorToast, EditProfileModal
+```

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { UIMessage, ReActStep } from '@/lib/types';
+import { UIMessage, ReActStep } from '@/lib/shared/types';
 import styles from './ChatMessage.module.css';
 
 interface ChatMessageProps {

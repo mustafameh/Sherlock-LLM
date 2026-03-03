@@ -1,8 +1,8 @@
 'use client';
 
 import React, { useState } from 'react';
-import { useChat } from '@/lib/contexts';
-import { Character } from '@/lib/types';
+import { useChat } from '@/lib/client/contexts';
+import { Character } from '@/lib/shared/types';
 
 export default function CharacterModal({ onClose }: { onClose: () => void }) {
     const { addCharacter } = useChat();

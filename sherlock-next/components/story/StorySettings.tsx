@@ -1,9 +1,9 @@
 'use client';
 
 import React, { useState } from 'react';
-import { useSettings, useAuth, type DecisionFrequency } from '@/lib/contexts';
-import { AVAILABLE_MODELS } from '@/lib/types';
-import { VOICE_STYLES } from '@/lib/storyPrompts';
+import { useSettings, useAuth, type DecisionFrequency } from '@/lib/client/contexts';
+import { AVAILABLE_MODELS } from '@/lib/shared/types';
+import { VOICE_STYLES } from '@/lib/shared/story/prompts';
 import styles from './StorySettings.module.css';
 
 const CUSTOM_MODEL_OPTION = '__custom__';

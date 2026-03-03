@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createHash } from 'crypto';
-import dbConnect from '@/lib/mongodb';
+import dbConnect from '@/lib/server/mongodb';
 import User from '@/lib/models/User';
 
 function hashPassword(password: string): string {

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import dbConnect from '@/lib/mongodb';
+import dbConnect from '@/lib/server/mongodb';
 import Chat from '@/lib/models/Chat';
 
 export async function GET(

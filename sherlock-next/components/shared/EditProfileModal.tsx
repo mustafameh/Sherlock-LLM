@@ -2,8 +2,8 @@
 
 import React, { useState } from 'react';
 import Image from 'next/image';
-import { useAuth, useSettings } from '@/lib/contexts';
-import { AVATAR_OPTIONS } from '@/lib/types';
+import { useAuth, useSettings } from '@/lib/client/contexts';
+import { AVATAR_OPTIONS } from '@/lib/shared/types';
 import styles from './EditProfileModal.module.css';
 
 export default function EditProfileModal({ onClose }: { onClose: () => void }) {

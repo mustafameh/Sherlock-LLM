@@ -1,4 +1,4 @@
-import type { StoryBlock } from './storyParser';
+import type { StoryBlock } from '@/lib/shared/story/parser';
 
 function esc(text: string): string {
     return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');

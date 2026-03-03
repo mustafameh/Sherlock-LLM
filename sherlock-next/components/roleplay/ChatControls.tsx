@@ -1,8 +1,8 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { useChat, useAuth } from '@/lib/contexts';
-import { SavedChat } from '@/lib/types';
+import { useChat, useAuth } from '@/lib/client/contexts';
+import { SavedChat } from '@/lib/shared/types';
 
 export default function ChatControls() {
     const { messages, currentChatId, currentCharacter, clearChat, setMessages, setCurrentChatId, setCurrentCharacter, characters } = useChat();

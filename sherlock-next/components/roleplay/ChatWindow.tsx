@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useRef, useEffect } from 'react';
-import { useChat } from '@/lib/contexts';
+import { useChat } from '@/lib/client/contexts';
 import ChatMessage from './ChatMessage';
 import styles from './ChatWindow.module.css';
 

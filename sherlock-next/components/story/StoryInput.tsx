@@ -1,9 +1,9 @@
 'use client';
 
 import React, { useRef, useCallback, useMemo } from 'react';
-import { useStory } from '@/lib/storyContext';
-import { useSettings } from '@/lib/contexts';
-import { deriveScenes } from '@/lib/storyParser';
+import { useStory } from '@/lib/client/story/context';
+import { useSettings } from '@/lib/client/contexts';
+import { deriveScenes } from '@/lib/shared/story/parser';
 import styles from './Story.module.css';
 
 const QUICK_ACTIONS = [

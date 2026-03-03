@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useCallback } from 'react';
-import { useChat, useAuth } from '@/lib/contexts';
+import { useChat, useAuth } from '@/lib/client/contexts';
 
 /**
  * Auto-save hook: automatically persists the current chat to the server

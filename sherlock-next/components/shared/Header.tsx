@@ -3,8 +3,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { useAuth } from '@/lib/contexts';
-import { AVATAR_OPTIONS } from '@/lib/types';
+import { useAuth } from '@/lib/client/contexts';
+import { AVATAR_OPTIONS } from '@/lib/shared/types';
 import EditProfileModal from './EditProfileModal';
 import styles from './Header.module.css';
 

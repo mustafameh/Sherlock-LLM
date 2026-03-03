@@ -1,4 +1,4 @@
-import { Tool } from '../types';
+import { Tool } from '@/lib/shared/types';
 
 export class ToolRegistry {
     private tools: Map<string, Tool> = new Map();

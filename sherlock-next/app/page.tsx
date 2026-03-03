@@ -3,9 +3,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { useAuth, useSettings } from '@/lib/contexts';
-import { AVATAR_OPTIONS } from '@/lib/types';
-import EditProfileModal from '@/components/EditProfileModal';
+import { useAuth, useSettings } from '@/lib/client/contexts';
+import { AVATAR_OPTIONS } from '@/lib/shared/types';
+import EditProfileModal from '@/components/shared/EditProfileModal';
 import styles from './page.module.css';
 
 function ApiKeyModal({ onClose }: { onClose: () => void }) {

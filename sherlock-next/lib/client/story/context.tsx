@@ -1,10 +1,10 @@
 'use client';
 
 import React, { createContext, useContext, useState, useCallback, useRef, useEffect, type ReactNode } from 'react';
-import { useSettings, useAuth } from '@/lib/contexts';
-import { getBatchSize, VOICE_STYLES } from '@/lib/storyPrompts';
-import { parseStoryBlocks, deriveScenes, type StoryBlock } from '@/lib/storyParser';
-import type { ChatMessage } from '@/lib/types';
+import { useSettings, useAuth } from '@/lib/client/contexts';
+import { getBatchSize, VOICE_STYLES } from '@/lib/shared/story/prompts';
+import { parseStoryBlocks, deriveScenes, type StoryBlock } from '@/lib/shared/story/parser';
+import type { ChatMessage } from '@/lib/shared/types';
 
 interface SavedStorySummary {
     id: string;

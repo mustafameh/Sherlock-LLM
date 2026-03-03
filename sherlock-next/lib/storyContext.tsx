@@ -185,11 +185,46 @@ export function StoryProvider({ children }: { children: ReactNode }) {
         const reader = res.body.getReader();
         const decoder = new TextDecoder();
         let buffer = '';
+        let sseLineBuffer = '';
         let lastBlockCount = 0;
         let lastUpdateTime = 0;
         const THROTTLE_MS = 80;
 
         setStreamingHint('The story continues');
+
+        const processSSELine = (line: string) => {
+            if (!line.startsWith('data: ')) return;
+            const payload = line.slice(6).trim();
+            if (payload === '[DONE]') return;
+
+            try {
+                const json = JSON.parse(payload);
+                const delta = json.choices?.[0]?.delta?.content;
+                if (delta) {
+                    buffer += delta;
+
+                    const parsed = parseStoryBlocks(buffer);
+                    const now = Date.now();
+                    const newBlockAppeared = parsed.length > lastBlockCount;
+
+                    if (newBlockAppeared) {
+                        const newBlocks = parsed.slice(lastBlockCount);
+                        setStoryBlocks([...baseBlocks, ...parsed]);
+                        lastBlockCount = parsed.length;
+                        lastUpdateTime = now;
+
+                        const lastNew = newBlocks[newBlocks.length - 1];
+                        if (lastNew.type === 'narrator') setStreamingHint('Narrating');
+                        else if (lastNew.type === 'dialogue') setStreamingHint(`${lastNew.character} speaking`);
+                    } else if (now - lastUpdateTime >= THROTTLE_MS) {
+                        setStoryBlocks([...baseBlocks, ...parsed]);
+                        lastUpdateTime = now;
+                    }
+
+                    setStreamingHint(deriveStreamingHint(buffer));
+                }
+            } catch { /* incomplete JSON line, will be completed by next chunk */ }
+        };
 
         try {
             while (true) {
@@ -197,41 +232,19 @@ export function StoryProvider({ children }: { children: ReactNode }) {
                 if (done) break;
 
                 const chunk = decoder.decode(value, { stream: true });
-                const lines = chunk.split('\n');
+                sseLineBuffer += chunk;
+
+                const lines = sseLineBuffer.split('\n');
+                sseLineBuffer = lines.pop() ?? '';
 
                 for (const line of lines) {
-                    if (!line.startsWith('data: ')) continue;
-                    const payload = line.slice(6).trim();
-                    if (payload === '[DONE]') continue;
-
-                    try {
-                        const json = JSON.parse(payload);
-                        const delta = json.choices?.[0]?.delta?.content;
-                        if (delta) {
-                            buffer += delta;
-
-                            const parsed = parseStoryBlocks(buffer);
-                            const now = Date.now();
-                            const newBlockAppeared = parsed.length > lastBlockCount;
-
-                            if (newBlockAppeared) {
-                                const newBlocks = parsed.slice(lastBlockCount);
-                                setStoryBlocks([...baseBlocks, ...parsed]);
-                                lastBlockCount = parsed.length;
-                                lastUpdateTime = now;
-
-                                const lastNew = newBlocks[newBlocks.length - 1];
-                                if (lastNew.type === 'narrator') setStreamingHint('Narrating');
-                                else if (lastNew.type === 'dialogue') setStreamingHint(`${lastNew.character} speaking`);
-                            } else if (now - lastUpdateTime >= THROTTLE_MS) {
-                                setStoryBlocks([...baseBlocks, ...parsed]);
-                                lastUpdateTime = now;
-                            }
-
-                            setStreamingHint(deriveStreamingHint(buffer));
-                        }
-                    } catch { /* skip malformed SSE lines */ }
+                    const trimmed = line.trim();
+                    if (trimmed) processSSELine(trimmed);
                 }
+            }
+
+            if (sseLineBuffer.trim()) {
+                processSSELine(sseLineBuffer.trim());
             }
         } finally {
             reader.releaseLock();

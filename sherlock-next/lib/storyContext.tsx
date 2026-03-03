@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useState, useCallback, useRef, useEffect, type ReactNode } from 'react';
 import { useSettings, useAuth } from '@/lib/contexts';
-import { generateStorySystemPrompt } from '@/lib/storyPrompts';
+import { getBatchSize, VOICE_STYLES } from '@/lib/storyPrompts';
 import { parseStoryBlocks, deriveScenes, type StoryBlock } from '@/lib/storyParser';
 import type { ChatMessage } from '@/lib/types';
 
@@ -160,6 +160,7 @@ export function StoryProvider({ children }: { children: ReactNode }) {
     const streamStoryApi = useCallback(async (
         messages: ChatMessage[],
         baseBlocks: StoryBlock[],
+        promptParams?: Record<string, unknown>,
     ): Promise<string> => {
         if (!apiKey) throw new Error('Please set your OpenRouter API key first.');
 
@@ -171,6 +172,7 @@ export function StoryProvider({ children }: { children: ReactNode }) {
                 messages,
                 temperature,
                 apiKey,
+                ...(promptParams ? { promptParams } : {}),
             }),
             signal: abortRef.current?.signal,
         });
@@ -269,17 +271,40 @@ export function StoryProvider({ children }: { children: ReactNode }) {
         lastSavedRef.current = '';
         abortRef.current = new AbortController();
 
-        const systemPrompt = generateStorySystemPrompt(character, setting, characterDescription, voiceStyle, decisionFrequency, zenMode);
+        const batchSize = getBatchSize(decisionFrequency, zenMode);
+        const isMultiScene = batchSize > 1;
+        const voiceInstr = voiceStyle
+            ? VOICE_STYLES.find(v => v.id === voiceStyle)?.instruction
+            : undefined;
+
+        let rules34: string;
+        if (!isMultiScene) {
+            rules34 = `3. Every response MUST end with either a [DECISION] block (at dramatic turning points) or an [AWAITING_INPUT] block (when a character addresses ${character} directly).\n4. Present [DECISION] blocks at key dramatic moments.`;
+        } else if (zenMode) {
+            rules34 = `3. Output approximately ${batchSize} scenes of narrative per response, separated by [SCENE_BREAK] markers. Each scene should be a self-contained dramatic beat with its own [NARRATOR] and dialogue blocks.\n4. Do NOT include [DECISION] or [AWAITING_INPUT] blocks. End with narrative that flows naturally. The story should read like a novel.`;
+        } else {
+            rules34 = `3. Output approximately ${batchSize} scenes of narrative per response, separated by [SCENE_BREAK] markers. Each scene should be a self-contained dramatic beat with its own [NARRATOR] and dialogue blocks.\n4. Include a [DECISION] block with 2-4 options ONLY in the final scene of your response. Do NOT place [DECISION] or [AWAITING_INPUT] between scenes.`;
+        }
+
+        const promptParams = {
+            type: 'story' as const,
+            userCharacter: character,
+            storySetting: setting,
+            characterDescription: characterDescription || '',
+            voiceStyle: voiceInstr || '',
+            isMultiScene,
+            rules34,
+        };
+
         const charIntro = characterDescription
             ? `Begin the story. Set the scene and introduce the first situation. I am playing as ${character} (${characterDescription}).`
             : `Begin the story. Set the scene and introduce the first situation. Remember, I am playing as ${character}.`;
         const initialMessages: ChatMessage[] = [
-            { role: 'system', content: systemPrompt },
             { role: 'user', content: charIntro },
         ];
 
         try {
-            const response = await streamStoryApi(initialMessages, []);
+            const response = await streamStoryApi(initialMessages, [], promptParams);
             const assistantMsg: ChatMessage = { role: 'assistant', content: response };
             const newMessages = [...initialMessages, assistantMsg];
             setStoryMessages(newMessages);

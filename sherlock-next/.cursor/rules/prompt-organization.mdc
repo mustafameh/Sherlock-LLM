@@ -6,32 +6,39 @@ alwaysApply: false
 
 # Prompt Organization
 
-All LLM system prompts live in `lib/prompts/`. Each API call that sends a system prompt has a dedicated prompt file.
+All LLM system prompts live in `lib/prompts/` as real `.yaml` files. Prompts are built **server-side only** in API routes — never on the client.
 
 ## File structure
 
 ```
 lib/prompts/
-  renderer.ts          # Jinja-style template engine ({{ }}, {% if %}, {% for %})
-  index.ts             # Barrel exports
-  roleplay.yaml.ts     # Roleplay mode system prompt
-  story.yaml.ts        # Interactive storytelling system prompt
-  story-generate.yaml.ts  # Mystery generation prompt
+  renderer.ts            # Jinja-style template engine ({{ }}, {% if %}, {% for %})
+  builder.ts             # Server-side prompt assembly (imported by API routes only)
+  index.ts               # Barrel exports
+  yaml.d.ts              # TypeScript declarations for .yaml imports
+  roleplay.yaml          # Roleplay mode system prompt
+  story.yaml             # Interactive storytelling system prompt
+  story-generate.yaml    # Mystery generation prompt
 ```
+
+## Architecture
+
+- **Prompts are server-side only**: YAML files are imported in `builder.ts` which is only used by API routes
+- **Client sends `promptParams`**: Client components send intent parameters (character, setting, mode), not built prompts
+- **API routes build prompts**: `/api/chat` and `/api/chat/stream` call `buildSystemPrompt(promptParams)` and prepend to messages
+- **YAML + Jinja**: Templates use `{{ variable }}`, `{% if var %}...{% endif %}`, `{% for item in list %}...{% endfor %}`
+- **yaml-loader**: Configured in `next.config.ts` for both Turbopack and webpack
 
 ## Conventions
 
-- **One file per API call**: Each distinct LLM call gets its own `.yaml.ts` file
-- **Jinja syntax in templates**: Use `{{ variable }}`, `{% if var %}...{% endif %}`, `{% for item in list %}...{% endfor %}`
-- **Metadata exports**: Every prompt file exports a `meta` object with `name`, `description`, and `usedBy`
-- **Template exports**: Export named template strings (e.g., `template`, `persona`, `characterBlock`)
+- **One `.yaml` file per prompt type**: Each distinct system prompt gets its own YAML file
+- **Never import prompt YAML in client components**: Only `builder.ts` and API routes import them
 - **Use `render()` from `renderer.ts`**: Never build prompts with manual string concatenation
 - **No inline prompts**: Never hardcode prompt text in components, context files, or API routes
 
 ## Adding a new prompt
 
-1. Create `lib/prompts/my-prompt.yaml.ts`
-2. Export `meta` with name/description/usedBy
-3. Export template strings using Jinja syntax
-4. Add re-export in `lib/prompts/index.ts`
-5. Import and `render()` in the consuming file
+1. Create `lib/prompts/my-prompt.yaml` with metadata and Jinja template
+2. Add a builder function in `builder.ts` with typed params
+3. Add the type to the `PromptParams` union
+4. Client sends `promptParams: { type: 'my-prompt', ... }` to the API route

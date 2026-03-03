@@ -1,0 +1,10 @@
+name: story-generate
+description: Generate a Sherlock Holmes mystery premise from genre tags and user hint
+usedBy: /api/chat
+
+template: >
+  Generate a Sherlock Holmes mystery premise. Genre: {{ genres }}.
+  Additional idea: {{ hint }}.
+  Return ONLY a valid JSON object with two fields: "title" (short, dramatic title)
+  and "description" (2-3 sentences setting the scene). No markdown, no code fences,
+  just raw JSON.

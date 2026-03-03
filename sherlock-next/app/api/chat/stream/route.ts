@@ -1,4 +1,5 @@
 import { NextRequest } from 'next/server';
+import { buildSystemPrompt, type PromptParams } from '@/lib/prompts/builder';
 
 export const runtime = 'edge';
 
@@ -80,10 +81,19 @@ function jsonError(message: string, status: number): Response {
 export async function POST(request: NextRequest) {
     try {
         const body = await request.json();
-        const { model, messages, temperature, apiKey } = body;
+        const { model, messages: rawMessages, temperature, apiKey, promptParams } = body;
 
         if (!apiKey) {
             return jsonError('API key is required', 400);
+        }
+
+        let messages: ChatMessage[] = rawMessages;
+        if (promptParams) {
+            const systemPrompt = buildSystemPrompt(promptParams as PromptParams);
+            const hasSystem = messages.some((m: ChatMessage) => m.role === 'system');
+            if (!hasSystem) {
+                messages = [{ role: 'system', content: systemPrompt }, ...messages];
+            }
         }
 
         let response = await callStream(model, messages, temperature, apiKey);

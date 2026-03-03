@@ -4,8 +4,6 @@ import React, { useState, useCallback } from 'react';
 import { StoryProvider, useStory } from '@/lib/storyContext';
 import { useAuth, useSettings } from '@/lib/contexts';
 import { STORY_SETTINGS, CHARACTER_PRESETS, VOICE_STYLES, GENRE_TAGS } from '@/lib/storyPrompts';
-import { render } from '@/lib/prompts/renderer';
-import { template as generateTemplate } from '@/lib/prompts/story-generate.yaml';
 import type { DecisionFrequency } from '@/lib/contexts';
 import StoryHeader from '@/components/story/StoryHeader';
 import StoryWindow from '@/components/story/StoryWindow';
@@ -79,11 +77,13 @@ function SetupScreen() {
                     temperature: Math.min(temperature, 0.7),
                     apiKey,
                     messages: [
-                        {
-                            role: 'user',
-                            content: render(generateTemplate, { genres, hint }),
-                        },
+                        { role: 'user', content: 'Generate a mystery premise.' },
                     ],
+                    promptParams: {
+                        type: 'story-generate',
+                        genres,
+                        hint,
+                    },
                 }),
             });
             if (!res.ok) throw new Error('Generation failed');

@@ -1,6 +1,4 @@
 import type { DecisionFrequency } from './contexts';
-import { render } from './prompts/renderer';
-import { template as storyTemplate } from './prompts/story.yaml';
 
 export const VOICE_STYLES: { id: string; name: string; instruction: string }[] = [
     { id: 'classic', name: 'Classic Doyle', instruction: 'Write in the style of Arthur Conan Doyle: formal Victorian English, rich vocabulary, long descriptive sentences.' },
@@ -19,40 +17,6 @@ const BATCH_SIZES: Record<DecisionFrequency, number> = {
 
 export function getBatchSize(freq: DecisionFrequency, zen: boolean): number {
     return zen ? 5 : BATCH_SIZES[freq];
-}
-
-export function generateStorySystemPrompt(
-    userCharacter: string,
-    storySetting: string,
-    characterDescription?: string,
-    voiceStyle?: string,
-    decisionFrequency: DecisionFrequency = 'normal',
-    zenMode: boolean = false,
-): string {
-    const batchSize = getBatchSize(decisionFrequency, zenMode);
-    const isMultiScene = batchSize > 1;
-
-    const voiceInstr = voiceStyle
-        ? VOICE_STYLES.find(v => v.id === voiceStyle)?.instruction
-        : undefined;
-
-    let rules34: string;
-    if (!isMultiScene) {
-        rules34 = `3. Every response MUST end with either a [DECISION] block (at dramatic turning points) or an [AWAITING_INPUT] block (when a character addresses ${userCharacter} directly).\n4. Present [DECISION] blocks at key dramatic moments.`;
-    } else if (zenMode) {
-        rules34 = `3. Output approximately ${batchSize} scenes of narrative per response, separated by [SCENE_BREAK] markers. Each scene should be a self-contained dramatic beat with its own [NARRATOR] and dialogue blocks.\n4. Do NOT include [DECISION] or [AWAITING_INPUT] blocks. End with narrative that flows naturally. The story should read like a novel.`;
-    } else {
-        rules34 = `3. Output approximately ${batchSize} scenes of narrative per response, separated by [SCENE_BREAK] markers. Each scene should be a self-contained dramatic beat with its own [NARRATOR] and dialogue blocks.\n4. Include a [DECISION] block with 2-4 options ONLY in the final scene of your response. Do NOT place [DECISION] or [AWAITING_INPUT] between scenes.`;
-    }
-
-    return render(storyTemplate, {
-        userCharacter,
-        storySetting,
-        characterDescription: characterDescription || '',
-        voiceStyle: voiceInstr || '',
-        isMultiScene,
-        rules34,
-    });
 }
 
 export const STORY_SETTINGS = [

@@ -3,7 +3,7 @@
 import React, { useRef, useCallback } from 'react';
 import { useChat, useSettings } from '@/lib/contexts';
 import { UIMessage } from '@/lib/types';
-import { generateSystemPrompt, parseReActResponse } from '@/lib/agent';
+import { parseReActResponse } from '@/lib/agent';
 import { toolRegistry } from '@/lib/tools/registry';
 import styles from './ChatInput.module.css';
 
@@ -31,10 +31,21 @@ export default function ChatInput() {
         if (textareaRef.current) textareaRef.current.value = '';
 
         const toolDescriptions = toolRegistry.getToolDescriptions();
-        const systemPrompt = generateSystemPrompt(currentCharacter, context, toolDescriptions, deepReasoning);
+
+        const promptParams = {
+            type: 'roleplay' as const,
+            characterName: currentCharacter?.name,
+            characterDescription: currentCharacter?.description,
+            characterRelationship: currentCharacter?.relationship,
+            characterTraits: currentCharacter?.traits?.join(', '),
+            characterSpeakingStyle: currentCharacter?.speakingStyle,
+            characterSherlockApproach: currentCharacter?.sherlockApproach,
+            context,
+            deepReasoning,
+            toolDescriptions: toolDescriptions || undefined,
+        };
 
         const apiMessages = [
-            { role: 'system' as const, content: systemPrompt },
             ...messages.filter(m => m.role !== 'system').map(m => ({
                 role: m.role as 'user' | 'assistant',
                 content: m.content,
@@ -55,7 +66,6 @@ export default function ChatInput() {
                 }
 
                 if (!deepReasoning) {
-                    // Direct mode: single API call, no ReAct parsing
                     const res = await fetch('/api/chat', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
@@ -64,6 +74,7 @@ export default function ChatInput() {
                             messages: apiMessages,
                             temperature,
                             apiKey,
+                            promptParams,
                         }),
                     });
 
@@ -98,6 +109,7 @@ export default function ChatInput() {
                                 messages: currentMessages,
                                 temperature,
                                 apiKey,
+                                promptParams,
                             }),
                         });
 

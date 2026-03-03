@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { buildSystemPrompt, type PromptParams } from '@/lib/prompts/builder';
 
 interface ChatMessage {
     role: string;
@@ -41,10 +42,19 @@ function foldSystemIntoUser(messages: ChatMessage[]): ChatMessage[] {
 export async function POST(request: NextRequest) {
     try {
         const body = await request.json();
-        const { model, messages, temperature, apiKey } = body;
+        const { model, messages: rawMessages, temperature, apiKey, promptParams } = body;
 
         if (!apiKey) {
             return NextResponse.json({ error: 'API key is required' }, { status: 400 });
+        }
+
+        let messages: ChatMessage[] = rawMessages;
+        if (promptParams) {
+            const systemPrompt = buildSystemPrompt(promptParams as PromptParams);
+            const hasSystem = messages.some((m: ChatMessage) => m.role === 'system');
+            if (!hasSystem) {
+                messages = [{ role: 'system', content: systemPrompt }, ...messages];
+            }
         }
 
         let response = await callOpenRouter(model, messages, temperature, apiKey);

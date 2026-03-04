@@ -32,6 +32,20 @@ function ApiKeyModal({ onClose }: { onClose: () => void }) {
     );
 }
 
+const STORY_FEATURES = [
+    { icon: '\u25A3', text: 'Scene-by-scene navigation' },
+    { icon: '\u2728', text: 'AI mood and atmosphere theming' },
+    { icon: '\u2756', text: 'Chapter progression with titles' },
+    { icon: '\u2193', text: 'Export your story as PDF' },
+];
+
+const ROLEPLAY_FEATURES = [
+    { icon: '\u25C9', text: 'ReAct reasoning chain' },
+    { icon: '\u2736', text: 'Deep deductive analysis' },
+    { icon: '\u2699', text: 'Tool use and observations' },
+    { icon: '\u270E', text: 'Custom character creation' },
+];
+
 export default function LandingPage() {
     const { user, isLoggedIn, logout, checkAuth } = useAuth();
     const { apiKey } = useSettings();
@@ -54,22 +68,23 @@ export default function LandingPage() {
     }, []);
 
     return (
-        <div className={styles.page}>
+        <>
+            {/* ── GLASSMORPHISM NAVBAR ── */}
             <nav className={styles.nav}>
                 <div className={styles.navLeft}>
-                    <Image src="/logo.png" alt="Agent Sherlock" width={36} height={36} style={{ objectFit: 'contain' }} />
+                    <Image src="/logo.png" alt="Agent Sherlock" width={32} height={32} style={{ objectFit: 'contain' }} />
                     <span className={styles.navBrand}>Agent Sherlock</span>
                 </div>
                 <div className={styles.navRight}>
                     <button className={styles.navLink} onClick={() => setShowApiModal(true)}>
-                        {apiKey ? '🔑 API Key Set' : '🔑 Set API Key'}
+                        {apiKey ? 'API Key Set' : 'Set API Key'}
                     </button>
                     {isLoggedIn ? (
                         <div className={styles.navUserWrap} ref={dropdownRef}>
                             <button className={styles.navUser} onClick={() => setDropdownOpen(!dropdownOpen)}>
-                                <Image src={userAvatarSrc} alt="Avatar" width={28} height={28} style={{ borderRadius: '50%' }} />
+                                <Image src={userAvatarSrc} alt="Avatar" width={26} height={26} style={{ borderRadius: '50%' }} />
                                 <span>{user?.displayName || user?.username}</span>
-                                <span className={styles.navCaret}>{dropdownOpen ? '▴' : '▾'}</span>
+                                <span className={styles.navCaret}>{dropdownOpen ? '\u25B4' : '\u25BE'}</span>
                             </button>
                             {dropdownOpen && (
                                 <div className={styles.navDropdown}>
@@ -84,95 +99,107 @@ export default function LandingPage() {
                                         className={styles.navDropdownItem}
                                         onClick={() => { setShowProfileModal(true); setDropdownOpen(false); }}
                                     >
-                                        👤 Profile Info
+                                        Profile Info
                                     </button>
                                     <button
                                         className={`${styles.navDropdownItem} ${styles.navDropdownLogout}`}
                                         onClick={() => { logout(); setDropdownOpen(false); }}
                                     >
-                                        ↪ Logout
+                                        Logout
                                     </button>
                                 </div>
                             )}
                         </div>
                     ) : (
-                        <Link href="/login" className={styles.navLoginBtn}>Login</Link>
+                        <Link href="/login" className={styles.navLoginBtn}>Sign in</Link>
                     )}
                 </div>
             </nav>
 
-            <section className={styles.hero}>
-                <div className={styles.heroGlow} />
-                <Image src="/logo.png" alt="Agent Sherlock" width={80} height={80} className={styles.heroLogo} />
-                <h1 className={styles.heroTitle}>Agent Sherlock</h1>
-                <p className={styles.heroTagline}>An AI detective powered by ReAct reasoning</p>
-                <p className={styles.heroDesc}>
-                    Step into the world of 221B Baker Street. Engage Sherlock Holmes in deductive conversation,
-                    or immerse yourself in an interactive mystery where your choices shape the story.
-                </p>
+            {/* ── SPLIT SCREEN ── */}
+            <section className={styles.splitScreen}>
+                <div className={`${styles.splitHalf} ${styles.splitLeft}`}>
+                    <div className={styles.splitContent}>
+                        <h1 className={styles.splitTitle}>Interactive Storytelling</h1>
+                        <p className={styles.splitDesc}>
+                            Step into a Sherlock Holmes mystery. The narrator sets the scene, characters speak,
+                            and your choices shape the story.
+                        </p>
+                        <ul className={styles.featureList}>
+                            {STORY_FEATURES.map(f => (
+                                <li key={f.text} className={styles.featureItem}>
+                                    <span className={`${styles.featureIcon} ${styles.featureIconAmber}`}>{f.icon}</span>
+                                    {f.text}
+                                </li>
+                            ))}
+                        </ul>
+                        <Link href="/story" className={`${styles.ctaBtn} ${styles.ctaBtnAmber}`}>
+                            Begin a Story
+                        </Link>
+                    </div>
+                </div>
+
+                <div className={`${styles.splitHalf} ${styles.splitRight}`}>
+                    <div className={styles.splitContent}>
+                        <h1 className={styles.splitTitle}>Character Roleplay</h1>
+                        <p className={styles.splitDesc}>
+                            Converse with Sherlock Holmes as Watson, Mrs. Hudson, or create your own character.
+                            Watch his deductive reasoning unfold step by step.
+                        </p>
+                        <ul className={styles.featureList}>
+                            {ROLEPLAY_FEATURES.map(f => (
+                                <li key={f.text} className={styles.featureItem}>
+                                    <span className={`${styles.featureIcon} ${styles.featureIconBlue}`}>{f.icon}</span>
+                                    {f.text}
+                                </li>
+                            ))}
+                        </ul>
+                        <Link href="/roleplay" className={`${styles.ctaBtn} ${styles.ctaBtnBlue}`}>
+                            Enter Roleplay
+                        </Link>
+                    </div>
+                </div>
             </section>
 
-            <section className={styles.modes}>
-                <Link href="/story" className={styles.modeCard}>
-                    <div className={styles.modeIcon}>📖</div>
-                    <h2 className={styles.modeTitle}>Interactive Storytelling</h2>
-                    <p className={styles.modeDesc}>
-                        Step into a Sherlock Holmes mystery. A narrator sets the scene, characters speak,
-                        and you influence the story through dialogue and decisions.
-                    </p>
-                    <span className={styles.modeAction}>Begin a Story →</span>
-                </Link>
-
-                <Link href="/roleplay" className={styles.modeCard}>
-                    <div className={styles.modeIcon}>🎭</div>
-                    <h2 className={styles.modeTitle}>Character Roleplay</h2>
-                    <p className={styles.modeDesc}>
-                        Interact with Sherlock Holmes as Dr. Watson, Mrs. Hudson, or your own character.
-                        Features deep reasoning with a visible thought process, tool use, and adjustable settings.
-                    </p>
-                    <span className={styles.modeAction}>Enter Roleplay →</span>
-                </Link>
-            </section>
-
+            {/* ── ABOUT SECTION ── */}
             <section className={styles.about}>
                 <h2 className={styles.aboutTitle}>About This Project</h2>
                 <div className={styles.aboutGrid}>
                     <div className={styles.aboutCard}>
                         <h3>Dissertation Project</h3>
                         <p>
-                            Agent Sherlock was built as part of a Master&apos;s dissertation exploring how
-                            large language models can be augmented with ReAct-style reasoning and tool use
-                            to create more capable conversational agents.
+                            Built as part of a Master&apos;s dissertation exploring how large language models
+                            can be augmented with ReAct-style reasoning and tool use to create more capable
+                            conversational agents.
                         </p>
                     </div>
                     <div className={styles.aboutCard}>
                         <h3>Fine-Tuned LoRA Model</h3>
                         <p>
-                            A custom LoRA adapter was trained on the complete Sherlock Holmes canon to capture
-                            Holmes&apos;s deductive style. The model weights are available for download, though
-                            hosting is currently unavailable due to GPU resource constraints.
+                            A custom LoRA adapter trained on the complete Sherlock Holmes canon to capture
+                            Holmes&apos;s deductive style. Model weights are available for download.
                         </p>
                     </div>
                     <div className={styles.aboutCard}>
-                        <h3>How the API Key Works</h3>
+                        <h3>OpenRouter Integration</h3>
                         <p>
-                            Agent Sherlock uses OpenRouter to access various LLMs. Your API key is only sent
-                            directly to OpenRouter for inference. You can keep it in your browser only, or
-                            save it to your account (encrypted) so it&apos;s available on any device.
-                            Many free models are available, or you can use your own credits for premium models.
+                            Access 10+ AI models via OpenRouter. Your API key is sent only to OpenRouter
+                            for inference. Free models available, or use your own credits for premium models.
                         </p>
                     </div>
                 </div>
             </section>
 
+            {/* ── FOOTER ── */}
             <footer className={styles.footer}>
                 <p>
-                    Built by Mustafa Mehmood · <a href="https://github.com/mustafamehmood/Sherlock-LLM" target="_blank" rel="noopener noreferrer">GitHub</a>
+                    Built by Mustafa Mehmood &middot; <a href="https://github.com/mustafameh/Sherlock-LLM" target="_blank" rel="noopener noreferrer">GitHub</a>
                 </p>
             </footer>
 
+            {/* ── MODALS ── */}
             {showApiModal && <ApiKeyModal onClose={() => setShowApiModal(false)} />}
             {showProfileModal && <EditProfileModal onClose={() => setShowProfileModal(false)} />}
-        </div>
+        </>
     );
 }

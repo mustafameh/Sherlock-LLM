@@ -6,6 +6,7 @@ import { useStory } from '@/lib/client/story/context';
 import { useAuth } from '@/lib/client/contexts';
 import { AVATAR_OPTIONS } from '@/lib/shared/types';
 import EditProfileModal from '@/components/shared/EditProfileModal';
+import ConfirmDeleteModal from '@/components/shared/ConfirmDeleteModal';
 import styles from './StorySidebar.module.css';
 
 export default function StorySidebar() {
@@ -110,22 +111,11 @@ export default function StorySidebar() {
             </aside>
 
             {confirmDelete && (
-                <div className="overlay" onClick={() => setConfirmDelete(null)}>
-                    <div className="modal" style={{ maxWidth: 360 }} onClick={e => e.stopPropagation()}>
-                        <div className="modal-header">
-                            <h3 style={{ fontSize: 'var(--text-lg)', fontWeight: 600 }}>Delete Story?</h3>
-                        </div>
-                        <div className="modal-body">
-                            <p style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)' }}>
-                                This action cannot be undone.
-                            </p>
-                        </div>
-                        <div className="modal-footer">
-                            <button className="btn btn-secondary" onClick={() => setConfirmDelete(null)}>Cancel</button>
-                            <button className="btn btn-danger" onClick={() => handleDeleteStory(confirmDelete)}>Delete</button>
-                        </div>
-                    </div>
-                </div>
+                <ConfirmDeleteModal
+                    title="Delete Story?"
+                    onConfirm={() => handleDeleteStory(confirmDelete)}
+                    onCancel={() => setConfirmDelete(null)}
+                />
             )}
 
             {showProfileModal && (

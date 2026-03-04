@@ -3,15 +3,11 @@
 import React, { createContext, useContext, useState, useCallback, useRef, useEffect, type ReactNode } from 'react';
 import { useSettings, useAuth } from '@/lib/client/contexts';
 import { getBatchSize, VOICE_STYLES } from '@/lib/shared/story/prompts';
-import { parseStoryBlocks, deriveScenes, type StoryBlock } from '@/lib/shared/story/parser';
+import { parseStoryBlocks, type StoryBlock } from '@/lib/shared/story/parser';
 import type { ChatMessage } from '@/lib/shared/types';
-
-interface SavedStorySummary {
-    id: string;
-    title: string;
-    character: string;
-    created_at: string;
-}
+import { streamStoryApi as doStreamStoryApi } from './streamStoryApi';
+import { useStorySave, type SavedStorySummary } from './useStorySave';
+import { useStoryPrefetch } from './useStoryPrefetch';
 
 interface StoryContextType {
     storyBlocks: StoryBlock[];
@@ -44,6 +40,7 @@ const StoryContext = createContext<StoryContextType | undefined>(undefined);
 export function StoryProvider({ children }: { children: ReactNode }) {
     const { selectedModel, apiKey, temperature, decisionFrequency, zenMode } = useSettings();
     const { isLoggedIn } = useAuth();
+
     const [storyBlocks, setStoryBlocks] = useState<StoryBlock[]>([]);
     const [storyMessages, setStoryMessages] = useState<ChatMessage[]>([]);
     const [userCharacter, setUserCharacter] = useState('');
@@ -52,212 +49,42 @@ export function StoryProvider({ children }: { children: ReactNode }) {
     const [storyError, setStoryError] = useState<string | null>(null);
     const [isStoryStarted, setIsStoryStarted] = useState(false);
     const [currentStoryId, setCurrentStoryId] = useState<string | null>(null);
-    const [savedStories, setSavedStories] = useState<SavedStorySummary[]>([]);
     const [streamingHint, setStreamingHint] = useState<string | null>(null);
     const [currentSceneIndex, setCurrentSceneIndex] = useState(0);
     const [currentMood, setCurrentMood] = useState('calm');
     const [zenPaused, setZenPaused] = useState(false);
+
     const abortRef = useRef<AbortController | null>(null);
-    const saveTimerRef = useRef<NodeJS.Timeout | null>(null);
-    const lastSavedRef = useRef<string>('');
-    const savingRef = useRef(false);
     const prefetchingRef = useRef(false);
     const prefetchKeyRef = useRef<string | null>(null);
 
-    const refreshSavedStories = useCallback(async () => {
-        if (!isLoggedIn) { setSavedStories([]); return; }
-        try {
-            const res = await fetch('/api/chats?type=story');
-            if (res.ok) {
-                const data = await res.json();
-                setSavedStories(data);
-            }
-        } catch { /* ignore */ }
-    }, [isLoggedIn]);
-
-    useEffect(() => { refreshSavedStories(); }, [refreshSavedStories]);
-
-    const saveStory = useCallback(async () => {
-        if (savingRef.current || !isLoggedIn || !isStoryStarted) return;
-        if (storyMessages.length === 0) return;
-
-        const fullContent = JSON.stringify({
-            messages: storyMessages,
-            blocks: storyBlocks,
-            userCharacter,
-            storySetting,
-        });
-
-        if (fullContent === lastSavedRef.current) return;
-        savingRef.current = true;
-
-        const title = `${storySetting} — ${userCharacter}`;
-        const lastNarrator = [...storyBlocks].reverse().find(b => b.type === 'narrator');
-        const preview = lastNarrator && lastNarrator.type === 'narrator' ? lastNarrator.content.substring(0, 100) : '';
-
-        try {
-            const url = currentStoryId ? `/api/chats/${currentStoryId}` : '/api/chats';
-            const method = currentStoryId ? 'PUT' : 'POST';
-
-            const res = await fetch(url, {
-                method,
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    title,
-                    preview,
-                    full_content: fullContent,
-                    character: userCharacter,
-                    chat_type: 'story',
-                }),
-            });
-
-            if (res.ok) {
-                const data = await res.json();
-                if (!currentStoryId && data.id) {
-                    setCurrentStoryId(data.id);
-                }
-                lastSavedRef.current = fullContent;
-                refreshSavedStories();
-            }
-        } catch { /* ignore save errors */ } finally {
-            savingRef.current = false;
-        }
-    }, [storyMessages, storyBlocks, userCharacter, storySetting, currentStoryId, isLoggedIn, isStoryStarted, refreshSavedStories]);
-
-    useEffect(() => {
-        if (!isLoggedIn || !isStoryStarted || storyMessages.length === 0) return;
-        if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
-        saveTimerRef.current = setTimeout(() => { saveStory(); }, 3000);
-        return () => { if (saveTimerRef.current) clearTimeout(saveTimerRef.current); };
-    }, [storyMessages, isLoggedIn, isStoryStarted, saveStory]);
+    const { savedStories, refreshSavedStories, loadStory, deleteStory, clearSaveState } = useStorySave({
+        storyMessages, storyBlocks, userCharacter, storySetting,
+        currentStoryId, setCurrentStoryId,
+        isLoggedIn, isStoryStarted,
+        setStoryMessages, setStoryBlocks, setUserCharacter, setStorySetting,
+        setIsStoryStarted, setIsStoryLoading, setStoryError,
+        abortRef, prefetchKeyRef,
+    });
 
     useEffect(() => {
         const lastMood = [...storyBlocks].reverse().find(b => b.type === 'mood');
-        if (lastMood && lastMood.type === 'mood') {
-            setCurrentMood(lastMood.mood);
-        }
+        if (lastMood && lastMood.type === 'mood') setCurrentMood(lastMood.mood);
     }, [storyBlocks]);
 
-    const deriveStreamingHint = useCallback((buffer: string): string => {
-        const markerMatch = buffer.match(/\[(NARRATOR|SHERLOCK|WATSON|CHARACTER:([^\]]+)|DECISION|AWAITING_INPUT|CHAPTER:[^\]]+|MOOD:[^\]]+|SCENE_BREAK)\]\s*$/);
-        if (markerMatch) {
-            const tag = markerMatch[1];
-            if (tag === 'NARRATOR') return 'Narrating';
-            if (tag === 'SHERLOCK') return 'Sherlock Holmes speaking';
-            if (tag === 'WATSON') return 'Dr. Watson speaking';
-            if (tag.startsWith('CHARACTER:')) return `${markerMatch[2]?.trim()} speaking`;
-            if (tag === 'DECISION') return 'Presenting choices';
-            if (tag === 'AWAITING_INPUT') return 'Waiting for your response';
-            if (tag.startsWith('CHAPTER:')) return 'New chapter';
-            if (tag.startsWith('MOOD:')) return 'Setting the mood';
-            if (tag === 'SCENE_BREAK') return 'Next scene';
-        }
-        const trailingMarker = buffer.match(/\[([A-Z_:]+[^\]]*?)$/);
-        if (trailingMarker) return 'The story continues';
-        return 'The story continues';
-    }, []);
-
-    const streamStoryApi = useCallback(async (
+    const callStream = useCallback(async (
         messages: ChatMessage[],
         baseBlocks: StoryBlock[],
         promptParams?: Record<string, unknown>,
     ): Promise<string> => {
-        if (!apiKey) throw new Error('Please set your OpenRouter API key first.');
-
-        const res = await fetch('/api/chat/stream', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                model: selectedModel,
-                messages,
-                temperature,
-                apiKey,
-                ...(promptParams ? { promptParams } : {}),
-            }),
+        return doStreamStoryApi(messages, baseBlocks, {
+            selectedModel, apiKey, temperature,
             signal: abortRef.current?.signal,
+            onBlocksUpdate: setStoryBlocks,
+            onStreamingHint: setStreamingHint,
+            promptParams,
         });
-
-        if (!res.ok) {
-            const err = await res.json();
-            throw new Error(err.error || `API error ${res.status}`);
-        }
-
-        if (!res.body) throw new Error('No response body');
-
-        const reader = res.body.getReader();
-        const decoder = new TextDecoder();
-        let buffer = '';
-        let sseLineBuffer = '';
-        let lastBlockCount = 0;
-        let lastUpdateTime = 0;
-        const THROTTLE_MS = 80;
-
-        setStreamingHint('The story continues');
-
-        const processSSELine = (line: string) => {
-            if (!line.startsWith('data: ')) return;
-            const payload = line.slice(6).trim();
-            if (payload === '[DONE]') return;
-
-            try {
-                const json = JSON.parse(payload);
-                const delta = json.choices?.[0]?.delta?.content;
-                if (delta) {
-                    buffer += delta;
-
-                    const parsed = parseStoryBlocks(buffer);
-                    const now = Date.now();
-                    const newBlockAppeared = parsed.length > lastBlockCount;
-
-                    if (newBlockAppeared) {
-                        const newBlocks = parsed.slice(lastBlockCount);
-                        setStoryBlocks([...baseBlocks, ...parsed]);
-                        lastBlockCount = parsed.length;
-                        lastUpdateTime = now;
-
-                        const lastNew = newBlocks[newBlocks.length - 1];
-                        if (lastNew.type === 'narrator') setStreamingHint('Narrating');
-                        else if (lastNew.type === 'dialogue') setStreamingHint(`${lastNew.character} speaking`);
-                    } else if (now - lastUpdateTime >= THROTTLE_MS) {
-                        setStoryBlocks([...baseBlocks, ...parsed]);
-                        lastUpdateTime = now;
-                    }
-
-                    setStreamingHint(deriveStreamingHint(buffer));
-                }
-            } catch { /* incomplete JSON line, will be completed by next chunk */ }
-        };
-
-        try {
-            while (true) {
-                const { done, value } = await reader.read();
-                if (done) break;
-
-                const chunk = decoder.decode(value, { stream: true });
-                sseLineBuffer += chunk;
-
-                const lines = sseLineBuffer.split('\n');
-                sseLineBuffer = lines.pop() ?? '';
-
-                for (const line of lines) {
-                    const trimmed = line.trim();
-                    if (trimmed) processSSELine(trimmed);
-                }
-            }
-
-            if (sseLineBuffer.trim()) {
-                processSSELine(sseLineBuffer.trim());
-            }
-        } finally {
-            reader.releaseLock();
-        }
-
-        const finalBlocks = parseStoryBlocks(buffer);
-        setStoryBlocks([...baseBlocks, ...finalBlocks]);
-        setStreamingHint(null);
-
-        return buffer;
-    }, [selectedModel, apiKey, temperature, deriveStreamingHint]);
+    }, [selectedModel, apiKey, temperature]);
 
     const startNewStory = useCallback(async (character: string, setting: string, settingTitle: string, characterDescription?: string, voiceStyle?: string) => {
         setStoryError(null);
@@ -268,7 +95,7 @@ export function StoryProvider({ children }: { children: ReactNode }) {
         setCurrentStoryId(null);
         setCurrentMood('calm');
         prefetchKeyRef.current = null;
-        lastSavedRef.current = '';
+        clearSaveState();
         abortRef.current = new AbortController();
 
         const batchSize = getBatchSize(decisionFrequency, zenMode);
@@ -299,15 +126,12 @@ export function StoryProvider({ children }: { children: ReactNode }) {
         const charIntro = characterDescription
             ? `Begin the story. Set the scene and introduce the first situation. I am playing as ${character} (${characterDescription}).`
             : `Begin the story. Set the scene and introduce the first situation. Remember, I am playing as ${character}.`;
-        const initialMessages: ChatMessage[] = [
-            { role: 'user', content: charIntro },
-        ];
+        const initialMessages: ChatMessage[] = [{ role: 'user', content: charIntro }];
 
         try {
-            const response = await streamStoryApi(initialMessages, [], promptParams);
+            const response = await callStream(initialMessages, [], promptParams);
             const assistantMsg: ChatMessage = { role: 'assistant', content: response };
-            const newMessages = [...initialMessages, assistantMsg];
-            setStoryMessages(newMessages);
+            setStoryMessages([...initialMessages, assistantMsg]);
             setIsStoryStarted(true);
         } catch (err) {
             if ((err as Error).name !== 'AbortError') {
@@ -317,32 +141,7 @@ export function StoryProvider({ children }: { children: ReactNode }) {
             setIsStoryLoading(false);
             setStreamingHint(null);
         }
-    }, [streamStoryApi, decisionFrequency, zenMode]);
-
-    const loadStory = useCallback(async (id: string) => {
-        setStoryError(null);
-        setIsStoryLoading(true);
-        try {
-            const res = await fetch(`/api/chats/${id}`);
-            if (!res.ok) throw new Error('Failed to load story');
-            const data = await res.json();
-            const saved = JSON.parse(data.full_content);
-
-            setStoryMessages(saved.messages || []);
-            const blocks = saved.blocks || [];
-            setStoryBlocks(blocks);
-            setUserCharacter(saved.userCharacter || data.character || '');
-            setStorySetting(saved.storySetting || '');
-            setCurrentStoryId(id);
-            prefetchKeyRef.current = null;
-            lastSavedRef.current = data.full_content;
-            setIsStoryStarted(true);
-        } catch (err) {
-            setStoryError(err instanceof Error ? err.message : 'Failed to load story');
-        } finally {
-            setIsStoryLoading(false);
-        }
-    }, []);
+    }, [callStream, decisionFrequency, zenMode, clearSaveState]);
 
     const sendStoryAction = useCallback(async (text: string) => {
         if (isStoryLoading || !text.trim()) return;
@@ -360,7 +159,7 @@ export function StoryProvider({ children }: { children: ReactNode }) {
         setStoryMessages(newMessages);
 
         try {
-            const response = await streamStoryApi(newMessages, blocksBeforeStream);
+            const response = await callStream(newMessages, blocksBeforeStream);
             const assistantMsg: ChatMessage = { role: 'assistant', content: response };
             setStoryMessages(prev => [...prev, assistantMsg]);
         } catch (err) {
@@ -377,7 +176,7 @@ export function StoryProvider({ children }: { children: ReactNode }) {
             setIsStoryLoading(false);
             setStreamingHint(null);
         }
-    }, [isStoryLoading, storyMessages, storyBlocks, streamStoryApi]);
+    }, [isStoryLoading, storyMessages, storyBlocks, callStream]);
 
     const continueSilently = useCallback(async () => {
         if (isStoryLoading || prefetchingRef.current) return;
@@ -391,7 +190,7 @@ export function StoryProvider({ children }: { children: ReactNode }) {
         setStoryMessages(newMessages);
 
         try {
-            const response = await streamStoryApi(newMessages, storyBlocks);
+            const response = await callStream(newMessages, storyBlocks);
             const assistantMsg: ChatMessage = { role: 'assistant', content: response };
             setStoryMessages(prev => [...prev, assistantMsg]);
         } catch (err) {
@@ -405,65 +204,18 @@ export function StoryProvider({ children }: { children: ReactNode }) {
             setStreamingHint(null);
             prefetchingRef.current = false;
         }
-    }, [isStoryLoading, storyMessages, storyBlocks, streamStoryApi]);
+    }, [isStoryLoading, storyMessages, storyBlocks, callStream]);
 
-    useEffect(() => {
-        if (!isStoryStarted || isStoryLoading || storyBlocks.length === 0) return;
-        if (decisionFrequency === 'frequent' && !zenMode) return;
-        if (zenMode && zenPaused) return;
-
-        const scenes = deriveScenes(storyBlocks);
-        const totalScenes = scenes.length;
-        if (totalScenes < 2) return;
-
-        const lastSceneBlocks = scenes[totalScenes - 1]?.blocks ?? [];
-        const hasDecision = lastSceneBlocks.some(b => b.type === 'decision');
-        if (hasDecision) {
-            prefetchKeyRef.current = null;
-            return;
-        }
-
-        const hasAwaitingInput = lastSceneBlocks.some(b => b.type === 'awaiting_input');
-        if (hasAwaitingInput) {
-            prefetchKeyRef.current = null;
-            return;
-        }
-
-        const triggerIndex = zenMode
-            ? totalScenes - 1
-            : Math.max(0, totalScenes - 2);
-
-        if (currentSceneIndex >= triggerIndex) {
-            const prefetchKey = `${totalScenes}:${lastSceneBlocks.length}:${zenMode ? 'zen' : decisionFrequency}`;
-            if (prefetchKeyRef.current === prefetchKey) return;
-            prefetchKeyRef.current = prefetchKey;
-            continueSilently();
-        }
-    }, [currentSceneIndex, isStoryStarted, isStoryLoading, storyBlocks, decisionFrequency, zenMode, zenPaused, continueSilently]);
+    useStoryPrefetch({
+        isStoryStarted, isStoryLoading, storyBlocks,
+        currentSceneIndex, decisionFrequency, zenMode, zenPaused,
+        continueSilently,
+    });
 
     const selectDecision = useCallback(async (optionText: string) => {
         const cleaned = optionText.replace(/^Option\s+[A-Z]:\s*/i, '').trim();
         await sendStoryAction(cleaned);
     }, [sendStoryAction]);
-
-    const deleteStory = useCallback(async (id: string) => {
-        try {
-            await fetch(`/api/chats/${id}`, { method: 'DELETE' });
-            if (currentStoryId === id) {
-                abortRef.current?.abort();
-                setStoryBlocks([]);
-                setStoryMessages([]);
-                setUserCharacter('');
-                setStorySetting('');
-                setIsStoryStarted(false);
-                setIsStoryLoading(false);
-                setStoryError(null);
-                setCurrentStoryId(null);
-                lastSavedRef.current = '';
-            }
-            refreshSavedStories();
-        } catch { /* ignore */ }
-    }, [currentStoryId, refreshSavedStories]);
 
     const resetStory = useCallback(() => {
         abortRef.current?.abort();
@@ -479,34 +231,18 @@ export function StoryProvider({ children }: { children: ReactNode }) {
         setCurrentStoryId(null);
         setStreamingHint(null);
         setZenPaused(false);
-        lastSavedRef.current = '';
-    }, []);
+        clearSaveState();
+    }, [clearSaveState]);
 
     return (
         <StoryContext.Provider value={{
-            storyBlocks,
-            storyMessages,
-            userCharacter,
-            storySetting,
-            isStoryLoading,
-            storyError,
-            isStoryStarted,
-            currentStoryId,
-            savedStories,
-            streamingHint,
-            currentSceneIndex,
-            currentMood,
-            zenPaused,
-            setZenPaused,
-            setCurrentSceneIndex,
-            sendStoryAction,
-            selectDecision,
-            startNewStory,
-            loadStory,
-            resetStory,
-            setStoryError,
-            refreshSavedStories,
-            deleteStory,
+            storyBlocks, storyMessages, userCharacter, storySetting,
+            isStoryLoading, storyError, isStoryStarted, currentStoryId,
+            savedStories, streamingHint, currentSceneIndex, currentMood,
+            zenPaused, setZenPaused, setCurrentSceneIndex,
+            sendStoryAction, selectDecision, startNewStory,
+            loadStory, resetStory, setStoryError,
+            refreshSavedStories, deleteStory,
         }}>
             {children}
         </StoryContext.Provider>

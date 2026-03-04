@@ -1,7 +1,8 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 
-export async function GET() {
-    const response = NextResponse.redirect(new URL('/', 'http://localhost:3000'));
+export async function GET(request: NextRequest) {
+    const url = new URL('/', request.url);
+    const response = NextResponse.redirect(url);
     response.cookies.delete('session');
     return response;
 }

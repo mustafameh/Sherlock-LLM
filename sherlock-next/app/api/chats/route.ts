@@ -1,16 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/server/mongodb';
 import Chat from '@/lib/models/Chat';
-
-function getUserFromSession(request: NextRequest): { id: string } | null {
-    const session = request.cookies.get('session');
-    if (!session) return null;
-    try {
-        return JSON.parse(session.value);
-    } catch {
-        return null;
-    }
-}
+import { getUserFromSession } from '@/lib/server/auth';
 
 export async function GET(request: NextRequest) {
     try {

@@ -6,19 +6,11 @@ import Image from 'next/image';
 import { useAuth, useSettings } from '@/lib/client/contexts';
 import { AVATAR_OPTIONS } from '@/lib/shared/types';
 import EditProfileModal from '@/components/shared/EditProfileModal';
+import ApiKeySection from '@/components/shared/ApiKeySection';
 import styles from './page.module.css';
 
 function ApiKeyModal({ onClose }: { onClose: () => void }) {
-    const { apiKey, saveApiKey, clearApiKey, apiKeyStorage, setApiKeyStorage } = useSettings();
-    const { isLoggedIn } = useAuth();
-    const [keyInput, setKeyInput] = useState(apiKey);
-    const [saved, setSaved] = useState(false);
-
-    const handleSave = () => {
-        saveApiKey(keyInput);
-        setSaved(true);
-        setTimeout(() => setSaved(false), 2000);
-    };
+    const { apiKeyStorage } = useSettings();
 
     return (
         <div className={styles.modalOverlay} onClick={onClose}>
@@ -31,59 +23,10 @@ function ApiKeyModal({ onClose }: { onClose: () => void }) {
                         ? ' It is encrypted and saved to your account so it works across devices.'
                         : ' It is stored locally in your browser.'}
                 </p>
-                <input
-                    type="password"
-                    className={styles.modalInput}
-                    placeholder="sk-or-v1-..."
-                    value={keyInput}
-                    onChange={e => setKeyInput(e.target.value)}
-                />
+                <ApiKeySection />
                 <div className={styles.modalActions}>
-                    <button className={styles.btnPrimary} onClick={handleSave}>
-                        {saved ? 'Saved!' : 'Save Key'}
-                    </button>
-                    {apiKey && (
-                        <button className={styles.btnSecondary} onClick={() => { clearApiKey(); setKeyInput(''); }}>
-                            Clear Key
-                        </button>
-                    )}
                     <button className={styles.btnGhost} onClick={onClose}>Close</button>
                 </div>
-                {apiKey && <p className={styles.statusConnected}>API Key is set</p>}
-                {isLoggedIn && (
-                    <div className={styles.storageToggle}>
-                        <span className={styles.storageLabel}>Save key to:</span>
-                        <div className={styles.storageOptions}>
-                            <button
-                                className={`${styles.storageBtn} ${apiKeyStorage === 'browser' ? styles.storageBtnActive : ''}`}
-                                onClick={() => {
-                                    if (apiKeyStorage === 'account') {
-                                        if (!window.confirm('Switching to browser-only will remove your API key from your account. Your key will only exist in this browser. Continue?')) return;
-                                        fetch('/api/user/profile', {
-                                            method: 'PUT',
-                                            headers: { 'Content-Type': 'application/json' },
-                                            body: JSON.stringify({ apiKey: null }),
-                                        }).catch(() => {});
-                                    }
-                                    setApiKeyStorage('browser');
-                                }}
-                            >
-                                🖥 Browser only
-                            </button>
-                            <button
-                                className={`${styles.storageBtn} ${apiKeyStorage === 'account' ? styles.storageBtnActive : ''}`}
-                                onClick={() => setApiKeyStorage('account')}
-                            >
-                                ☁ My account
-                            </button>
-                        </div>
-                        <p className={styles.storageHint}>
-                            {apiKeyStorage === 'browser'
-                                ? 'Key stays in this browser. Re-enter on other devices.'
-                                : 'Key is encrypted and saved to your account. Available on any device you log into.'}
-                        </p>
-                    </div>
-                )}
             </div>
         </div>
     );

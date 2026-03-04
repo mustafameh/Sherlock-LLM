@@ -19,12 +19,6 @@ export interface ReActStep {
     timestamp: number;
 }
 
-export interface AgentResponse {
-    steps: ReActStep[];
-    finalAnswer: string;
-    rawMessages: ChatMessage[];
-}
-
 // ===== Tool System =====
 export interface ParameterDef {
     type: 'string' | 'number' | 'boolean' | 'object';
@@ -56,10 +50,6 @@ export interface SavedChat {
     preview: string;
     character: string;
     created_at: string;
-}
-
-export interface FullChat extends SavedChat {
-    full_content: string;
 }
 
 // ===== UI Message (extends ChatMessage with ReAct data) =====

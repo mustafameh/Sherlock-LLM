@@ -1,0 +1,31 @@
+---
+description: Security rules for API routes and data handling
+globs: app/api/**
+alwaysApply: false
+---
+
+# Security Rules
+
+## Authentication
+
+- Every route that accesses user data must call `getUserFromSession(request)` and return 401 if null.
+- Import from `@/lib/server/auth`, never redefine the session parser.
+
+## Authorization / Ownership
+
+- Before returning, updating, or deleting a chat/story, verify `String(doc.user_id) === sessionUser.id`.
+- Return 403 (Forbidden) if ownership check fails — never silently skip.
+
+## API Keys
+
+- User API keys are encrypted with AES-256 before storage (`lib/server/crypto.ts`).
+- Full API keys are only returned during hydration (`?hydrate=1`), not on every profile GET.
+- The `API_KEY_SECRET` env var must be set in both `.env.local` and Vercel project settings.
+
+## Redirects
+
+- Never hardcode `http://localhost:3000` in redirects. Use `new URL('/', request.url)`.
+
+## Prompts
+
+- System prompts live in `lib/server/prompts/` and are never sent to the client. Client sends `promptParams` only.

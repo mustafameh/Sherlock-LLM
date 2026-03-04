@@ -1,9 +1,10 @@
 'use client';
 
 import React, { useState } from 'react';
-import { useChat, useSettings, useAuth } from '@/lib/client/contexts';
+import { useChat, useSettings } from '@/lib/client/contexts';
 import { AVAILABLE_MODELS } from '@/lib/shared/types';
 import CharacterModal from './CharacterModal';
+import ApiKeySection from '@/components/shared/ApiKeySection';
 import styles from './SettingsPanel.module.css';
 
 function CollapsibleSection({ title, defaultOpen = true, children }: {
@@ -45,17 +46,13 @@ const CUSTOM_MODEL_OPTION = '__custom__';
 
 export default function SettingsPanel() {
     const {
-        selectedModel, apiKey, temperature, deepReasoning, apiKeyStorage,
-        saveModel, saveApiKey, clearApiKey,
-        setTemperature, setDeepReasoning, setApiKeyStorage,
+        selectedModel, temperature, deepReasoning,
+        saveModel, setTemperature, setDeepReasoning,
     } = useSettings();
-    const { isLoggedIn } = useAuth();
     const { currentCharacter, characters, setCurrentCharacter, context, setContext } = useChat();
     const [showCharModal, setShowCharModal] = useState(false);
-    const [localApiKey, setLocalApiKey] = useState(apiKey);
     const [collapsed, setCollapsed] = useState(typeof window !== 'undefined' && window.innerWidth <= 768);
     const [showApiKey, setShowApiKey] = useState(false);
-    const [saveStatus, setSaveStatus] = useState<'idle' | 'saved' | 'cleared'>('idle');
 
     const isPresetModel = AVAILABLE_MODELS.some(m => m.id === selectedModel);
     const [dropdownValue, setDropdownValue] = useState(isPresetModel ? selectedModel : CUSTOM_MODEL_OPTION);
@@ -142,68 +139,7 @@ export default function SettingsPanel() {
                                 </button>
                                 {showApiKey && (
                                     <div className={styles.apiKeyContent}>
-                                        <input
-                                            type="password"
-                                            className={styles.input}
-                                            placeholder="sk-or-v1-..."
-                                            value={localApiKey}
-                                            onChange={(e) => setLocalApiKey(e.target.value)}
-                                        />
-                                        <div className={styles.apiKeyRow}>
-                                            <button className={styles.btnPrimary} onClick={() => {
-                                                saveApiKey(localApiKey);
-                                                setSaveStatus('saved');
-                                                setTimeout(() => setSaveStatus('idle'), 2000);
-                                            }}>
-                                                💾 Save Key
-                                            </button>
-                                            <button className={styles.btnSecondary} onClick={() => {
-                                                clearApiKey(); setLocalApiKey('');
-                                                setSaveStatus('cleared');
-                                                setTimeout(() => setSaveStatus('idle'), 2000);
-                                            }}>
-                                                ✕ Clear
-                                            </button>
-                                        </div>
-                                        {saveStatus !== 'idle' && (
-                                            <div className={styles.saveConfirmation} data-status={saveStatus}>
-                                                {saveStatus === 'saved' ? '✓ Key saved successfully' : '✓ Key cleared'}
-                                            </div>
-                                        )}
-                                        {isLoggedIn && (
-                                            <div className={styles.storageToggle}>
-                                                <span className={styles.storageLabel}>Save key to:</span>
-                                                <div className={styles.storageOptions}>
-                                                    <button
-                                                        className={`${styles.storageBtn} ${apiKeyStorage === 'browser' ? styles.storageBtnActive : ''}`}
-                                                        onClick={() => {
-                                                            if (apiKeyStorage === 'account') {
-                                                                if (!window.confirm('Switching to browser-only will remove your API key from your account. Your key will only exist in this browser. Continue?')) return;
-                                                                fetch('/api/user/profile', {
-                                                                    method: 'PUT',
-                                                                    headers: { 'Content-Type': 'application/json' },
-                                                                    body: JSON.stringify({ apiKey: null }),
-                                                                }).catch(() => {});
-                                                            }
-                                                            setApiKeyStorage('browser');
-                                                        }}
-                                                    >
-                                                        🖥 Browser only
-                                                    </button>
-                                                    <button
-                                                        className={`${styles.storageBtn} ${apiKeyStorage === 'account' ? styles.storageBtnActive : ''}`}
-                                                        onClick={() => setApiKeyStorage('account')}
-                                                    >
-                                                        ☁ My account
-                                                    </button>
-                                                </div>
-                                                <p className={styles.storageHint}>
-                                                    {apiKeyStorage === 'browser'
-                                                        ? 'Key stays in this browser. Re-enter on other devices.'
-                                                        : 'Key is encrypted and saved to your account. Available on any device you log into.'}
-                                                </p>
-                                            </div>
-                                        )}
+                                        <ApiKeySection />
                                     </div>
                                 )}
                             </div>

@@ -5,6 +5,7 @@ import Image from 'next/image';
 import { useChat, useAuth } from '@/lib/client/contexts';
 import { AVATAR_OPTIONS, SavedChat } from '@/lib/shared/types';
 import EditProfileModal from '@/components/shared/EditProfileModal';
+import ConfirmDeleteModal from '@/components/shared/ConfirmDeleteModal';
 import styles from './SidebarLeft.module.css';
 
 export default function SidebarLeft() {
@@ -150,24 +151,12 @@ export default function SidebarLeft() {
                 )}
             </aside>
 
-            {/* Delete Confirmation */}
             {confirmDelete && (
-                <div className="overlay" onClick={() => setConfirmDelete(null)}>
-                    <div className="modal" style={{ maxWidth: 360 }} onClick={e => e.stopPropagation()}>
-                        <div className="modal-header">
-                            <h3 style={{ fontSize: 'var(--text-lg)', fontWeight: 600 }}>Delete Chat?</h3>
-                        </div>
-                        <div className="modal-body">
-                            <p style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)' }}>
-                                This action cannot be undone.
-                            </p>
-                        </div>
-                        <div className="modal-footer">
-                            <button className="btn btn-secondary" onClick={() => setConfirmDelete(null)}>Cancel</button>
-                            <button className="btn btn-danger" onClick={() => handleDeleteChat(confirmDelete)}>Delete</button>
-                        </div>
-                    </div>
-                </div>
+                <ConfirmDeleteModal
+                    title="Delete Chat?"
+                    onConfirm={() => handleDeleteChat(confirmDelete)}
+                    onCancel={() => setConfirmDelete(null)}
+                />
             )}
 
             {showProfileModal && (

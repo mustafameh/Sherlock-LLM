@@ -1,18 +1,28 @@
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/server/mongodb';
 import Chat from '@/lib/models/Chat';
+import { getUserFromSession } from '@/lib/server/auth';
 
 export async function GET(
-    _request: NextRequest,
+    request: NextRequest,
     { params }: { params: Promise<{ id: string }> }
 ) {
     try {
+        const sessionUser = getUserFromSession(request);
+        if (!sessionUser) {
+            return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
+        }
+
         await dbConnect();
         const { id } = await params;
         const chat = await Chat.findById(id).lean();
 
         if (!chat) {
             return NextResponse.json({ error: 'Chat not found' }, { status: 404 });
+        }
+
+        if (String(chat.user_id) !== sessionUser.id) {
+            return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
         }
 
         return NextResponse.json({
@@ -34,10 +44,23 @@ export async function PUT(
     { params }: { params: Promise<{ id: string }> }
 ) {
     try {
+        const sessionUser = getUserFromSession(request);
+        if (!sessionUser) {
+            return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
+        }
+
         await dbConnect();
         const { id } = await params;
-        const data = await request.json();
 
+        const existing = await Chat.findById(id).lean();
+        if (!existing) {
+            return NextResponse.json({ error: 'Chat not found' }, { status: 404 });
+        }
+        if (String(existing.user_id) !== sessionUser.id) {
+            return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+        }
+
+        const data = await request.json();
         const chat = await Chat.findByIdAndUpdate(id, {
             title: data.title,
             preview: data.preview,
@@ -45,29 +68,34 @@ export async function PUT(
             character: data.character,
         }, { new: true });
 
-        if (!chat) {
-            return NextResponse.json({ error: 'Chat not found' }, { status: 404 });
-        }
-
-        return NextResponse.json({ message: 'Chat updated successfully', id: chat._id });
+        return NextResponse.json({ message: 'Chat updated successfully', id: chat!._id });
     } catch (error) {
         return NextResponse.json({ error: String(error) }, { status: 500 });
     }
 }
 
 export async function DELETE(
-    _request: NextRequest,
+    request: NextRequest,
     { params }: { params: Promise<{ id: string }> }
 ) {
     try {
+        const sessionUser = getUserFromSession(request);
+        if (!sessionUser) {
+            return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
+        }
+
         await dbConnect();
         const { id } = await params;
-        const chat = await Chat.findByIdAndDelete(id);
 
+        const chat = await Chat.findById(id).lean();
         if (!chat) {
             return NextResponse.json({ error: 'Chat not found' }, { status: 404 });
         }
+        if (String(chat.user_id) !== sessionUser.id) {
+            return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+        }
 
+        await Chat.findByIdAndDelete(id);
         return NextResponse.json({ message: 'Chat deleted successfully' });
     } catch (error) {
         return NextResponse.json({ error: String(error) }, { status: 500 });

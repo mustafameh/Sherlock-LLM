@@ -2,18 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/server/mongodb';
 import User from '@/lib/models/User';
 import { encryptApiKey, decryptApiKey } from '@/lib/server/crypto';
+import { getUserFromSession } from '@/lib/server/auth';
 
 const isProduction = process.env.NODE_ENV === 'production';
-
-function getUserFromSession(request: NextRequest): { id: string; username: string; email: string } | null {
-    const session = request.cookies.get('session');
-    if (!session) return null;
-    try {
-        return JSON.parse(session.value);
-    } catch {
-        return null;
-    }
-}
 
 export async function GET(request: NextRequest) {
     const sessionUser = getUserFromSession(request);

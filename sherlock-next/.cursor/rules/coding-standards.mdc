@@ -1,0 +1,45 @@
+---
+description: Coding standards and conventions for the Sherlock-LLM Next.js project
+alwaysApply: true
+---
+
+# Coding Standards
+
+## No Duplicate Logic
+
+- Never copy-paste utility functions across files. Extract to a shared module.
+- Auth helpers go in `lib/server/auth.ts`, chat utilities in `lib/server/chat-utils.ts`.
+- Shared UI patterns (modals, API key inputs) go in `components/shared/`.
+
+## API Route Conventions
+
+- Always import `getUserFromSession` from `@/lib/server/auth` for authentication.
+- Always verify ownership (`chat.user_id === sessionUser.id`) before GET/PUT/DELETE on user-owned resources.
+- Use `NextRequest` (not `Request`) for type safety. Derive redirect URLs from `request.url`, never hardcode `localhost`.
+- Import `ChatMessage` and `foldSystemIntoUser` from `@/lib/server/chat-utils` — never redefine locally.
+
+## Component Size Limits
+
+- Components over 200 lines should be extracted into their own file (e.g., `SetupScreen` lives in `components/story/SetupScreen.tsx`, not inline in `page.tsx`).
+- Context providers over 250 lines should decompose logic into custom hooks (e.g., `useStorySave`, `useStoryPrefetch`).
+
+## React Patterns
+
+- All hooks must be called before any early returns (`if (...) return null` must come after all `useCallback`/`useState`/etc.).
+- Use `useCallback` for functions passed as props or used in `useEffect` dependencies.
+- Prefer composition (small hooks composed in a provider) over monolithic context files.
+
+## CSS
+
+- One CSS module per component when the file exceeds ~100 lines of styles.
+- Shared styles go in `components/shared/*.module.css`.
+- Use CSS variables from `globals.css` — never hardcode colors.
+
+## Types
+
+- Remove unused type exports promptly. Don't let dead types accumulate.
+- Import types from `@/lib/shared/types` — never redefine `ChatMessage` etc. locally in API routes.
+
+## Temperature & Settings Consistency
+
+- Temperature slider range must be 0-2 in both SettingsPanel and StorySettings.

@@ -1,9 +1,10 @@
 'use client';
 
 import React, { useState } from 'react';
-import { useSettings, useAuth, type DecisionFrequency } from '@/lib/client/contexts';
+import { useSettings, type DecisionFrequency } from '@/lib/client/contexts';
 import { AVAILABLE_MODELS } from '@/lib/shared/types';
 import { VOICE_STYLES } from '@/lib/shared/story/prompts';
+import ApiKeySection from '@/components/shared/ApiKeySection';
 import styles from './StorySettings.module.css';
 
 const CUSTOM_MODEL_OPTION = '__custom__';
@@ -17,30 +18,13 @@ const FREQUENCY_OPTIONS: { value: DecisionFrequency; label: string; hint: string
 
 export default function StorySettings({ open, onClose }: { open: boolean; onClose: () => void }) {
     const {
-        selectedModel, saveModel, apiKey, saveApiKey, clearApiKey, temperature, setTemperature,
-        apiKeyStorage, setApiKeyStorage, decisionFrequency, setDecisionFrequency,
-        zenMode, setZenMode,
+        selectedModel, saveModel, temperature, setTemperature,
+        decisionFrequency, setDecisionFrequency, zenMode, setZenMode,
     } = useSettings();
-    const { isLoggedIn } = useAuth();
     const isPresetModel = AVAILABLE_MODELS.some(m => m.id === selectedModel);
     const [dropdownValue, setDropdownValue] = useState(isPresetModel ? selectedModel : CUSTOM_MODEL_OPTION);
     const [customModelId, setCustomModelId] = useState(isPresetModel ? '' : selectedModel);
-    const [keyInput, setKeyInput] = useState(apiKey);
     const [showApiKey, setShowApiKey] = useState(false);
-    const [saveStatus, setSaveStatus] = useState<'idle' | 'saved' | 'cleared'>('idle');
-
-    const handleSaveKey = () => {
-        saveApiKey(keyInput);
-        setSaveStatus('saved');
-        setTimeout(() => setSaveStatus('idle'), 2000);
-    };
-
-    const handleClearKey = () => {
-        clearApiKey();
-        setKeyInput('');
-        setSaveStatus('cleared');
-        setTimeout(() => setSaveStatus('idle'), 2000);
-    };
 
     if (!open) return null;
 
@@ -145,7 +129,7 @@ export default function StorySettings({ open, onClose }: { open: boolean; onClos
                         <input
                             type="range"
                             min="0"
-                            max="1"
+                            max="2"
                             step="0.1"
                             value={temperature}
                             onChange={e => setTemperature(parseFloat(e.target.value))}
@@ -165,58 +149,7 @@ export default function StorySettings({ open, onClose }: { open: boolean; onClos
                     </button>
                     {showApiKey && (
                         <div className={styles.apiKeyContent}>
-                            <input
-                                type="password"
-                                className={styles.input}
-                                placeholder="sk-or-v1-..."
-                                value={keyInput}
-                                onChange={e => setKeyInput(e.target.value)}
-                            />
-                            <div className={styles.apiKeyActions}>
-                                <button className={styles.saveBtn} onClick={handleSaveKey}>Save Key</button>
-                                {apiKey && (
-                                    <button className={styles.clearBtn} onClick={handleClearKey}>Clear</button>
-                                )}
-                            </div>
-                            {saveStatus === 'saved' && <span className={styles.savedMsg}>Key saved</span>}
-                            {saveStatus === 'cleared' && <span className={styles.clearedMsg}>Key cleared</span>}
-                            {apiKey && saveStatus === 'idle' && (
-                                <span className={styles.statusMsg}>API Key is set</span>
-                            )}
-                            {isLoggedIn && (
-                                <div className={styles.storageToggle}>
-                                    <span className={styles.storageLabel}>Save key to:</span>
-                                    <div className={styles.storageOptions}>
-                                        <button
-                                            className={`${styles.storageBtn} ${apiKeyStorage === 'browser' ? styles.storageBtnActive : ''}`}
-                                            onClick={() => {
-                                                if (apiKeyStorage === 'account') {
-                                                    if (!window.confirm('Switching to browser-only will remove your API key from your account. Continue?')) return;
-                                                    fetch('/api/user/profile', {
-                                                        method: 'PUT',
-                                                        headers: { 'Content-Type': 'application/json' },
-                                                        body: JSON.stringify({ apiKey: null }),
-                                                    }).catch(() => {});
-                                                }
-                                                setApiKeyStorage('browser');
-                                            }}
-                                        >
-                                            🖥 Browser
-                                        </button>
-                                        <button
-                                            className={`${styles.storageBtn} ${apiKeyStorage === 'account' ? styles.storageBtnActive : ''}`}
-                                            onClick={() => setApiKeyStorage('account')}
-                                        >
-                                            ☁ Account
-                                        </button>
-                                    </div>
-                                    <p className={styles.storageHint}>
-                                        {apiKeyStorage === 'browser'
-                                            ? 'Key stays in this browser only.'
-                                            : 'Key encrypted & saved to your account.'}
-                                    </p>
-                                </div>
-                            )}
+                            <ApiKeySection compact />
                         </div>
                     )}
                 </div>

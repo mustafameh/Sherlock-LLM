@@ -1,29 +1,8 @@
 import { NextRequest } from 'next/server';
 import { buildSystemPrompt, type PromptParams } from '@/lib/server/prompts/builder';
+import { type ChatMessage, foldSystemIntoUser } from '@/lib/server/chat-utils';
 
 export const runtime = 'edge';
-
-interface ChatMessage {
-    role: string;
-    content: string;
-}
-
-function foldSystemIntoUser(messages: ChatMessage[]): ChatMessage[] {
-    const systemMsg = messages.find(m => m.role === 'system');
-    if (!systemMsg) return messages;
-
-    const rest = messages.filter(m => m.role !== 'system');
-    const firstUserIdx = rest.findIndex(m => m.role === 'user');
-    if (firstUserIdx !== -1) {
-        rest[firstUserIdx] = {
-            ...rest[firstUserIdx],
-            content: `[System Instructions]\n${systemMsg.content}\n\n[User Message]\n${rest[firstUserIdx].content}`,
-        };
-    } else {
-        rest.unshift({ role: 'user', content: systemMsg.content });
-    }
-    return rest;
-}
 
 async function callStream(
     model: string,

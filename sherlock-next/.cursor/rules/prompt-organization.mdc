@@ -1,46 +1,46 @@
 ---
 description: Project file organization with physical client/server/shared separation
-globs: lib/**
+globs: lib/**,components/**,app/**
 alwaysApply: true
 ---
 
 # Project Structure
 
-## lib/ directory — physical client/server boundary
+## lib/ directory
 
 ```
 lib/
-  server/              # NEVER import from 'use client' components (enforced by server-only)
+  server/              # import 'server-only' — never import from client code
+    auth.ts            # getUserFromSession (shared across API routes)
+    chat-utils.ts      # ChatMessage, foldSystemIntoUser (shared across chat routes)
     mongodb.ts
     crypto.ts
     prompts/           # YAML templates + builder.ts + renderer.ts
   client/              # All 'use client' code
-    contexts/          # auth.tsx, settings.tsx, chat.tsx (split, barrel index.ts)
-    story/             # context.tsx, export.ts
-  shared/              # Pure functions + types — safe to import from anywhere
-    types.ts
-    characters.ts
-    agent.ts
-    useAutoSave.ts
-    story/             # parser.ts, prompts.ts (constants)
+    contexts/          # auth.tsx, settings.tsx, chat.tsx (barrel index.ts)
+    story/             # context.tsx, streamStoryApi.ts, useStorySave.ts, useStoryPrefetch.ts, export.ts
+  shared/              # Pure functions + types — importable from anywhere
+    types.ts, characters.ts, agent.ts, useAutoSave.ts
+    story/             # parser.ts, prompts.ts (constants only)
   models/              # Mongoose schemas
   tools/               # Tool registry
 ```
-
-## Rules
-
-- **`lib/server/`**: Has `import 'server-only'` — build error if imported from client code
-- **`lib/client/`**: All files use `'use client'` — React contexts, hooks, browser-only code
-- **`lib/shared/`**: No side effects, no server/client dependencies — importable everywhere
-- **Never import from `lib/server/` in components or client code**
-- **Prompts are server-side only**: Client sends `promptParams`, API routes call `buildSystemPrompt()`
-- **One `.yaml` file per prompt type** in `lib/server/prompts/`
 
 ## components/ directory
 
 ```
 components/
-  roleplay/            # ChatInput, ChatWindow, ChatMessage, SettingsPanel, SidebarLeft, etc.
-  story/               # StoryWindow, StoryInput, StoryHeader, StorySettings, StorySidebar
-  shared/              # Header, ErrorToast, EditProfileModal
+  roleplay/            # ChatInput, ChatWindow, ChatMessage, SettingsPanel, SidebarLeft, CharacterModal
+  story/               # StoryWindow, StoryInput, StoryHeader, StorySettings, StorySidebar, SetupScreen
+  shared/              # Header, ErrorToast, EditProfileModal, ConfirmDeleteModal, ApiKeySection
 ```
+
+## Rules
+
+- `lib/server/` has `import 'server-only'` — build error if imported from client
+- `lib/client/` files use `'use client'` — React contexts, hooks, browser-only code
+- `lib/shared/` has no side effects, no server/client dependencies
+- Prompts are server-side only: client sends `promptParams`, API routes call `buildSystemPrompt()`
+- API routes use `getUserFromSession` from `lib/server/auth.ts` (never define inline)
+- API routes use `ChatMessage` / `foldSystemIntoUser` from `lib/server/chat-utils.ts` (never redefine)
+- Reusable UI: `ConfirmDeleteModal`, `ApiKeySection` live in `components/shared/`

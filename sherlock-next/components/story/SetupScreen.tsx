@@ -33,6 +33,8 @@ export default function SetupScreen() {
         if (id === 'watson') return { path: '/avatars/watson.png', align: 'center 15%' };
         if (id === 'lestrade') return { path: '/avatars/lestrade.png', align: 'center 20%' };
         if (id === 'stranger') return { path: '/avatars/stranger.png', align: 'center 15%' };
+        if (id === 'irene') return { path: '/avatars/irene.png', align: 'center 10%' };
+        if (id === 'hudson') return { path: '/avatars/hudson.png', align: 'center 15%' };
         return { path: '/avatars/custom.png', align: 'center 20%' };
     };
 
@@ -157,7 +159,7 @@ export default function SetupScreen() {
                         {/* Character Section */}
                         <div className={styles.section}>
                             <h2 className={styles.sectionTitle}>Choose Your Character</h2>
-                            <div className={styles.cardGrid2x2}>
+                            <div className={styles.characterGrid}>
                                 {CHARACTER_PRESETS.map(c => (
                                     <button
                                         key={c.id}
@@ -165,9 +167,6 @@ export default function SetupScreen() {
                                         onClick={() => setSelectedCharacter(c.id)}
                                     >
                                         <div className={styles.characterImageWrapper}>
-                                            <div className={styles.characterTopIcon}>
-                                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>
-                                            </div>
                                             <Image src={getAvatarConfig(c.id).path} alt={c.name} fill style={{ objectFit: 'cover', objectPosition: getAvatarConfig(c.id).align }} className={styles.characterImage} />
                                             <div className={styles.characterImageGradient} />
                                         </div>
@@ -182,9 +181,6 @@ export default function SetupScreen() {
                                     onClick={() => setSelectedCharacter('custom')}
                                 >
                                     <div className={styles.characterImageWrapper}>
-                                        <div className={styles.characterTopIcon}>
-                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><path d="M12 16v-4" /><path d="M12 8h.01" /></svg>
-                                        </div>
                                         <Image src={getAvatarConfig('custom').path} alt="Custom Character" fill style={{ objectFit: 'cover', objectPosition: getAvatarConfig('custom').align }} className={styles.characterImage} />
                                         <div className={styles.characterImageGradient} />
                                     </div>

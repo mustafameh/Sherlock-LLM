@@ -51,4 +51,6 @@ export const CHARACTER_PRESETS = [
     { id: 'watson', name: 'Dr. Watson', description: 'Sherlock\'s trusted companion and chronicler' },
     { id: 'lestrade', name: 'Inspector Lestrade', description: 'Scotland Yard detective, often outpaced by Holmes' },
     { id: 'stranger', name: 'A Stranger', description: 'A mysterious newcomer drawn into the case' },
+    { id: 'irene', name: 'Irene Adler', description: '"The Woman" — brilliant, cunning, and always a step ahead of Holmes' },
+    { id: 'hudson', name: 'Mrs. Hudson', description: 'The long-suffering and protective landlady of 221B Baker Street' },
 ];

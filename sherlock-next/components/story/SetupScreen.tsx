@@ -1,12 +1,31 @@
 'use client';
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import Image from 'next/image';
 import { useStory } from '@/lib/client/story/context';
 import { useAuth, useSettings } from '@/lib/client/contexts';
 import { STORY_SETTINGS, CHARACTER_PRESETS, VOICE_STYLES, GENRE_TAGS } from '@/lib/shared/story/prompts';
 import type { DecisionFrequency } from '@/lib/client/contexts';
 import styles from './SetupScreen.module.css';
+
+const LOADING_PHRASES = [
+    "Lighting the gas lamps...",
+    "Waking Dr. Watson...",
+    "Consulting the index...",
+    "Gathering initial clues...",
+    "Reviewing the Telegraph dispatches...",
+    "Summoning the Baker Street Irregulars...",
+    "Setting the scene in 1895...",
+    "Packing the magnifying glass...",
+    "Analyzing the premises...",
+    "The game is afoot...",
+];
+
+// All characters including custom
+const ALL_CHARACTERS = [
+    ...CHARACTER_PRESETS,
+    { id: 'custom', name: 'Custom Character', description: 'Create your own role' },
+];
 
 export default function SetupScreen() {
     const { startNewStory, isStoryLoading, savedStories, loadStory } = useStory();
@@ -28,6 +47,30 @@ export default function SetupScreen() {
     const [genDesc, setGenDesc] = useState('');
     const [isGenerating, setIsGenerating] = useState(false);
     const [genReady, setGenReady] = useState(false);
+
+    // Mobile carousel state
+    const [carouselIndex, setCarouselIndex] = useState(0);
+    const [isMobile, setIsMobile] = useState(false);
+    // Loading animation phrase rotation
+    const [loadingPhraseIndex, setLoadingPhraseIndex] = useState(0);
+
+    useEffect(() => {
+        const checkMobile = () => setIsMobile(window.innerWidth <= 768);
+        checkMobile();
+        window.addEventListener('resize', checkMobile);
+        return () => window.removeEventListener('resize', checkMobile);
+    }, []);
+
+    useEffect(() => {
+        if (!isStoryLoading) { setLoadingPhraseIndex(0); return; }
+        const interval = setInterval(() => {
+            setLoadingPhraseIndex(prev => (prev + 1) % LOADING_PHRASES.length);
+        }, 2200);
+        return () => clearInterval(interval);
+    }, [isStoryLoading]);
+
+    const prevCharacter = () => setCarouselIndex(prev => (prev - 1 + ALL_CHARACTERS.length) % ALL_CHARACTERS.length);
+    const nextCharacter = () => setCarouselIndex(prev => (prev + 1) % ALL_CHARACTERS.length);
 
     const getAvatarConfig = (id: string) => {
         if (id === 'watson') return { path: '/avatars/watson.png', align: 'center 15%' };
@@ -159,37 +202,54 @@ export default function SetupScreen() {
                         {/* Character Section */}
                         <div className={styles.section}>
                             <h2 className={styles.sectionTitle}>Choose Your Character</h2>
-                            <div className={styles.characterGrid}>
-                                {CHARACTER_PRESETS.map(c => (
-                                    <button
-                                        key={c.id}
-                                        className={`${styles.characterCard} ${selectedCharacter === c.id ? styles.characterCardActive : ''}`}
-                                        onClick={() => setSelectedCharacter(c.id)}
-                                    >
-                                        <div className={styles.characterImageWrapper}>
-                                            <Image src={getAvatarConfig(c.id).path} alt={c.name} fill style={{ objectFit: 'cover', objectPosition: getAvatarConfig(c.id).align }} className={styles.characterImage} />
-                                            <div className={styles.characterImageGradient} />
-                                        </div>
-                                        <div className={styles.characterInfo}>
-                                            <h3 className={styles.characterName}>{c.name}</h3>
-                                            <p className={styles.characterDesc}>{c.description}</p>
-                                        </div>
-                                    </button>
-                                ))}
-                                <button
-                                    className={`${styles.characterCard} ${selectedCharacter === 'custom' ? styles.characterCardActive : ''}`}
-                                    onClick={() => setSelectedCharacter('custom')}
-                                >
-                                    <div className={styles.characterImageWrapper}>
-                                        <Image src={getAvatarConfig('custom').path} alt="Custom Character" fill style={{ objectFit: 'cover', objectPosition: getAvatarConfig('custom').align }} className={styles.characterImage} />
-                                        <div className={styles.characterImageGradient} />
+
+                            {/* Mobile: Carousel (1 card at a time) */}
+                            {isMobile ? (
+                                <div className={styles.carouselWrapper}>
+                                    <button className={styles.carouselBtn} onClick={prevCharacter} aria-label="Previous character">‹</button>
+                                    <div className={styles.carouselCard}>
+                                        <button
+                                            className={`${styles.characterCard} ${selectedCharacter === ALL_CHARACTERS[carouselIndex].id ? styles.characterCardActive : ''}`}
+                                            onClick={() => setSelectedCharacter(ALL_CHARACTERS[carouselIndex].id)}
+                                        >
+                                            <div className={styles.characterImageWrapper}>
+                                                <Image src={getAvatarConfig(ALL_CHARACTERS[carouselIndex].id).path} alt={ALL_CHARACTERS[carouselIndex].name} fill style={{ objectFit: 'cover', objectPosition: getAvatarConfig(ALL_CHARACTERS[carouselIndex].id).align }} className={styles.characterImage} />
+                                                <div className={styles.characterImageGradient} />
+                                            </div>
+                                            <div className={styles.characterInfo}>
+                                                <h3 className={styles.characterName}>{ALL_CHARACTERS[carouselIndex].name}</h3>
+                                                <p className={styles.characterDesc}>{ALL_CHARACTERS[carouselIndex].description}</p>
+                                            </div>
+                                        </button>
                                     </div>
-                                    <div className={styles.characterInfo}>
-                                        <h3 className={styles.characterName}>Custom Character</h3>
-                                        <p className={styles.characterDesc}>Create your own role</p>
+                                    <button className={styles.carouselBtn} onClick={nextCharacter} aria-label="Next character">›</button>
+                                    <div className={styles.carouselDots}>
+                                        {ALL_CHARACTERS.map((c, i) => (
+                                            <span key={c.id} className={`${styles.carouselDot} ${i === carouselIndex ? styles.carouselDotActive : ''}`} onClick={() => setCarouselIndex(i)} />
+                                        ))}
                                     </div>
-                                </button>
-                            </div>
+                                </div>
+                            ) : (
+                                /* Desktop: 3-column grid */
+                                <div className={styles.characterGrid}>
+                                    {ALL_CHARACTERS.map(c => (
+                                        <button
+                                            key={c.id}
+                                            className={`${styles.characterCard} ${selectedCharacter === c.id ? styles.characterCardActive : ''}`}
+                                            onClick={() => setSelectedCharacter(c.id)}
+                                        >
+                                            <div className={styles.characterImageWrapper}>
+                                                <Image src={getAvatarConfig(c.id).path} alt={c.name} fill style={{ objectFit: 'cover', objectPosition: getAvatarConfig(c.id).align }} className={styles.characterImage} />
+                                                <div className={styles.characterImageGradient} />
+                                            </div>
+                                            <div className={styles.characterInfo}>
+                                                <h3 className={styles.characterName}>{c.name}</h3>
+                                                <p className={styles.characterDesc}>{c.description}</p>
+                                            </div>
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
                             {selectedCharacter === 'custom' && (
                                 <div className={styles.customInputs}>
                                     <input
@@ -366,6 +426,18 @@ export default function SetupScreen() {
                     </div>
                 </div>
             </div>
+
+            {/* Loading Overlay (Option 1: Thematic Pulse) */}
+            {isStoryLoading && (
+                <div className={styles.loadingOverlay}>
+                    <div className={styles.loadingContent}>
+                        <div className={styles.loadingPulse}>🔎</div>
+                        <p className={styles.loadingPhrase} key={loadingPhraseIndex}>
+                            {LOADING_PHRASES[loadingPhraseIndex]}
+                        </p>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

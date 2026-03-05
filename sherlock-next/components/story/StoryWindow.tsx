@@ -56,14 +56,6 @@ function ChapterDivider({ title }: { title: string }) {
     );
 }
 
-function AwaitingBlock({ context }: { context: string }) {
-    return (
-        <div className={styles.awaitingBlock}>
-            <p>{context}</p>
-        </div>
-    );
-}
-
 function StoryBlockRenderer({ block, isLast, userCharacter }: { block: StoryBlock; isLast: boolean; userCharacter: string }) {
     switch (block.type) {
         case 'chapter':
@@ -81,7 +73,7 @@ function StoryBlockRenderer({ block, isLast, userCharacter }: { block: StoryBloc
             if (isLast) return null;
             return <div className={styles.decisionBlockPast}>{block.options.join(' / ')}</div>;
         case 'awaiting_input':
-            return isLast ? <AwaitingBlock context={block.context} /> : null;
+            return <NarratorBlock content={block.context} />;
         default:
             return null;
     }

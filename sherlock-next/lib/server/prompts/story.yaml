@@ -35,6 +35,28 @@ template: |
 
   [AWAITING_INPUT] A brief line describing what {{ userCharacter }} should respond to — e.g., "Sherlock looks at you expectantly, waiting for your answer."
   {% endif %}
+  EXAMPLE OUTPUT (follow this structure exactly):
+
+  [CHAPTER:The Visitor at Baker Street]
+  [MOOD:mysterious]
+  [NARRATOR] A thick fog had settled over London, muffling the clatter of hansoms on the cobblestones below. The fire in the grate had burned low.
+  [SHERLOCK] "Curious. Most curious indeed," Holmes murmured, holding the letter up to the gaslight.
+  [NARRATOR] He passed the note across. The handwriting was hurried, almost frantic.
+  [CHARACTER:Inspector Lestrade] "We need your help, Mr. Holmes. Scotland Yard is at a loss."
+  {% if not isMultiScene %}
+  [DECISION]
+  - Option A: Agree to take the case immediately
+  - Option B: Ask Lestrade for more details first
+  - Option C: Examine the letter more carefully before deciding
+  [AWAITING_INPUT] Lestrade watches you expectantly, waiting for a response.
+  {% endif %}
+  {% if isMultiScene %}
+  [SCENE_BREAK]
+  [CHAPTER:The Journey to Whitechapel]
+  [MOOD:tense]
+  [NARRATOR] The cab rattled through narrow, fog-choked streets...
+  {% endif %}
+
   RULES:
   1. Begin the story with a [CHAPTER] block, then a [MOOD] block, then a [NARRATOR] block setting the scene, followed by character dialogue.
   2. Keep the narrative engaging. Build tension, plant clues, and create dramatic moments.

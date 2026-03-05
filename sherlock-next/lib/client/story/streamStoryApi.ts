@@ -4,20 +4,20 @@ import { parseStoryBlocks, type StoryBlock } from '@/lib/shared/story/parser';
 import type { ChatMessage } from '@/lib/shared/types';
 
 export function deriveStreamingHint(buffer: string): string {
-    const markerMatch = buffer.match(/\[(NARRATOR|SHERLOCK|WATSON|CHARACTER:([^\]]+)|DECISION|AWAITING_INPUT|CHAPTER:[^\]]+|MOOD:[^\]]+|SCENE_BREAK)\]\s*$/);
+    const markerMatch = buffer.match(/\*{0,2}\[\s*(NARRATOR|SHERLOCK|WATSON|CHARACTER\s*:\s*([^\]]+)|DECISION|AWAITING_INPUT|CHAPTER\s*:\s*[^\]]+|MOOD\s*:\s*[^\]]+|SCENE_BREAK)\s*\]\*{0,2}\s*$/i);
     if (markerMatch) {
-        const tag = markerMatch[1];
+        const tag = markerMatch[1].toUpperCase();
         if (tag === 'NARRATOR') return 'Narrating';
         if (tag === 'SHERLOCK') return 'Sherlock Holmes speaking';
         if (tag === 'WATSON') return 'Dr. Watson speaking';
-        if (tag.startsWith('CHARACTER:')) return `${markerMatch[2]?.trim()} speaking`;
+        if (tag.startsWith('CHARACTER')) return `${markerMatch[2]?.trim()} speaking`;
         if (tag === 'DECISION') return 'Presenting choices';
         if (tag === 'AWAITING_INPUT') return 'Waiting for your response';
-        if (tag.startsWith('CHAPTER:')) return 'New chapter';
-        if (tag.startsWith('MOOD:')) return 'Setting the mood';
+        if (tag.startsWith('CHAPTER')) return 'New chapter';
+        if (tag.startsWith('MOOD')) return 'Setting the mood';
         if (tag === 'SCENE_BREAK') return 'Next scene';
     }
-    const trailingMarker = buffer.match(/\[([A-Z_:]+[^\]]*?)$/);
+    const trailingMarker = buffer.match(/\[([A-Z_:\s]+[^\]]*?)$/i);
     if (trailingMarker) return 'The story continues';
     return 'The story continues';
 }

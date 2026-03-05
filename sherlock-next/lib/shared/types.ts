@@ -80,11 +80,9 @@ export const AVAILABLE_MODELS: OpenRouterModel[] = [
     { id: 'nvidia/nemotron-3-nano-30b-a3b:free', name: 'NVIDIA Nemotron 3 30B (Free, 256K ctx)' },
     { id: 'google/gemma-3-27b-it:free', name: 'Gemma 3 27B (Free, 131K ctx)' },
     { id: 'mistralai/mistral-small-3.1-24b-instruct:free', name: 'Mistral Small 3.1 24B (Free, 128K ctx)' },
-    { id: 'stepfun/step-3.5-flash:free', name: 'StepFun 3.5 Flash (Free, 256K ctx)' },
-    { id: 'google/gemma-3-12b-it:free', name: 'Gemma 3 12B (Free, 32K ctx)' },
-    { id: 'qwen/qwen3-4b:free', name: 'Qwen3 4B (Free, 41K ctx)' },
+    { id: 'deepseek/deepseek-v3.2', name: 'DeepSeek V3.2' },
+    { id: 'x-ai/grok-4.1-fast', name: 'Grok 4.1 Fast' },
     { id: 'meta-llama/llama-3.2-3b-instruct:free', name: 'Llama 3.2 3B Instruct (Free, 131K ctx)' },
-    { id: 'google/gemma-3-4b-it:free', name: 'Gemma 3 4B (Free, 33K ctx)' },
 ];
 
 // ===== Auth =====

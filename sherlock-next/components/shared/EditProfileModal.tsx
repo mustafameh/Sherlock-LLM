@@ -57,7 +57,7 @@ export default function EditProfileModal({ onClose }: { onClose: () => void }) {
             <div className={styles.profileModal}>
                 {/* Header */}
                 <div className={styles.modalHeader}>
-                    <h2 className={styles.modalTitle}>Profile & Settings</h2>
+                    <h2 className={styles.modalTitle}>Profile</h2>
                     <button className={styles.closeBtn} onClick={onClose}>✕</button>
                 </div>
 

@@ -73,7 +73,9 @@
 }
 
 /* Nav user dropdown */
-.navUserWrap { position: relative; }
+.navUserWrap {
+    position: relative;
+}
 
 .navUser {
     display: flex;
@@ -165,7 +167,8 @@
 .splitScreen {
     display: flex;
     min-height: 100vh;
-    padding-top: 56px;
+    padding-top: 64px;
+    /* Increased from 56px to match roleplay header height better */
     position: relative;
 }
 
@@ -175,7 +178,7 @@
     display: flex;
     flex-direction: column;
     justify-content: flex-end;
-    padding: 0 clamp(28px, 4vw, 64px) clamp(48px, 6vh, 80px);
+    padding: 0 clamp(32px, 5vw, 72px) clamp(56px, 8vh, 100px);
     overflow: hidden;
     cursor: pointer;
 }
@@ -188,12 +191,12 @@
     background-position: center;
     z-index: 0;
     transition: transform 0.8s cubic-bezier(0.25, 0, 0.25, 1), filter 0.8s ease;
-    filter: brightness(0.55) saturate(0.9);
+    filter: brightness(0.75) saturate(1.1);
 }
 
 .splitHalf:hover::before {
     transform: scale(1.05);
-    filter: brightness(0.65) saturate(1);
+    filter: brightness(0.85) saturate(1.15);
 }
 
 .splitHalf::after {
@@ -210,8 +213,8 @@
 
 .splitLeft::after {
     background:
-        linear-gradient(to top, rgba(0, 0, 0, 0.92) 0%, rgba(0, 0, 0, 0.5) 40%, rgba(0, 0, 0, 0.3) 65%, rgba(0, 0, 0, 0.5) 100%),
-        linear-gradient(135deg, rgba(245, 158, 11, 0.08) 0%, transparent 50%);
+        linear-gradient(to top, rgba(0, 0, 0, 0.75) 0%, rgba(0, 0, 0, 0.35) 40%, rgba(0, 0, 0, 0.15) 65%, rgba(0, 0, 0, 0.3) 100%),
+        linear-gradient(135deg, rgba(245, 158, 11, 0.15) 0%, rgba(245, 158, 11, 0.04) 60%, transparent 100%);
 }
 
 .splitRight::before {
@@ -220,12 +223,13 @@
 
 .splitRight::after {
     background:
-        linear-gradient(to top, rgba(0, 0, 0, 0.92) 0%, rgba(0, 0, 0, 0.5) 40%, rgba(0, 0, 0, 0.3) 65%, rgba(0, 0, 0, 0.5) 100%),
-        linear-gradient(135deg, rgba(59, 130, 246, 0.06) 0%, transparent 50%);
+        linear-gradient(to top, rgba(0, 0, 0, 0.75) 0%, rgba(0, 0, 0, 0.35) 40%, rgba(0, 0, 0, 0.15) 65%, rgba(0, 0, 0, 0.3) 100%),
+        linear-gradient(135deg, rgba(59, 130, 246, 0.12) 0%, rgba(59, 130, 246, 0.03) 60%, transparent 100%);
 }
 
 .splitLeft {
-    border-right: 1px solid rgba(255, 255, 255, 0.08);
+    border-right: 2px solid rgba(255, 255, 255, 0.15);
+    box-shadow: 1px 0 20px rgba(0, 0, 0, 0.4);
 }
 
 .splitContent {
@@ -236,18 +240,18 @@
 
 .splitTitle {
     font-family: var(--font-serif);
-    font-size: clamp(2.2rem, 4vw, 3.2rem);
+    font-size: clamp(2.5rem, 5vw, 3.8rem);
     font-weight: 700;
     color: #ffffff;
     margin-bottom: var(--space-4);
-    line-height: 1.1;
+    line-height: 1.08;
     letter-spacing: -0.02em;
-    text-shadow: 0 2px 20px rgba(0, 0, 0, 0.5);
+    text-shadow: 0 2px 30px rgba(0, 0, 0, 0.6);
 }
 
 .splitDesc {
-    font-size: var(--text-base);
-    color: rgba(255, 255, 255, 0.7);
+    font-size: clamp(14px, 1.1vw, 16px);
+    color: rgba(255, 255, 255, 0.78);
     line-height: 1.7;
     margin-bottom: var(--space-6);
 }
@@ -265,18 +269,18 @@
     display: flex;
     align-items: center;
     gap: var(--space-3);
-    font-size: var(--text-sm);
-    color: rgba(255, 255, 255, 0.6);
+    font-size: clamp(13px, 1vw, 15px);
+    color: rgba(255, 255, 255, 0.75);
     font-weight: 400;
 }
 
 .featureIcon {
-    width: 22px;
-    height: 22px;
+    width: 26px;
+    height: 26px;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 13px;
+    font-size: 14px;
     flex-shrink: 0;
     border-radius: 50%;
     background: rgba(255, 255, 255, 0.06);
@@ -284,49 +288,56 @@
 
 .featureIconAmber {
     color: var(--color-gold-400);
-    background: rgba(245, 158, 11, 0.1);
+    background: rgba(245, 158, 11, 0.14);
 }
 
 .featureIconBlue {
     color: var(--color-blue-400);
-    background: rgba(59, 130, 246, 0.1);
+    background: rgba(59, 130, 246, 0.14);
 }
 
 /* CTA Buttons */
 .ctaBtn {
-    display: inline-flex;
+    display: flex;
     align-items: center;
+    justify-content: center;
     gap: var(--space-2);
-    padding: 16px 36px;
+    width: 100%;
+    max-width: 440px;
+    padding: 18px 36px;
     border-radius: var(--radius-full);
-    font-size: var(--text-base);
+    font-size: clamp(15px, 1.1vw, 17px);
     font-weight: 600;
     text-decoration: none;
     transition: all 0.35s cubic-bezier(0.25, 0, 0.25, 1);
     border: none;
     cursor: pointer;
-    letter-spacing: 0.01em;
+    letter-spacing: 0.02em;
 }
 
 .ctaBtnAmber {
     background: linear-gradient(135deg, #fbbf24 0%, #d97706 100%);
     color: #1a1207;
-    box-shadow: 0 4px 20px rgba(245, 158, 11, 0.25);
+    box-shadow: 0 4px 24px rgba(245, 158, 11, 0.3);
 }
 
 .ctaBtnAmber:hover {
-    box-shadow: 0 0 40px rgba(245, 158, 11, 0.5), 0 8px 24px rgba(245, 158, 11, 0.3);
+    color: #1a1207;
+    /* Ensure text stays readable on hover */
+    box-shadow: 0 0 50px rgba(245, 158, 11, 0.5), 0 8px 30px rgba(245, 158, 11, 0.35);
     transform: translateY(-3px);
 }
 
 .ctaBtnBlue {
     background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
     color: white;
-    box-shadow: 0 4px 20px rgba(59, 130, 246, 0.25);
+    box-shadow: 0 4px 24px rgba(59, 130, 246, 0.3);
 }
 
 .ctaBtnBlue:hover {
-    box-shadow: 0 0 40px rgba(59, 130, 246, 0.5), 0 8px 24px rgba(59, 130, 246, 0.3);
+    color: white;
+    /* Ensure text stays readable on hover */
+    box-shadow: 0 0 50px rgba(59, 130, 246, 0.5), 0 8px 30px rgba(59, 130, 246, 0.35);
     transform: translateY(-3px);
 }
 
@@ -480,17 +491,22 @@
     }
 
     .splitHalf {
-        min-height: 50vh;
+        min-height: 55vh;
         padding: 0 var(--space-6) var(--space-8);
     }
 
     .splitLeft {
         border-right: none;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+        box-shadow: none;
+        border-bottom: 2px solid rgba(255, 255, 255, 0.12);
     }
 
     .splitTitle {
-        font-size: clamp(1.75rem, 5vw, 2.5rem);
+        font-size: clamp(2rem, 6vw, 2.8rem);
+    }
+
+    .splitContent {
+        max-width: 100%;
     }
 
     .aboutGrid {
@@ -509,16 +525,52 @@
     }
 
     .splitHalf {
-        min-height: 55vh;
-        padding: 0 var(--space-4) var(--space-6);
+        min-height: 50vh;
+        padding: 0 var(--space-5) var(--space-6);
+    }
+
+    .splitTitle {
+        font-size: clamp(1.75rem, 7vw, 2.2rem);
+    }
+
+    .splitDesc {
+        font-size: 13px;
     }
 
     .ctaBtn {
-        padding: 14px 28px;
-        font-size: var(--text-sm);
+        padding: 16px 24px;
+        font-size: 14px;
     }
 
     .about {
         padding: var(--space-8) var(--space-4);
+    }
+
+    .featureItem {
+        font-size: 13px;
+    }
+}
+
+@media (max-width: 400px) {
+    .navRight {
+        gap: var(--space-2);
+    }
+
+    .navLink {
+        padding: var(--space-1) var(--space-3);
+        font-size: 12px;
+    }
+
+    .navBrand {
+        display: none;
+    }
+
+    .splitHalf {
+        min-height: 48vh;
+        padding: 0 var(--space-4) var(--space-5);
+    }
+
+    .splitTitle {
+        font-size: 1.6rem;
     }
 }

@@ -1,28 +1,40 @@
 'use client';
 
 import React, { useState, useCallback } from 'react';
+import Image from 'next/image';
 import { useStory } from '@/lib/client/story/context';
 import { useAuth, useSettings } from '@/lib/client/contexts';
 import { STORY_SETTINGS, CHARACTER_PRESETS, VOICE_STYLES, GENRE_TAGS } from '@/lib/shared/story/prompts';
 import type { DecisionFrequency } from '@/lib/client/contexts';
-import styles from './Story.module.css';
+import styles from './SetupScreen.module.css';
 
 export default function SetupScreen() {
     const { startNewStory, isStoryLoading, savedStories, loadStory } = useStory();
     const { isLoggedIn } = useAuth();
     const { selectedModel, apiKey, temperature, decisionFrequency, setDecisionFrequency, zenMode, setZenMode } = useSettings();
-    const [selectedCharacter, setSelectedCharacter] = useState('');
+
+    // Default directly to the first ones
+    const [selectedCharacter, setSelectedCharacter] = useState<string>(CHARACTER_PRESETS[0]?.id || '');
     const [customCharacter, setCustomCharacter] = useState('');
     const [customCharacterDesc, setCustomCharacterDesc] = useState('');
-    const [selectedSetting, setSelectedSetting] = useState('');
-    const [voiceStyle, setVoiceStyle] = useState('classic');
+
+    const [selectedSetting, setSelectedSetting] = useState<string>(STORY_SETTINGS[0]?.id || '');
+    const [voiceStyle, setVoiceStyle] = useState<string>(VOICE_STYLES[0]?.id || '');
     const [customPremise, setCustomPremise] = useState('');
+
     const [genreHint, setGenreHint] = useState('');
     const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
     const [genTitle, setGenTitle] = useState('');
     const [genDesc, setGenDesc] = useState('');
     const [isGenerating, setIsGenerating] = useState(false);
     const [genReady, setGenReady] = useState(false);
+
+    const getAvatarConfig = (id: string) => {
+        if (id === 'watson') return { path: '/avatars/watson.png', align: 'center 15%' };
+        if (id === 'lestrade') return { path: '/avatars/lestrade.png', align: 'center 20%' };
+        if (id === 'stranger') return { path: '/avatars/stranger.png', align: 'center 15%' };
+        return { path: '/avatars/custom.png', align: 'center 20%' };
+    };
 
     const selectedPreset = CHARACTER_PRESETS.find(c => c.id === selectedCharacter);
     const characterName = selectedCharacter === 'custom'
@@ -105,226 +117,259 @@ export default function SetupScreen() {
     }, [apiKey, selectedModel, temperature, selectedGenres, genreHint]);
 
     return (
-        <div className={styles.setupScreen}>
-            <h1 className={styles.setupTitle}>Interactive Storytelling</h1>
-            <p className={styles.setupSubtitle}>
-                Step into a Sherlock Holmes mystery and shape the story with your choices.
-            </p>
+        <div className={styles.page}>
+            <div className={styles.bgOverlay} />
 
-            {isLoggedIn && savedStories.length > 0 && (
-                <div className={styles.continueSection}>
-                    <span className={styles.setupLabel}>Continue a Story</span>
-                    <div className={styles.continueGrid}>
-                        {savedStories.slice(0, 5).map(s => (
-                            <button
-                                key={s.id}
-                                className={styles.storyCard}
-                                onClick={() => loadStory(s.id)}
-                            >
-                                <strong>{s.title}</strong>
-                                <span>Playing as {s.character}</span>
-                                <span className={styles.storyCardDate}>
-                                    {new Date(s.created_at).toLocaleDateString()}
-                                </span>
-                            </button>
-                        ))}
+            <div className={styles.scrollArea}>
+                <div className={styles.container}>
+                    <div className={styles.header}>
+                        <h1 className={styles.title}>Interactive Storytelling</h1>
+                        <p className={styles.subtitle}>Step into a Sherlock Holmes mystery and shape the story with your choices.</p>
                     </div>
-                    <div className={styles.continueDivider}>
-                        <span>or start a new story</span>
-                    </div>
-                </div>
-            )}
 
-            <div className={styles.setupSection}>
-                <span className={styles.setupLabel}>Choose Your Character</span>
-                <div className={styles.characterGrid}>
-                    {CHARACTER_PRESETS.map(c => (
-                        <button
-                            key={c.id}
-                            className={`${styles.characterOption} ${selectedCharacter === c.id ? styles.characterOptionSelected : ''}`}
-                            onClick={() => { setSelectedCharacter(c.id); setCustomCharacter(''); }}
-                        >
-                            <strong>{c.name}</strong>
-                            <span>{c.description}</span>
-                        </button>
-                    ))}
-                    <button
-                        className={`${styles.characterOption} ${selectedCharacter === 'custom' ? styles.characterOptionSelected : ''}`}
-                        onClick={() => setSelectedCharacter('custom')}
-                    >
-                        <strong>Custom Character</strong>
-                        <span>Create your own role</span>
-                    </button>
-                </div>
-                {selectedCharacter === 'custom' && (
-                    <div className={styles.customCharFields}>
-                        <input
-                            className={styles.customCharInput}
-                            type="text"
-                            placeholder="Character name..."
-                            value={customCharacter}
-                            onChange={e => setCustomCharacter(e.target.value)}
-                            autoFocus
-                        />
-                        <textarea
-                            className={styles.customCharInput}
-                            rows={3}
-                            placeholder="Describe your character — who are they, what do they do, what brings them to this mystery?"
-                            value={customCharacterDesc}
-                            onChange={e => setCustomCharacterDesc(e.target.value)}
-                        />
-                    </div>
-                )}
-            </div>
-
-            <div className={styles.setupSection}>
-                <span className={styles.setupLabel}>Writing Style</span>
-                <div className={styles.voiceStyleGrid}>
-                    {VOICE_STYLES.map(v => (
-                        <button
-                            key={v.id}
-                            className={`${styles.voiceStyleBtn} ${voiceStyle === v.id ? styles.voiceStyleBtnActive : ''}`}
-                            onClick={() => setVoiceStyle(v.id)}
-                        >
-                            {v.name}
-                        </button>
-                    ))}
-                </div>
-            </div>
-
-            <div className={styles.setupSection}>
-                <span className={styles.setupLabel}>Story Pacing</span>
-                <div className={styles.voiceStyleGrid}>
-                    {([
-                        { value: 'frequent' as DecisionFrequency, label: 'Frequent', hint: 'Choices every 2-3 turns' },
-                        { value: 'normal' as DecisionFrequency, label: 'Normal', hint: 'Choices every 3-5 turns' },
-                        { value: 'sparse' as DecisionFrequency, label: 'Sparse', hint: 'Choices every 6-8 turns' },
-                        { value: 'very_rare' as DecisionFrequency, label: 'Very Rare', hint: 'Only at key crossroads' },
-                    ]).map(o => (
-                        <button
-                            key={o.value}
-                            className={`${styles.voiceStyleBtn} ${!zenMode && decisionFrequency === o.value ? styles.voiceStyleBtnActive : ''}`}
-                            onClick={() => { setDecisionFrequency(o.value); if (zenMode) setZenMode(false); }}
-                            title={o.hint}
-                            disabled={zenMode}
-                        >
-                            {o.label}
-                        </button>
-                    ))}
-                    <button
-                        className={`${styles.voiceStyleBtn} ${zenMode ? styles.voiceStyleBtnActive : ''}`}
-                        onClick={() => setZenMode(!zenMode)}
-                        title="Story auto-continues like a novel. Minimal decisions."
-                        style={zenMode ? { borderColor: 'var(--color-gold-500)', background: 'rgba(245,158,11,0.15)', color: 'var(--color-gold-300)' } : {}}
-                    >
-                        Zen Mode
-                    </button>
-                </div>
-                <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '6px' }}>
-                    {zenMode
-                        ? 'Zen Mode: Story flows like a novel. Auto-continues with minimal decisions.'
-                        : `Decisions appear ${decisionFrequency === 'frequent' ? 'every 2-3' : decisionFrequency === 'normal' ? 'every 3-5' : decisionFrequency === 'sparse' ? 'every 6-8' : 'every 10-15'} exchanges.`}
-                </p>
-            </div>
-
-            <div className={styles.setupSection}>
-                <span className={styles.setupLabel}>Choose a Mystery</span>
-                <div className={styles.settingGrid}>
-                    {STORY_SETTINGS.map(s => (
-                        <button
-                            key={s.id}
-                            className={`${styles.settingOption} ${selectedSetting === s.id ? styles.settingOptionSelected : ''}`}
-                            onClick={() => setSelectedSetting(s.id)}
-                        >
-                            <strong>{s.title}</strong>
-                            <span>{s.description}</span>
-                        </button>
-                    ))}
-                    <button
-                        className={`${styles.settingOption} ${selectedSetting === 'custom' ? styles.settingOptionSelected : ''}`}
-                        onClick={() => setSelectedSetting('custom')}
-                    >
-                        <strong>Write Your Own</strong>
-                        <span>Describe your own mystery premise</span>
-                    </button>
-                    <button
-                        className={`${styles.settingOption} ${selectedSetting === 'generate' ? styles.settingOptionSelected : ''}`}
-                        onClick={() => setSelectedSetting('generate')}
-                    >
-                        <strong>Generate a Mystery</strong>
-                        <span>AI creates a unique premise for you</span>
-                    </button>
-                </div>
-
-                {selectedSetting === 'custom' && (
-                    <div className={styles.customPremiseArea}>
-                        <textarea
-                            className={styles.customCharInput}
-                            rows={4}
-                            placeholder="Describe your mystery premise... e.g., 'A famous opera singer receives a death threat before her final performance at the Royal Opera House.'"
-                            value={customPremise}
-                            onChange={e => setCustomPremise(e.target.value)}
-                        />
-                    </div>
-                )}
-
-                {selectedSetting === 'generate' && (
-                    <div className={styles.generateArea}>
-                        <span className={styles.genSubLabel}>Pick genres (optional)</span>
-                        <div className={styles.genreTagGrid}>
-                            {GENRE_TAGS.map(g => (
-                                <button
-                                    key={g}
-                                    className={`${styles.genreTag} ${selectedGenres.includes(g) ? styles.genreTagActive : ''}`}
-                                    onClick={() => toggleGenre(g)}
-                                >
-                                    {g}
-                                </button>
-                            ))}
-                        </div>
-                        <textarea
-                            className={styles.customCharInput}
-                            rows={2}
-                            placeholder="Add a vibe or idea (e.g., 'something spooky on a train')..."
-                            value={genreHint}
-                            onChange={e => setGenreHint(e.target.value)}
-                        />
-                        <button
-                            className={styles.generateBtn}
-                            onClick={handleGenerate}
-                            disabled={isGenerating || !apiKey}
-                        >
-                            {isGenerating ? 'Generating...' : !apiKey ? 'Set API Key First' : 'Generate'}
-                        </button>
-                        {genReady && (
-                            <div className={styles.genResult}>
-                                <input
-                                    className={styles.customCharInput}
-                                    type="text"
-                                    placeholder="Mystery title..."
-                                    value={genTitle}
-                                    onChange={e => setGenTitle(e.target.value)}
-                                />
-                                <textarea
-                                    className={styles.customCharInput}
-                                    rows={3}
-                                    value={genDesc}
-                                    onChange={e => setGenDesc(e.target.value)}
-                                />
-                                <span className={styles.genHint}>You can edit both fields before starting.</span>
+                    {isLoggedIn && savedStories.length > 0 && (
+                        <div style={{ maxWidth: '600px', margin: '0 auto 40px auto', textAlign: 'left', position: 'relative', zIndex: 1 }}>
+                            <span className={styles.sectionTitle}>Continue a Story</span>
+                            <div className={styles.grid2} style={{ marginBottom: '20px' }}>
+                                {savedStories.slice(0, 2).map(s => (
+                                    <button
+                                        key={s.id}
+                                        className={styles.card}
+                                        onClick={() => loadStory(s.id)}
+                                    >
+                                        <h3 style={{ fontSize: '0.95rem' }}>{s.title}</h3>
+                                        <p style={{ fontSize: '0.75rem', marginBottom: '4px' }}>Playing as {s.character}</p>
+                                        <span style={{ fontSize: '10px', color: 'rgba(255,255,255,0.4)' }}>
+                                            {new Date(s.created_at).toLocaleDateString()}
+                                        </span>
+                                    </button>
+                                ))}
                             </div>
-                        )}
-                    </div>
-                )}
-            </div>
+                            <div style={{ textAlign: 'center', borderTop: '1px solid rgba(255,255,255,0.1)', position: 'relative', margin: '20px 0' }}>
+                                <span style={{ position: 'absolute', top: '-10px', left: '50%', transform: 'translateX(-50%)', background: 'transparent', padding: '0 10px', fontSize: '12px', color: 'rgba(255,255,255,0.5)', fontStyle: 'italic' }}>
+                                    or start a new story
+                                </span>
+                            </div>
+                        </div>
+                    )}
 
-            <button
-                className={styles.startBtn}
-                onClick={handleStart}
-                disabled={!canStart || isStoryLoading}
-            >
-                {isStoryLoading ? 'Starting...' : 'Begin the Story'}
-            </button>
+                    <div className={styles.glassPanel}>
+                        {/* Character Section */}
+                        <div className={styles.section}>
+                            <h2 className={styles.sectionTitle}>Choose Your Character</h2>
+                            <div className={styles.cardGrid2x2}>
+                                {CHARACTER_PRESETS.map(c => (
+                                    <button
+                                        key={c.id}
+                                        className={`${styles.characterCard} ${selectedCharacter === c.id ? styles.characterCardActive : ''}`}
+                                        onClick={() => setSelectedCharacter(c.id)}
+                                    >
+                                        <div className={styles.characterImageWrapper}>
+                                            <div className={styles.characterTopIcon}>
+                                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>
+                                            </div>
+                                            <Image src={getAvatarConfig(c.id).path} alt={c.name} fill style={{ objectFit: 'cover', objectPosition: getAvatarConfig(c.id).align }} className={styles.characterImage} />
+                                            <div className={styles.characterImageGradient} />
+                                        </div>
+                                        <div className={styles.characterInfo}>
+                                            <h3 className={styles.characterName}>{c.name}</h3>
+                                            <p className={styles.characterDesc}>{c.description}</p>
+                                        </div>
+                                    </button>
+                                ))}
+                                <button
+                                    className={`${styles.characterCard} ${selectedCharacter === 'custom' ? styles.characterCardActive : ''}`}
+                                    onClick={() => setSelectedCharacter('custom')}
+                                >
+                                    <div className={styles.characterImageWrapper}>
+                                        <div className={styles.characterTopIcon}>
+                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><path d="M12 16v-4" /><path d="M12 8h.01" /></svg>
+                                        </div>
+                                        <Image src={getAvatarConfig('custom').path} alt="Custom Character" fill style={{ objectFit: 'cover', objectPosition: getAvatarConfig('custom').align }} className={styles.characterImage} />
+                                        <div className={styles.characterImageGradient} />
+                                    </div>
+                                    <div className={styles.characterInfo}>
+                                        <h3 className={styles.characterName}>Custom Character</h3>
+                                        <p className={styles.characterDesc}>Create your own role</p>
+                                    </div>
+                                </button>
+                            </div>
+                            {selectedCharacter === 'custom' && (
+                                <div className={styles.customInputs}>
+                                    <input
+                                        className={styles.textInput}
+                                        type="text"
+                                        placeholder="Character name..."
+                                        value={customCharacter}
+                                        onChange={e => setCustomCharacter(e.target.value)}
+                                        autoFocus
+                                    />
+                                    <textarea
+                                        className={styles.textInput}
+                                        rows={3}
+                                        placeholder="Describe your character — who are they, what do they do, what brings them to this mystery?"
+                                        value={customCharacterDesc}
+                                        onChange={e => setCustomCharacterDesc(e.target.value)}
+                                    />
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Mystery Section */}
+                        <div className={styles.section}>
+                            <h2 className={styles.sectionTitle}>Choose a Mystery</h2>
+                            <div className={styles.grid2}>
+                                {STORY_SETTINGS.map(s => (
+                                    <button
+                                        key={s.id}
+                                        className={`${styles.card} ${selectedSetting === s.id ? styles.cardActive : ''}`}
+                                        onClick={() => setSelectedSetting(s.id)}
+                                    >
+                                        <h3>{s.title}</h3>
+                                        <p>{s.description}</p>
+                                    </button>
+                                ))}
+                                <button
+                                    className={`${styles.card} ${selectedSetting === 'custom' ? styles.cardActive : ''}`}
+                                    onClick={() => setSelectedSetting('custom')}
+                                >
+                                    <h3>Write Your Own</h3>
+                                    <p>Describe your own mystery premise</p>
+                                </button>
+                                <button
+                                    className={`${styles.card} ${selectedSetting === 'generate' ? styles.cardActive : ''}`}
+                                    onClick={() => setSelectedSetting('generate')}
+                                >
+                                    <h3>Generate a Mystery</h3>
+                                    <p>AI creates a unique premise for you</p>
+                                </button>
+                            </div>
+
+                            {selectedSetting === 'custom' && (
+                                <div className={styles.customInputs}>
+                                    <textarea
+                                        className={styles.textInput}
+                                        rows={4}
+                                        placeholder="Describe your mystery premise... e.g., 'A famous opera singer receives a death threat before her final performance at the Royal Opera House.'"
+                                        value={customPremise}
+                                        onChange={e => setCustomPremise(e.target.value)}
+                                    />
+                                </div>
+                            )}
+
+                            {selectedSetting === 'generate' && (
+                                <div className={styles.customInputs}>
+                                    <span style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.7)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Pick genres (optional)</span>
+                                    <div className={styles.genreTagGrid}>
+                                        {GENRE_TAGS.map(g => (
+                                            <button
+                                                key={g}
+                                                className={`${styles.genreTag} ${selectedGenres.includes(g) ? styles.genreTagActive : ''}`}
+                                                onClick={() => toggleGenre(g)}
+                                            >
+                                                {g}
+                                            </button>
+                                        ))}
+                                    </div>
+                                    <textarea
+                                        className={styles.textInput}
+                                        rows={2}
+                                        placeholder="Add a vibe or idea (e.g., 'something spooky on a train')..."
+                                        value={genreHint}
+                                        onChange={e => setGenreHint(e.target.value)}
+                                    />
+                                    <button
+                                        className={styles.generateBtn}
+                                        onClick={handleGenerate}
+                                        disabled={isGenerating || !apiKey}
+                                    >
+                                        {isGenerating ? 'Generating...' : !apiKey ? 'Set API Key First' : 'Generate Mystery Idea'}
+                                    </button>
+                                    {genReady && (
+                                        <div style={{ padding: '16px', background: 'rgba(245, 158, 11, 0.05)', border: '1px solid rgba(245, 158, 11, 0.2)', borderRadius: '12px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                                            <input
+                                                className={styles.textInput}
+                                                type="text"
+                                                placeholder="Mystery title..."
+                                                value={genTitle}
+                                                onChange={e => setGenTitle(e.target.value)}
+                                            />
+                                            <textarea
+                                                className={styles.textInput}
+                                                rows={3}
+                                                value={genDesc}
+                                                onChange={e => setGenDesc(e.target.value)}
+                                            />
+                                            <span style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.4)', fontStyle: 'italic' }}>You can edit both fields before starting.</span>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Style & Pacing */}
+                        <div className={styles.grid2}>
+                            <div className={styles.section}>
+                                <h2 className={styles.sectionTitle}>Writing Style</h2>
+                                <div className={styles.pillGroup}>
+                                    {VOICE_STYLES.map(v => (
+                                        <button
+                                            key={v.id}
+                                            className={`${styles.pill} ${voiceStyle === v.id ? styles.pillActive : ''}`}
+                                            onClick={() => setVoiceStyle(v.id)}
+                                        >
+                                            {v.name}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            <div className={styles.section}>
+                                <h2 className={styles.sectionTitle}>Story Pacing</h2>
+                                <div className={styles.pillGroup}>
+                                    {([
+                                        { value: 'frequent' as DecisionFrequency, label: 'Frequent' },
+                                        { value: 'normal' as DecisionFrequency, label: 'Normal' },
+                                        { value: 'sparse' as DecisionFrequency, label: 'Sparse' },
+                                        { value: 'very_rare' as DecisionFrequency, label: 'Very Rare' },
+                                    ]).map(o => (
+                                        <button
+                                            key={o.value}
+                                            className={`${styles.pill} ${!zenMode && decisionFrequency === o.value ? styles.pillActive : ''}`}
+                                            onClick={() => { setDecisionFrequency(o.value); if (zenMode) setZenMode(false); }}
+                                            disabled={zenMode}
+                                        >
+                                            {o.label}
+                                        </button>
+                                    ))}
+                                    <button
+                                        className={`${styles.pill} ${zenMode ? styles.pillActive : ''}`}
+                                        onClick={() => setZenMode(!zenMode)}
+                                        style={zenMode ? { borderColor: 'var(--color-gold-500)', background: 'rgba(245,158,11,0.15)', color: 'var(--color-gold-300)', boxShadow: '0 0 15px rgba(245, 158, 11, 0.2)' } : {}}
+                                    >
+                                        Zen Mode
+                                    </button>
+                                </div>
+                                <p style={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)', marginTop: '8px' }}>
+                                    {zenMode
+                                        ? 'Zen Mode: Story flows gracefully like a novel. Auto-continues with minimal decisions.'
+                                        : `Decisions appear ${decisionFrequency === 'frequent' ? 'every 2-3' : decisionFrequency === 'normal' ? 'every 3-5' : decisionFrequency === 'sparse' ? 'every 6-8' : 'every 10-15'} exchanges.`}
+                                </p>
+                            </div>
+                        </div>
+
+                        <div className={styles.footer}>
+                            <button
+                                className={styles.ctaBtn}
+                                onClick={handleStart}
+                                disabled={!canStart || isStoryLoading}
+                            >
+                                {isStoryLoading ? 'Starting...' : 'Begin the Story'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     );
 }

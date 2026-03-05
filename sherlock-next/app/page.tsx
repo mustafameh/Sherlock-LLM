@@ -111,7 +111,7 @@ export default function LandingPage() {
                             )}
                         </div>
                     ) : (
-                        <Link href="/login" className={styles.navLoginBtn}>Sign in</Link>
+                        <Link href="/login" className={styles.navLoginBtn}>Login</Link>
                     )}
                 </div>
             </nav>
@@ -166,7 +166,7 @@ export default function LandingPage() {
                 <h2 className={styles.aboutTitle}>About This Project</h2>
                 <div className={styles.aboutGrid}>
                     <div className={styles.aboutCard}>
-                        <h3>Dissertation Project</h3>
+                        <h3>📖 Master&apos;s Dissertation</h3>
                         <p>
                             Built as part of a Master&apos;s dissertation exploring how large language models
                             can be augmented with ReAct-style reasoning and tool use to create more capable
@@ -174,14 +174,14 @@ export default function LandingPage() {
                         </p>
                     </div>
                     <div className={styles.aboutCard}>
-                        <h3>Fine-Tuned LoRA Model</h3>
+                        <h3>🧬 Fine-Tuned LoRA</h3>
                         <p>
                             A custom LoRA adapter trained on the complete Sherlock Holmes canon to capture
                             Holmes&apos;s deductive style. Model weights are available for download.
                         </p>
                     </div>
                     <div className={styles.aboutCard}>
-                        <h3>OpenRouter Integration</h3>
+                        <h3>🔗 OpenRouter Integration</h3>
                         <p>
                             Access 10+ AI models via OpenRouter. Your API key is sent only to OpenRouter
                             for inference. Free models available, or use your own credits for premium models.

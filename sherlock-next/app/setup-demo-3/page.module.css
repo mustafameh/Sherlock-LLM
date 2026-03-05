@@ -1,0 +1,287 @@
+.page {
+    min-height: 100vh;
+    background: #0b0f19;
+    color: white;
+    font-family: var(--font-sans);
+    padding-bottom: 60px;
+}
+
+.header {
+    background: rgba(15, 23, 42, 0.8);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    padding: 20px 0;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+.headerInner {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.title {
+    font-family: var(--font-serif);
+    font-size: 2rem;
+    font-weight: 700;
+    color: white;
+    margin-bottom: 4px;
+}
+
+.subtitle {
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 0.95rem;
+}
+
+.fabBtn {
+    background: linear-gradient(135deg, #fbbf24 0%, #d97706 100%);
+    color: #1a1207;
+    border: none;
+    padding: 12px 30px;
+    border-radius: 8px;
+    font-size: 1.05rem;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 4px 15px rgba(245, 158, 11, 0.4);
+    transition: all 0.2s;
+}
+
+.fabBtn:hover {
+    transform: translateY(-2px) scale(1.02);
+    box-shadow: 0 8px 25px rgba(245, 158, 11, 0.5);
+}
+
+.mainGrid {
+    max-width: 1200px;
+    margin: 40px auto;
+    padding: 0 20px;
+    display: grid;
+    grid-template-columns: 1fr 1.5fr;
+    gap: 30px;
+}
+
+.column {
+    display: flex;
+    flex-direction: column;
+    gap: 30px;
+}
+
+.panel {
+    background: #111827;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 16px;
+    padding: 30px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+}
+
+.panelHeader {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 24px;
+}
+
+.icon {
+    font-size: 1.5rem;
+}
+
+.panelHeader h2 {
+    font-size: 1.3rem;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.listItem {
+    text-align: left;
+    background: transparent;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    padding: 16px;
+    color: white;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.listItem:hover {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.listItemActive {
+    background: rgba(37, 99, 235, 0.1);
+    border-color: var(--color-blue-500);
+}
+
+.listItem strong {
+    display: block;
+    font-size: 1rem;
+    margin-bottom: 4px;
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.listItemActive strong {
+    color: var(--color-blue-400);
+}
+
+.listItem span {
+    font-size: 0.85rem;
+    color: rgba(255, 255, 255, 0.5);
+}
+
+.tagCloud {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.tag {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: rgba(255, 255, 255, 0.7);
+    padding: 10px 16px;
+    border-radius: 20px;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 0.9rem;
+}
+
+.tag:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.tagActive {
+    background: var(--color-blue-600);
+    border-color: var(--color-blue-500);
+    color: white;
+    box-shadow: 0 0 15px rgba(37, 99, 235, 0.4);
+}
+
+.gridCards {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+}
+
+.gridCard {
+    position: relative;
+    text-align: left;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
+    padding: 20px;
+    color: white;
+    cursor: pointer;
+    transition: all 0.2s;
+    overflow: hidden;
+}
+
+.gridCard:hover {
+    background: rgba(255, 255, 255, 0.06);
+    transform: translateY(-2px);
+}
+
+.gridCardActive {
+    border-color: var(--color-gold-500);
+    background: rgba(245, 158, 11, 0.08);
+}
+
+.cardGlow {
+    position: absolute;
+    top: -20px;
+    right: -20px;
+    width: 60px;
+    height: 60px;
+    background: var(--color-gold-500);
+    filter: blur(40px);
+    opacity: 0;
+    transition: opacity 0.3s;
+}
+
+.gridCardActive .cardGlow {
+    opacity: 0.3;
+}
+
+.gridCard strong {
+    position: relative;
+    z-index: 1;
+    display: block;
+    font-size: 1.05rem;
+    margin-bottom: 8px;
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.gridCardActive strong {
+    color: var(--color-gold-300);
+}
+
+.gridCard span {
+    position: relative;
+    z-index: 1;
+    display: block;
+    font-size: 0.85rem;
+    color: rgba(255, 255, 255, 0.5);
+    line-height: 1.4;
+}
+
+.divider {
+    text-align: center;
+    position: relative;
+    margin: 30px 0;
+}
+
+.divider::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.divider span {
+    position: relative;
+    background: #111827;
+    padding: 0 16px;
+    color: rgba(255, 255, 255, 0.4);
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+}
+
+.generateBox {
+    background: rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 12px;
+    padding: 24px;
+}
+
+.generateBox p {
+    color: rgba(255, 255, 255, 0.6);
+    margin-bottom: 16px;
+    font-size: 0.95rem;
+}
+
+.tagSm {
+    background: rgba(255, 255, 255, 0.05);
+    color: rgba(255, 255, 255, 0.5);
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 0.75rem;
+}
+
+@media (max-width: 900px) {
+    .mainGrid {
+        grid-template-columns: 1fr;
+    }
+}

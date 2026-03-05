@@ -351,3 +351,15 @@
     opacity: 0.5;
     cursor: not-allowed;
 }
+
+/* Mobile Media Queries */
+@media (max-width: 768px) {
+    .characterGrid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 12px;
+    }
+
+    .grid2 {
+        grid-template-columns: 1fr;
+    }
+}

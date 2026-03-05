@@ -34,7 +34,7 @@ export default function Header() {
 
                 <div className={styles.headerLeft}>
                     <Link href="/" className={styles.logoLink}>
-                        <Image src="/logo.png" alt="Sherlock Holmes Logo" width={56} height={56} className={styles.logo} />
+                        <Image src="/logo.png" alt="Sherlock Holmes Logo" width={80} height={80} className={styles.logo} />
                     </Link>
                     <h1 className={styles.title}>Agent Sherlock</h1>
                 </div>

@@ -42,7 +42,7 @@
 
 .title {
     font-family: var(--font-serif);
-    font-size: 1.8rem;
+    font-size: 2.4rem;
     font-weight: 700;
     color: white;
     letter-spacing: -0.02em;
@@ -215,12 +215,12 @@
     }
 
     .logo {
-        width: 40px;
-        height: 40px;
+        width: 56px;
+        height: 56px;
     }
 
     .title {
-        font-size: 1.1rem;
+        font-size: 1.6rem;
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;

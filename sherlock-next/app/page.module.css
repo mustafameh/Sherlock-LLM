@@ -205,8 +205,8 @@
     transition: opacity 0.6s ease;
 }
 
-.splitLeft::before {
-    background-image: url('/bg-storytelling.png');
+.splitHalf:first-child::before {
+    background-image: url('/interactive.jpg');
 }
 
 .splitLeft::after {
@@ -215,8 +215,8 @@
         linear-gradient(135deg, rgba(245, 158, 11, 0.15) 0%, rgba(245, 158, 11, 0.04) 60%, transparent 100%);
 }
 
-.splitRight::before {
-    background-image: url('/bg-roleplay.png');
+.splitHalf:last-child::before {
+    background-image: url('/roleplay.jpg');
 }
 
 .splitRight::after {

@@ -1,21 +1,125 @@
 .profileModal {
     max-width: 520px;
+    width: 92%;
+    max-height: 88vh;
+    background: rgba(15, 20, 35, 0.92);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 20px;
+    box-shadow: 0 24px 64px rgba(0, 0, 0, 0.6);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    animation: slideUp 300ms ease-out;
+}
+
+/* ── Header ── */
+.modalHeader {
+    padding: 20px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
 }
 
 .modalTitle {
-    font-size: var(--text-xl);
-    font-weight: 700;
     font-family: var(--font-serif);
-    color: var(--text-primary);
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: white;
 }
 
-/* Read-only info section */
-.infoSection {
+.closeBtn {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.06);
+    border: none;
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 14px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+}
+
+.closeBtn:hover {
+    background: rgba(255, 255, 255, 0.12);
+    color: white;
+}
+
+/* ── Body ── */
+.modalBody {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px 24px;
     display: flex;
     flex-direction: column;
-    gap: 0;
+    gap: 20px;
+}
+
+/* ── Profile Preview ── */
+.profilePreview {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 16px;
     background: rgba(255, 255, 255, 0.03);
-    border-radius: var(--radius-lg);
+    border-radius: 14px;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.previewAvatar {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    border: 2px solid rgba(255, 255, 255, 0.1);
+}
+
+.previewInfo {
+    overflow: hidden;
+}
+
+.previewName {
+    font-family: var(--font-serif);
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: white;
+}
+
+.previewEmail {
+    font-size: 0.8rem;
+    color: rgba(255, 255, 255, 0.4);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* ── Sections ── */
+.section {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.sectionLabel {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: rgba(255, 255, 255, 0.4);
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+/* ── Info Card ── */
+.infoCard {
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 12px;
     border: 1px solid rgba(255, 255, 255, 0.06);
     overflow: hidden;
 }
@@ -24,53 +128,88 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: var(--space-3) var(--space-4);
+    padding: 10px 14px;
 }
 
-.infoRow + .infoRow {
+.infoRow+.infoRow {
     border-top: 1px solid rgba(255, 255, 255, 0.04);
 }
 
+.infoRowLeft {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.infoIcon {
+    color: rgba(255, 255, 255, 0.3);
+}
+
 .infoLabel {
-    font-size: 12px;
+    font-size: 0.8rem;
     font-weight: 500;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    color: var(--color-navy-400);
+    color: rgba(255, 255, 255, 0.5);
 }
 
 .infoValue {
-    font-size: var(--text-sm);
-    color: var(--color-navy-300);
-    font-weight: 400;
+    font-size: 0.85rem;
+    color: rgba(255, 255, 255, 0.7);
+}
+
+/* ── Input ── */
+.inputWrapper {
+    position: relative;
+}
+
+.input {
+    width: 100%;
+    padding: 10px 14px;
+    padding-right: 50px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.04);
+    color: white;
+    font-size: 0.9rem;
+    outline: none;
+    transition: all 0.2s;
+    font-family: var(--font-sans);
+}
+
+.input:focus {
+    border-color: rgba(59, 130, 246, 0.5);
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.15);
+}
+
+.input::placeholder {
+    color: rgba(255, 255, 255, 0.3);
 }
 
 .charCount {
-    text-align: right;
-    font-size: 11px;
-    color: var(--color-navy-400);
-    margin-top: 4px;
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 0.7rem;
+    color: rgba(255, 255, 255, 0.3);
 }
 
-/* Avatar Grid */
+/* ── Avatar Grid ── */
 .avatarGrid {
     display: grid;
     grid-template-columns: repeat(5, 1fr);
-    gap: var(--space-3);
+    gap: 8px;
 }
 
 .avatarOption {
     display: flex;
-    flex-direction: column;
     align-items: center;
-    gap: 6px;
-    padding: var(--space-3) var(--space-2);
-    border-radius: var(--radius-lg);
+    justify-content: center;
+    padding: 8px;
+    border-radius: 12px;
     border: 2px solid transparent;
-    background: rgba(255, 255, 255, 0.04);
+    background: rgba(255, 255, 255, 0.03);
     cursor: pointer;
-    transition: all var(--transition-fast);
-    color: var(--text-secondary);
+    transition: all 0.2s;
 }
 
 .avatarOption:hover {
@@ -80,77 +219,39 @@
 }
 
 .avatarSelected {
-    border-color: var(--color-blue-500) !important;
-    background: rgba(37, 99, 235, 0.15) !important;
-    box-shadow: 0 0 12px rgba(37, 99, 235, 0.2);
+    border-color: var(--color-gold-400) !important;
+    background: rgba(245, 158, 11, 0.1) !important;
+    box-shadow: 0 0 12px rgba(245, 158, 11, 0.2);
 }
 
 .avatarImg {
     border-radius: 50%;
-    width: 48px;
-    height: 48px;
+    width: 44px;
+    height: 44px;
 }
 
-.avatarLabel {
-    font-size: 10px;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    font-weight: 500;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    max-width: 100%;
+/* ── Divider ── */
+.divider {
+    height: 1px;
+    background: rgba(255, 255, 255, 0.06);
+    margin: 4px 0;
 }
 
-/* Preview Section */
-.preview {
+/* ── API Status Banner ── */
+.apiStatusBanner {
     display: flex;
-    align-items: center;
-    gap: var(--space-4);
-    padding: var(--space-4);
-    background: rgba(255, 255, 255, 0.04);
-    border-radius: var(--radius-lg);
-    border: 1px solid rgba(255, 255, 255, 0.06);
-}
-
-.previewAvatarImg {
-    border-radius: 50%;
-    width: 52px;
-    height: 52px;
-    flex-shrink: 0;
-}
-
-.previewName {
-    font-size: var(--text-lg);
-    font-weight: 600;
-    color: var(--text-primary);
-    font-family: var(--font-serif);
-}
-
-/* API Key Status */
-.apiKeyStatus {
-    display: flex;
-    flex-wrap: wrap;
     align-items: center;
     justify-content: space-between;
-    padding: var(--space-3) var(--space-4);
+    padding: 10px 14px;
     background: rgba(255, 255, 255, 0.03);
-    border-radius: var(--radius-lg);
+    border-radius: 10px;
     border: 1px solid rgba(255, 255, 255, 0.06);
-    gap: var(--space-2) var(--space-3);
 }
 
-.storageMode {
-    width: 100%;
-    font-size: 11px;
-    color: var(--color-navy-400);
-    padding-left: 18px;
-}
-
-.apiKeyStatusRow {
+.apiStatusLeft {
     display: flex;
     align-items: center;
-    gap: var(--space-2);
+    gap: 10px;
 }
 
 .statusDot {
@@ -162,51 +263,243 @@
 
 .statusConnected {
     background: #4ade80;
-    box-shadow: 0 0 8px rgba(74, 222, 128, 0.5);
+    box-shadow: 0 0 10px rgba(74, 222, 128, 0.5);
 }
 
 .statusNotSet {
     background: #ef4444;
-    box-shadow: 0 0 8px rgba(239, 68, 68, 0.4);
+    box-shadow: 0 0 10px rgba(239, 68, 68, 0.4);
 }
 
-.apiKeyLabel {
-    font-size: 13px;
+.apiStatusText {
+    font-size: 0.85rem;
     font-weight: 500;
-    color: var(--text-secondary);
-    white-space: nowrap;
+    color: rgba(255, 255, 255, 0.7);
 }
 
-.resetKeyBtn {
-    padding: 4px 12px;
-    border-radius: var(--radius-md);
-    font-size: 12px;
+.apiStorageTag {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.7rem;
+    color: rgba(255, 255, 255, 0.4);
+    padding: 3px 8px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 6px;
+}
+
+/* ── API Key Input ── */
+.apiKeyInputGroup {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.apiKeyInputRow {
+    display: flex;
+    gap: 8px;
+}
+
+.apiInputWrapper {
+    flex: 1;
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.apiInputIcon {
+    position: absolute;
+    left: 12px;
+    color: rgba(255, 255, 255, 0.3);
+    pointer-events: none;
+}
+
+.apiKeyInput {
+    width: 100%;
+    padding: 10px 38px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.04);
+    color: white;
+    font-size: 0.85rem;
+    font-family: var(--font-mono);
+    outline: none;
+    transition: all 0.2s;
+}
+
+.apiKeyInput:focus {
+    border-color: rgba(59, 130, 246, 0.5);
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.15);
+}
+
+.apiKeyInput::placeholder {
+    color: rgba(255, 255, 255, 0.25);
+    font-family: var(--font-sans);
+}
+
+.apiToggleVisibility {
+    position: absolute;
+    right: 10px;
+    background: none;
+    border: none;
+    color: rgba(255, 255, 255, 0.4);
+    cursor: pointer;
+    padding: 4px;
+    display: flex;
+    align-items: center;
+    transition: color 0.2s;
+}
+
+.apiToggleVisibility:hover {
+    color: rgba(255, 255, 255, 0.7);
+}
+
+/* ── Storage Mode Selector ── */
+.storageModeRow {
+    display: flex;
+    gap: 8px;
+}
+
+.storageModeBtn {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 8px;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(255, 255, 255, 0.03);
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 0.75rem;
     font-weight: 500;
     cursor: pointer;
-    border: 1px solid rgba(239, 68, 68, 0.3);
-    background: rgba(239, 68, 68, 0.1);
+    transition: all 0.2s;
+}
+
+.storageModeBtn:hover {
+    background: rgba(255, 255, 255, 0.06);
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.storageModeActive {
+    border-color: rgba(59, 130, 246, 0.4) !important;
+    background: rgba(59, 130, 246, 0.1) !important;
+    color: var(--color-blue-300) !important;
+}
+
+/* ── API Actions ── */
+.apiActions {
+    display: flex;
+    gap: 8px;
+}
+
+.apiSaveBtn {
+    flex: 1;
+    padding: 8px 16px;
+    border-radius: 8px;
+    border: none;
+    background: rgba(59, 130, 246, 0.2);
+    color: var(--color-blue-300);
+    font-size: 0.8rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.apiSaveBtn:hover:not(:disabled) {
+    background: rgba(59, 130, 246, 0.3);
+}
+
+.apiSaveBtn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.apiResetBtn {
+    padding: 8px 16px;
+    border-radius: 8px;
+    border: 1px solid rgba(239, 68, 68, 0.25);
+    background: rgba(239, 68, 68, 0.08);
     color: #fca5a5;
-    transition: all var(--transition-fast);
-    white-space: nowrap;
+    font-size: 0.8rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
 }
 
-.resetKeyBtn:hover {
-    background: rgba(239, 68, 68, 0.2);
-    border-color: rgba(239, 68, 68, 0.5);
+.apiResetBtn:hover {
+    background: rgba(239, 68, 68, 0.15);
+    border-color: rgba(239, 68, 68, 0.4);
 }
 
-.apiKeyHint {
-    font-size: 11px;
-    color: var(--color-navy-400);
-    font-style: italic;
-}
-
-/* Error */
+/* ── Error ── */
 .error {
-    padding: var(--space-2) var(--space-3);
+    padding: 8px 12px;
     background: rgba(239, 68, 68, 0.1);
     border: 1px solid rgba(239, 68, 68, 0.2);
-    border-radius: var(--radius-md);
+    border-radius: 8px;
     color: #fca5a5;
-    font-size: var(--text-sm);
+    font-size: 0.85rem;
+}
+
+/* ── Footer ── */
+.modalFooter {
+    padding: 16px 24px;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+}
+
+.cancelBtn {
+    padding: 8px 20px;
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: transparent;
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 0.85rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.cancelBtn:hover {
+    background: rgba(255, 255, 255, 0.06);
+    color: white;
+}
+
+.saveBtn {
+    padding: 8px 24px;
+    border-radius: 10px;
+    border: none;
+    background: linear-gradient(135deg, var(--color-blue-500), var(--color-blue-600));
+    color: white;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: 0 2px 8px rgba(37, 99, 235, 0.3);
+}
+
+.saveBtn:hover:not(:disabled) {
+    box-shadow: 0 4px 16px rgba(37, 99, 235, 0.4);
+    transform: translateY(-1px);
+}
+
+.saveBtn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(16px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }

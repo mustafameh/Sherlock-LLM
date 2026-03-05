@@ -167,8 +167,6 @@
 .splitScreen {
     display: flex;
     min-height: 100vh;
-    padding-top: 64px;
-    /* Increased from 56px to match roleplay header height better */
     position: relative;
 }
 

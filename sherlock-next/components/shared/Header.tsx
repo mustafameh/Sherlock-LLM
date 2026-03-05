@@ -29,29 +29,27 @@ export default function Header() {
     return (
         <>
             <header className={styles.header}>
+                {/* Soft glow gradient for text contrast against bright backgrounds */}
+                <div className={styles.headerGlow} />
+
                 <div className={styles.headerLeft}>
-                    <Link href="/" className={styles.logo}>
-                        <Image src="/logo.png" alt="Sherlock Holmes Logo" width={40} height={40} style={{ objectFit: 'contain' }} />
+                    <Link href="/" className={styles.logoLink}>
+                        <Image src="/logo.png" alt="Sherlock Holmes Logo" width={56} height={56} className={styles.logo} />
                     </Link>
-                    <h1 className={styles.title}>
-                        Agent Sherlock
-                    </h1>
+                    <h1 className={styles.title}>Agent Sherlock</h1>
                 </div>
 
                 <div className={styles.headerRight}>
                     {isLoggedIn ? (
                         <div className={styles.userMenu} ref={dropdownRef}>
                             <button
-                                className={styles.userBtn}
+                                className={styles.profileBtn}
                                 onClick={() => setDropdownOpen(!dropdownOpen)}
                             >
-                                <div className={styles.userIcon}>
-                                    <Image src={userAvatarSrc} alt="Avatar" width={32} height={32} style={{ borderRadius: '50%' }} />
+                                <div className={styles.avatar}>
+                                    <Image src={userAvatarSrc} alt="Avatar" width={36} height={36} style={{ borderRadius: '50%' }} />
                                 </div>
-                                {user?.displayName || user?.username}
-                                <span className={`${styles.caret} ${dropdownOpen ? styles.caretOpen : ''}`}>
-                                    ▾
-                                </span>
+                                <span className={styles.userName}>{user?.displayName || user?.username}</span>
                             </button>
                             {dropdownOpen && (
                                 <div className={styles.dropdown}>
@@ -68,7 +66,7 @@ export default function Header() {
                                         className={styles.dropdownItem}
                                         onClick={() => { setShowProfileModal(true); setDropdownOpen(false); }}
                                     >
-                                        👤 Profile Info
+                                        👤 Profile & Settings
                                     </button>
                                     <button
                                         className={`${styles.dropdownItem} ${styles.logoutItem}`}
@@ -81,7 +79,7 @@ export default function Header() {
                         </div>
                     ) : (
                         <Link href="/login" className={styles.loginBtn}>
-                            → Login
+                            Login
                         </Link>
                     )}
                 </div>

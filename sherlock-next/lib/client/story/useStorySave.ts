@@ -16,6 +16,9 @@ interface UseStorySaveDeps {
     storyBlocks: StoryBlock[];
     userCharacter: string;
     storySetting: string;
+    storySettingDescription: string;
+    storyVoiceStyle: string;
+    storyCharacterDescription: string;
     currentStoryId: string | null;
     setCurrentStoryId: (id: string | null) => void;
     isLoggedIn: boolean;
@@ -24,6 +27,9 @@ interface UseStorySaveDeps {
     setStoryBlocks: React.Dispatch<React.SetStateAction<StoryBlock[]>>;
     setUserCharacter: (c: string) => void;
     setStorySetting: (s: string) => void;
+    setStorySettingDescription: (d: string) => void;
+    setStoryVoiceStyle: (v: string) => void;
+    setStoryCharacterDescription: (d: string) => void;
     setIsStoryStarted: (b: boolean) => void;
     setIsStoryLoading: (b: boolean) => void;
     setStoryError: (e: string | null) => void;
@@ -34,9 +40,11 @@ interface UseStorySaveDeps {
 export function useStorySave(deps: UseStorySaveDeps) {
     const {
         storyMessages, storyBlocks, userCharacter, storySetting,
+        storySettingDescription, storyVoiceStyle, storyCharacterDescription,
         currentStoryId, setCurrentStoryId,
         isLoggedIn, isStoryStarted,
         setStoryMessages, setStoryBlocks, setUserCharacter, setStorySetting,
+        setStorySettingDescription, setStoryVoiceStyle, setStoryCharacterDescription,
         setIsStoryStarted, setIsStoryLoading, setStoryError,
         abortRef, prefetchKeyRef,
     } = deps;
@@ -65,6 +73,9 @@ export function useStorySave(deps: UseStorySaveDeps) {
             blocks: storyBlocks,
             userCharacter,
             storySetting,
+            settingDescription: storySettingDescription,
+            voiceStyle: storyVoiceStyle,
+            characterDescription: storyCharacterDescription,
         });
 
         if (fullContent === lastSavedRef.current) return;
@@ -96,7 +107,7 @@ export function useStorySave(deps: UseStorySaveDeps) {
         } catch { /* ignore */ } finally {
             savingRef.current = false;
         }
-    }, [storyMessages, storyBlocks, userCharacter, storySetting, currentStoryId, isLoggedIn, isStoryStarted, setCurrentStoryId, refreshSavedStories]);
+    }, [storyMessages, storyBlocks, userCharacter, storySetting, storySettingDescription, storyVoiceStyle, storyCharacterDescription, currentStoryId, isLoggedIn, isStoryStarted, setCurrentStoryId, refreshSavedStories]);
 
     useEffect(() => {
         if (!isLoggedIn || !isStoryStarted || storyMessages.length === 0) return;
@@ -118,6 +129,9 @@ export function useStorySave(deps: UseStorySaveDeps) {
             setStoryBlocks(saved.blocks || []);
             setUserCharacter(saved.userCharacter || data.character || '');
             setStorySetting(saved.storySetting || '');
+            setStorySettingDescription(saved.settingDescription || saved.storySetting || '');
+            setStoryVoiceStyle(saved.voiceStyle || '');
+            setStoryCharacterDescription(saved.characterDescription || '');
             setCurrentStoryId(id);
             prefetchKeyRef.current = null;
             lastSavedRef.current = data.full_content;
@@ -127,7 +141,7 @@ export function useStorySave(deps: UseStorySaveDeps) {
         } finally {
             setIsStoryLoading(false);
         }
-    }, [setStoryMessages, setStoryBlocks, setUserCharacter, setStorySetting, setCurrentStoryId, setIsStoryStarted, setIsStoryLoading, setStoryError, prefetchKeyRef]);
+    }, [setStoryMessages, setStoryBlocks, setUserCharacter, setStorySetting, setStorySettingDescription, setStoryVoiceStyle, setStoryCharacterDescription, setCurrentStoryId, setIsStoryStarted, setIsStoryLoading, setStoryError, prefetchKeyRef]);
 
     const deleteStory = useCallback(async (id: string) => {
         try {
@@ -138,6 +152,9 @@ export function useStorySave(deps: UseStorySaveDeps) {
                 setStoryMessages([]);
                 setUserCharacter('');
                 setStorySetting('');
+                setStorySettingDescription('');
+                setStoryVoiceStyle('');
+                setStoryCharacterDescription('');
                 setIsStoryStarted(false);
                 setIsStoryLoading(false);
                 setStoryError(null);
@@ -146,7 +163,7 @@ export function useStorySave(deps: UseStorySaveDeps) {
             }
             refreshSavedStories();
         } catch { /* ignore */ }
-    }, [currentStoryId, refreshSavedStories, abortRef, setStoryBlocks, setStoryMessages, setUserCharacter, setStorySetting, setIsStoryStarted, setIsStoryLoading, setStoryError, setCurrentStoryId]);
+    }, [currentStoryId, refreshSavedStories, abortRef, setStoryBlocks, setStoryMessages, setUserCharacter, setStorySetting, setStorySettingDescription, setStoryVoiceStyle, setStoryCharacterDescription, setIsStoryStarted, setIsStoryLoading, setStoryError, setCurrentStoryId]);
 
     const clearSaveState = useCallback(() => {
         lastSavedRef.current = '';

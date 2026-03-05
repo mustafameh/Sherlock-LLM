@@ -14,6 +14,8 @@ interface StoryContextType {
     storyMessages: ChatMessage[];
     userCharacter: string;
     storySetting: string;
+    storyVoiceStyle: string;
+    storyCharacterDescription: string;
     isStoryLoading: boolean;
     storyError: string | null;
     isStoryStarted: boolean;
@@ -45,6 +47,9 @@ export function StoryProvider({ children }: { children: ReactNode }) {
     const [storyMessages, setStoryMessages] = useState<ChatMessage[]>([]);
     const [userCharacter, setUserCharacter] = useState('');
     const [storySetting, setStorySetting] = useState('');
+    const [storySettingDescription, setStorySettingDescription] = useState('');
+    const [storyVoiceStyle, setStoryVoiceStyle] = useState('');
+    const [storyCharacterDescription, setStoryCharacterDescription] = useState('');
     const [isStoryLoading, setIsStoryLoading] = useState(false);
     const [storyError, setStoryError] = useState<string | null>(null);
     const [isStoryStarted, setIsStoryStarted] = useState(false);
@@ -60,9 +65,11 @@ export function StoryProvider({ children }: { children: ReactNode }) {
 
     const { savedStories, refreshSavedStories, loadStory, deleteStory, clearSaveState } = useStorySave({
         storyMessages, storyBlocks, userCharacter, storySetting,
+        storySettingDescription, storyVoiceStyle, storyCharacterDescription,
         currentStoryId, setCurrentStoryId,
         isLoggedIn, isStoryStarted,
         setStoryMessages, setStoryBlocks, setUserCharacter, setStorySetting,
+        setStorySettingDescription, setStoryVoiceStyle, setStoryCharacterDescription,
         setIsStoryStarted, setIsStoryLoading, setStoryError,
         abortRef, prefetchKeyRef,
     });
@@ -72,11 +79,38 @@ export function StoryProvider({ children }: { children: ReactNode }) {
         if (lastMood && lastMood.type === 'mood') setCurrentMood(lastMood.mood);
     }, [storyBlocks]);
 
+    const buildCurrentPromptParams = useCallback(() => {
+        const batchSize = getBatchSize(decisionFrequency, zenMode);
+        const isMultiScene = batchSize > 1;
+        const voiceInstr = storyVoiceStyle
+            ? VOICE_STYLES.find(v => v.id === storyVoiceStyle)?.instruction || ''
+            : '';
+
+        let rules34: string;
+        if (!isMultiScene) {
+            rules34 = `3. Every response MUST end with either a [DECISION] block (at dramatic turning points) or an [AWAITING_INPUT] block (when a character addresses ${userCharacter} directly).\n4. Present [DECISION] blocks at key dramatic moments.`;
+        } else if (zenMode) {
+            rules34 = `3. Output approximately ${batchSize} scenes of narrative per response, separated by [SCENE_BREAK] markers. Each scene should be a self-contained dramatic beat with its own [NARRATOR] and dialogue blocks.\n4. Do NOT include [DECISION] or [AWAITING_INPUT] blocks. End with narrative that flows naturally. The story should read like a novel.`;
+        } else {
+            rules34 = `3. Output approximately ${batchSize} scenes of narrative per response, separated by [SCENE_BREAK] markers. Each scene should be a self-contained dramatic beat with its own [NARRATOR] and dialogue blocks.\n4. Include a [DECISION] block with 2-4 options ONLY in the final scene of your response. Do NOT place [DECISION] or [AWAITING_INPUT] between scenes.`;
+        }
+
+        return {
+            type: 'story' as const,
+            userCharacter,
+            storySetting: storySettingDescription,
+            characterDescription: storyCharacterDescription,
+            voiceStyle: voiceInstr,
+            isMultiScene,
+            rules34,
+        };
+    }, [userCharacter, storySettingDescription, storyVoiceStyle, storyCharacterDescription, decisionFrequency, zenMode]);
+
     const callStream = useCallback(async (
         messages: ChatMessage[],
         baseBlocks: StoryBlock[],
-        promptParams?: Record<string, unknown>,
     ): Promise<string> => {
+        const promptParams = buildCurrentPromptParams();
         return doStreamStoryApi(messages, baseBlocks, {
             selectedModel, apiKey, temperature,
             signal: abortRef.current?.signal,
@@ -84,13 +118,16 @@ export function StoryProvider({ children }: { children: ReactNode }) {
             onStreamingHint: setStreamingHint,
             promptParams,
         });
-    }, [selectedModel, apiKey, temperature]);
+    }, [selectedModel, apiKey, temperature, buildCurrentPromptParams]);
 
     const startNewStory = useCallback(async (character: string, setting: string, settingTitle: string, characterDescription?: string, voiceStyle?: string) => {
         setStoryError(null);
         setIsStoryLoading(true);
         setUserCharacter(character);
         setStorySetting(settingTitle);
+        setStorySettingDescription(setting);
+        setStoryVoiceStyle(voiceStyle || '');
+        setStoryCharacterDescription(characterDescription || '');
         setStoryBlocks([]);
         setCurrentStoryId(null);
         setCurrentMood('calm');
@@ -98,38 +135,13 @@ export function StoryProvider({ children }: { children: ReactNode }) {
         clearSaveState();
         abortRef.current = new AbortController();
 
-        const batchSize = getBatchSize(decisionFrequency, zenMode);
-        const isMultiScene = batchSize > 1;
-        const voiceInstr = voiceStyle
-            ? VOICE_STYLES.find(v => v.id === voiceStyle)?.instruction
-            : undefined;
-
-        let rules34: string;
-        if (!isMultiScene) {
-            rules34 = `3. Every response MUST end with either a [DECISION] block (at dramatic turning points) or an [AWAITING_INPUT] block (when a character addresses ${character} directly).\n4. Present [DECISION] blocks at key dramatic moments.`;
-        } else if (zenMode) {
-            rules34 = `3. Output approximately ${batchSize} scenes of narrative per response, separated by [SCENE_BREAK] markers. Each scene should be a self-contained dramatic beat with its own [NARRATOR] and dialogue blocks.\n4. Do NOT include [DECISION] or [AWAITING_INPUT] blocks. End with narrative that flows naturally. The story should read like a novel.`;
-        } else {
-            rules34 = `3. Output approximately ${batchSize} scenes of narrative per response, separated by [SCENE_BREAK] markers. Each scene should be a self-contained dramatic beat with its own [NARRATOR] and dialogue blocks.\n4. Include a [DECISION] block with 2-4 options ONLY in the final scene of your response. Do NOT place [DECISION] or [AWAITING_INPUT] between scenes.`;
-        }
-
-        const promptParams = {
-            type: 'story' as const,
-            userCharacter: character,
-            storySetting: setting,
-            characterDescription: characterDescription || '',
-            voiceStyle: voiceInstr || '',
-            isMultiScene,
-            rules34,
-        };
-
         const charIntro = characterDescription
             ? `Begin the story. Set the scene and introduce the first situation. I am playing as ${character} (${characterDescription}).`
             : `Begin the story. Set the scene and introduce the first situation. Remember, I am playing as ${character}.`;
         const initialMessages: ChatMessage[] = [{ role: 'user', content: charIntro }];
 
         try {
-            const response = await callStream(initialMessages, [], promptParams);
+            const response = await callStream(initialMessages, []);
             const assistantMsg: ChatMessage = { role: 'assistant', content: response };
             setStoryMessages([...initialMessages, assistantMsg]);
             setIsStoryStarted(true);
@@ -141,7 +153,7 @@ export function StoryProvider({ children }: { children: ReactNode }) {
             setIsStoryLoading(false);
             setStreamingHint(null);
         }
-    }, [callStream, decisionFrequency, zenMode, clearSaveState]);
+    }, [callStream, clearSaveState]);
 
     const sendStoryAction = useCallback(async (text: string) => {
         if (isStoryLoading || !text.trim()) return;
@@ -186,11 +198,10 @@ export function StoryProvider({ children }: { children: ReactNode }) {
         abortRef.current = new AbortController();
 
         const continueMsg: ChatMessage = { role: 'user', content: 'Continue the story.' };
-        const newMessages = [...storyMessages, continueMsg];
-        setStoryMessages(newMessages);
+        const messagesForApi = [...storyMessages, continueMsg];
 
         try {
-            const response = await callStream(newMessages, storyBlocks);
+            const response = await callStream(messagesForApi, storyBlocks);
             const assistantMsg: ChatMessage = { role: 'assistant', content: response };
             setStoryMessages(prev => [...prev, assistantMsg]);
         } catch (err) {
@@ -198,7 +209,6 @@ export function StoryProvider({ children }: { children: ReactNode }) {
                 setStoryError(err instanceof Error ? err.message : 'Failed to continue story');
             }
             prefetchKeyRef.current = null;
-            setStoryMessages(prev => prev.filter(m => m !== continueMsg));
         } finally {
             setIsStoryLoading(false);
             setStreamingHint(null);
@@ -225,6 +235,9 @@ export function StoryProvider({ children }: { children: ReactNode }) {
         setStoryMessages([]);
         setUserCharacter('');
         setStorySetting('');
+        setStorySettingDescription('');
+        setStoryVoiceStyle('');
+        setStoryCharacterDescription('');
         setIsStoryStarted(false);
         setIsStoryLoading(false);
         setStoryError(null);
@@ -237,6 +250,7 @@ export function StoryProvider({ children }: { children: ReactNode }) {
     return (
         <StoryContext.Provider value={{
             storyBlocks, storyMessages, userCharacter, storySetting,
+            storyVoiceStyle, storyCharacterDescription,
             isStoryLoading, storyError, isStoryStarted, currentStoryId,
             savedStories, streamingHint, currentSceneIndex, currentMood,
             zenPaused, setZenPaused, setCurrentSceneIndex,

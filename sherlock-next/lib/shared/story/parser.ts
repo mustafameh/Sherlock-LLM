@@ -58,15 +58,19 @@ export function parseStoryBlocks(raw: string): StoryBlock[] {
             continue;
         }
 
+        if (marker.type === 'chapter') {
+            blocks.push({ type: 'chapter', title: marker.character! });
+            continue;
+        }
+
+        if (marker.type === 'mood') {
+            blocks.push({ type: 'mood', mood: marker.character! });
+            continue;
+        }
+
         if (!content) continue;
 
         switch (marker.type) {
-            case 'chapter':
-                blocks.push({ type: 'chapter', title: marker.character! });
-                break;
-            case 'mood':
-                blocks.push({ type: 'mood', mood: marker.character! });
-                break;
             case 'narrator':
                 blocks.push({ type: 'narrator', content });
                 break;

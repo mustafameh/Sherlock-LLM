@@ -14,7 +14,7 @@ const QUICK_ACTIONS = [
 ];
 
 export default function StoryInput() {
-    const { sendStoryAction, selectDecision, isStoryLoading, userCharacter, storyBlocks, currentSceneIndex, setCurrentSceneIndex, zenPaused, setZenPaused } = useStory();
+    const { sendStoryAction, isStoryLoading, userCharacter, storyBlocks, currentSceneIndex, setCurrentSceneIndex, zenPaused, setZenPaused } = useStory();
     const { zenMode, decisionFrequency } = useSettings();
     const textareaRef = useRef<HTMLTextAreaElement>(null);
     const isMultiScene = decisionFrequency !== 'frequent' || zenMode;
@@ -22,12 +22,6 @@ export default function StoryInput() {
     const scenes = useMemo(() => deriveScenes(storyBlocks), [storyBlocks]);
     const totalScenes = scenes.length;
     const isOnLatest = currentSceneIndex >= totalScenes - 1;
-
-    const currentBlocks = scenes[currentSceneIndex]?.blocks ?? [];
-    const recentBlocks = currentBlocks.slice(-3);
-    const decisionBlock = [...recentBlocks].reverse().find(b => b.type === 'decision');
-    const isDecisionActive = !!decisionBlock && !isStoryLoading && isOnLatest;
-    const decisionOptions = decisionBlock?.type === 'decision' ? decisionBlock.options : [];
 
     const handleSend = useCallback(async () => {
         const text = textareaRef.current?.value.trim();
@@ -66,8 +60,8 @@ export default function StoryInput() {
 
     if (!isOnLatest) return null;
 
-    const showZenBar = zenMode && isOnLatest && !isDecisionActive;
-    const showInput = isDecisionActive || !zenMode || zenPaused;
+    const showZenBar = zenMode && isOnLatest;
+    const showInput = !zenMode || zenPaused;
 
     return (
         <div className={styles.storyInputArea}>
@@ -91,24 +85,6 @@ export default function StoryInput() {
                 </div>
             )}
 
-            {isDecisionActive && decisionOptions.length > 0 && (
-                <div className={styles.inlineDecision}>
-                    <span className={styles.inlineDecisionLabel}>What will you do?</span>
-                    <div className={styles.inlineDecisionOptions}>
-                        {decisionOptions.map((opt, i) => (
-                            <button
-                                key={i}
-                                className={styles.inlineDecisionBtn}
-                                onClick={() => selectDecision(opt)}
-                            >
-                                {opt}
-                            </button>
-                        ))}
-                    </div>
-                    <span className={styles.orDivider}>or type your own response below</span>
-                </div>
-            )}
-
             {showInput && (
                 <>
                     <div className={styles.quickActions}>
@@ -128,10 +104,7 @@ export default function StoryInput() {
                             ref={textareaRef}
                             className={styles.storyTextarea}
                             rows={1}
-                            placeholder={isDecisionActive
-                                ? `Or type what ${userCharacter} does instead...`
-                                : `What does ${userCharacter} say or do?`
-                            }
+                            placeholder={`What does ${userCharacter} say or do?`}
                             onKeyDown={handleKeyDown}
                             disabled={isStoryLoading}
                             onInput={(e) => {

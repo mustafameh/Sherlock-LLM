@@ -56,7 +56,29 @@ function ChapterDivider({ title }: { title: string }) {
     );
 }
 
-function StoryBlockRenderer({ block, isLast, userCharacter }: { block: StoryBlock; isLast: boolean; userCharacter: string }) {
+function InlineDecisionFlow({ options, onSelect }: { options: string[]; onSelect: (opt: string) => void }) {
+    return (
+        <div className={styles.inlineDecisionFlow}>
+            <div className={styles.inlineDecisionDivider}>
+                <span className={styles.inlineDecisionDividerLine} />
+                <span className={styles.inlineDecisionDividerText}>What will you do?</span>
+                <span className={styles.inlineDecisionDividerLine} />
+            </div>
+            {options.map((opt, i) => (
+                <button
+                    key={i}
+                    className={styles.inlineDecisionFlowBtn}
+                    onClick={() => onSelect(opt)}
+                >
+                    <span className={styles.inlineDecisionFlowNum}>{i + 1}.</span>{opt}
+                </button>
+            ))}
+            <div className={styles.inlineDecisionFlowHint}>or type your own response below</div>
+        </div>
+    );
+}
+
+function StoryBlockRenderer({ block, isActiveDecision, userCharacter }: { block: StoryBlock; isActiveDecision: boolean; userCharacter: string }) {
     switch (block.type) {
         case 'chapter':
             return <ChapterDivider title={block.title} />;
@@ -70,7 +92,7 @@ function StoryBlockRenderer({ block, isLast, userCharacter }: { block: StoryBloc
         case 'user_action':
             return <UserActionBubble content={block.content} characterName={userCharacter} />;
         case 'decision':
-            if (isLast) return null;
+            if (isActiveDecision) return null;
             return <div className={styles.decisionBlockPast}>{block.options.join(' / ')}</div>;
         case 'awaiting_input':
             return <NarratorBlock content={block.context} />;
@@ -83,7 +105,7 @@ export default function StoryWindow() {
     const {
         storyBlocks, isStoryLoading, userCharacter,
         streamingHint, currentSceneIndex, setCurrentSceneIndex,
-        currentMood,
+        currentMood, selectDecision,
     } = useStory();
     const { zenMode, decisionFrequency } = useSettings();
     const isMultiScene = decisionFrequency !== 'frequent' || zenMode;
@@ -93,6 +115,17 @@ export default function StoryWindow() {
     const scenes = useMemo(() => deriveScenes(storyBlocks), [storyBlocks]);
     const totalScenes = scenes.length;
     const isOnLatest = currentSceneIndex >= totalScenes - 1;
+
+    const scene = scenes[currentSceneIndex];
+    const blocksToRender = scene?.blocks ?? [];
+
+    const lastDecisionBlock = useMemo(() => {
+        for (let i = blocksToRender.length - 1; i >= 0; i--) {
+            if (blocksToRender[i].type === 'decision') return blocksToRender[i];
+        }
+        return null;
+    }, [blocksToRender]);
+    const hasActiveDecision = !!lastDecisionBlock && isOnLatest && !isStoryLoading;
 
     useEffect(() => {
         if (isStoryLoading && !isMultiScene) {
@@ -110,8 +143,11 @@ export default function StoryWindow() {
         scrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
     }, [currentSceneIndex]);
 
-    const scene = scenes[currentSceneIndex];
-    const blocksToRender = scene?.blocks ?? [];
+    useEffect(() => {
+        if (hasActiveDecision) {
+            scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
+        }
+    }, [hasActiveDecision]);
 
     return (
         <div className={styles.storyWindow} ref={scrollRef} data-mood={currentMood}>
@@ -125,10 +161,17 @@ export default function StoryWindow() {
                 <StoryBlockRenderer
                     key={`${currentSceneIndex}-${i}`}
                     block={block}
-                    isLast={i === blocksToRender.length - 1}
+                    isActiveDecision={hasActiveDecision && block === lastDecisionBlock}
                     userCharacter={userCharacter}
                 />
             ))}
+
+            {hasActiveDecision && lastDecisionBlock?.type === 'decision' && (
+                <InlineDecisionFlow
+                    options={lastDecisionBlock.options}
+                    onSelect={selectDecision}
+                />
+            )}
 
             {isOnLatest && isStoryLoading && (
                 <div className={styles.streamingIndicator}>

@@ -5,6 +5,7 @@ import Image from 'next/image';
 import { useStory } from '@/lib/client/story/context';
 import { useAuth } from '@/lib/client/contexts';
 import { AVATAR_OPTIONS } from '@/lib/shared/types';
+import { PanelLeft, PanelLeftClose } from 'lucide-react';
 import EditProfileModal from '@/components/shared/EditProfileModal';
 import ConfirmDeleteModal from '@/components/shared/ConfirmDeleteModal';
 import styles from './StorySidebar.module.css';
@@ -19,7 +20,7 @@ export default function StorySidebar() {
         isStoryStarted,
     } = useStory();
     const { user, isLoggedIn } = useAuth();
-    const [collapsed, setCollapsed] = useState(typeof window !== 'undefined' && window.innerWidth <= 768);
+    const [collapsed, setCollapsed] = useState(true);
     const [showProfileModal, setShowProfileModal] = useState(false);
     const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
 
@@ -43,21 +44,41 @@ export default function StorySidebar() {
                 <div className={styles.backdrop} onClick={() => setCollapsed(true)} />
             )}
             <aside className={`${styles.sidebar} ${collapsed ? styles.collapsed : ''}`}>
-                <button
-                    className={styles.toggleBtn}
-                    onClick={() => setCollapsed(!collapsed)}
-                    title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-                >
-                    {collapsed ? '☰' : '✕'}
-                </button>
+                {/* Header */}
+                <div className={styles.header}>
+                    {!collapsed && (
+                        <div className={styles.branding}>
+                            <Image
+                                src="/logo.png"
+                                alt="Agent Sherlock"
+                                width={28}
+                                height={28}
+                                className={styles.logoImg}
+                            />
+                            <div className={styles.brandText}>
+                                <span className={styles.brandName}>Agent Sherlock</span>
+                                <span className={styles.brandSub}>Interactive Story Mode</span>
+                            </div>
+                        </div>
+                    )}
+                    <button
+                        className={styles.toggleBtn}
+                        onClick={() => setCollapsed(!collapsed)}
+                        title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+                    >
+                        {collapsed ? <PanelLeft size={20} /> : <PanelLeftClose size={20} />}
+                    </button>
+                </div>
 
                 {!collapsed && (
-                    <>
+                    <div className={styles.content}>
+                        {/* New Story - Glowing CTA */}
                         <button className={styles.newStoryBtn} onClick={resetStory}>
                             <span className={styles.newStoryIcon}>+</span>
                             New Story
                         </button>
 
+                        {/* Story List */}
                         <div className={styles.storyList}>
                             <div className={styles.sectionLabel}>Story History</div>
                             {!isLoggedIn ? (
@@ -90,23 +111,24 @@ export default function StorySidebar() {
                                 ))
                             )}
                         </div>
+                    </div>
+                )}
 
-                        {isLoggedIn && user && (
-                            <div className={styles.userFooter} onClick={() => setShowProfileModal(true)}>
-                                <Image
-                                    src={userAvatarSrc}
-                                    alt="Avatar"
-                                    width={36}
-                                    height={36}
-                                    style={{ borderRadius: '50%', flexShrink: 0 }}
-                                />
-                                <div className={styles.userInfo}>
-                                    <div className={styles.userName}>{user.displayName || user.username}</div>
-                                    <div className={styles.userEmail}>{user.email}</div>
-                                </div>
-                            </div>
-                        )}
-                    </>
+                {/* User Footer */}
+                {!collapsed && isLoggedIn && user && (
+                    <div className={styles.userFooter} onClick={() => setShowProfileModal(true)}>
+                        <Image
+                            src={userAvatarSrc}
+                            alt="Avatar"
+                            width={36}
+                            height={36}
+                            style={{ borderRadius: '50%', flexShrink: 0 }}
+                        />
+                        <div className={styles.userInfo}>
+                            <div className={styles.userName}>{user.displayName || user.username}</div>
+                            <div className={styles.userEmail}>{user.email}</div>
+                        </div>
+                    </div>
                 )}
             </aside>
 

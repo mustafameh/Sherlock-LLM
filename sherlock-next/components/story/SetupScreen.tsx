@@ -69,8 +69,29 @@ export default function SetupScreen() {
         return () => clearInterval(interval);
     }, [isStoryLoading]);
 
-    const prevCharacter = () => setCarouselIndex(prev => (prev - 1 + ALL_CHARACTERS.length) % ALL_CHARACTERS.length);
-    const nextCharacter = () => setCarouselIndex(prev => (prev + 1) % ALL_CHARACTERS.length);
+    const prevCharacter = () => {
+        const newIndex = (carouselIndex - 1 + ALL_CHARACTERS.length) % ALL_CHARACTERS.length;
+        setCarouselIndex(newIndex);
+        setSelectedCharacter(ALL_CHARACTERS[newIndex].id);
+    };
+    const nextCharacter = () => {
+        const newIndex = (carouselIndex + 1) % ALL_CHARACTERS.length;
+        setCarouselIndex(newIndex);
+        setSelectedCharacter(ALL_CHARACTERS[newIndex].id);
+    };
+
+    // Touch swipe support
+    const touchStartX = React.useRef(0);
+    const handleTouchStart = (e: React.TouchEvent) => {
+        touchStartX.current = e.touches[0].clientX;
+    };
+    const handleTouchEnd = (e: React.TouchEvent) => {
+        const diff = touchStartX.current - e.changedTouches[0].clientX;
+        if (Math.abs(diff) > 50) {
+            if (diff > 0) nextCharacter();
+            else prevCharacter();
+        }
+    };
 
     const getAvatarConfig = (id: string) => {
         if (id === 'watson') return { path: '/avatars/watson.png', align: 'center 15%' };
@@ -206,10 +227,12 @@ export default function SetupScreen() {
                             {/* Mobile: Carousel (1 card at a time) */}
                             {isMobile ? (
                                 <div className={styles.carouselWrapper}>
-                                    <button className={styles.carouselBtn} onClick={prevCharacter} aria-label="Previous character">‹</button>
-                                    <div className={styles.carouselCard}>
+                                    <button className={styles.carouselBtn} onClick={prevCharacter} aria-label="Previous character">
+                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6" /></svg>
+                                    </button>
+                                    <div className={styles.carouselCard} onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd}>
                                         <button
-                                            className={`${styles.characterCard} ${selectedCharacter === ALL_CHARACTERS[carouselIndex].id ? styles.characterCardActive : ''}`}
+                                            className={`${styles.characterCard} ${styles.characterCardActive}`}
                                             onClick={() => setSelectedCharacter(ALL_CHARACTERS[carouselIndex].id)}
                                         >
                                             <div className={styles.characterImageWrapper}>
@@ -222,10 +245,12 @@ export default function SetupScreen() {
                                             </div>
                                         </button>
                                     </div>
-                                    <button className={styles.carouselBtn} onClick={nextCharacter} aria-label="Next character">›</button>
+                                    <button className={styles.carouselBtn} onClick={nextCharacter} aria-label="Next character">
+                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6" /></svg>
+                                    </button>
                                     <div className={styles.carouselDots}>
                                         {ALL_CHARACTERS.map((c, i) => (
-                                            <span key={c.id} className={`${styles.carouselDot} ${i === carouselIndex ? styles.carouselDotActive : ''}`} onClick={() => setCarouselIndex(i)} />
+                                            <span key={c.id} className={`${styles.carouselDot} ${i === carouselIndex ? styles.carouselDotActive : ''}`} onClick={() => { setCarouselIndex(i); setSelectedCharacter(ALL_CHARACTERS[i].id); }} />
                                         ))}
                                     </div>
                                 </div>

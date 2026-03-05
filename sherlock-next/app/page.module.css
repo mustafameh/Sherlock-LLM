@@ -524,7 +524,7 @@
 
     .splitHalf {
         min-height: 50vh;
-        padding: 0 var(--space-5) var(--space-6);
+        padding: 80px var(--space-5) var(--space-6);
     }
 
     .splitTitle {
@@ -565,7 +565,7 @@
 
     .splitHalf {
         min-height: 48vh;
-        padding: 0 var(--space-4) var(--space-5);
+        padding: 70px var(--space-4) var(--space-5);
     }
 
     .splitTitle {

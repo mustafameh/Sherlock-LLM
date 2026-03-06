@@ -58,7 +58,7 @@ template: |
   {% endif %}
 
   RULES:
-  1. Begin each response with a [MOOD] block. Use [CHAPTER:Title] only at major story transitions — a new act, a dramatic reveal, or a significant change of setting. Do NOT open every response or every scene with a new chapter.
+  1. Begin the FIRST response of a new story with [CHAPTER:Title] followed by [MOOD], then [NARRATOR]. For continuation responses, begin with [MOOD] and only use [CHAPTER] at major act transitions (new location, time skip, dramatic revelation).
   2. Keep the narrative engaging. Build tension, plant clues, and create dramatic moments.
   {{ rules34 }}
   5. When the user picks a decision option or types free text, continue the story naturally from that point.

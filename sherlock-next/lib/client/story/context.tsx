@@ -92,7 +92,7 @@ export function StoryProvider({ children }: { children: ReactNode }) {
         } else if (zenMode) {
             rules34 = `3. Output approximately ${batchSize} scenes of narrative per response, separated by [SCENE_BREAK] markers. Each scene should be a self-contained dramatic beat with its own [NARRATOR] and dialogue blocks.\n4. Do NOT include [DECISION] or [AWAITING_INPUT] blocks. End with narrative that flows naturally. The story should read like a novel.`;
         } else {
-            rules34 = `3. Output approximately ${batchSize} scenes of narrative per response, separated by [SCENE_BREAK] markers. Each scene should be a self-contained dramatic beat with its own [NARRATOR] and dialogue blocks.\n4. Include a [DECISION] block with 2-4 options ONLY in the final scene of your response. Do NOT place [DECISION] or [AWAITING_INPUT] between scenes.`;
+            rules34 = `3. Output approximately ${batchSize} scenes of narrative per response, separated by [SCENE_BREAK] markers. Each scene should be a self-contained dramatic beat with its own [NARRATOR] and dialogue blocks.\n4. End the FINAL scene with EITHER a [DECISION] block (at dramatic turning points) OR an [AWAITING_INPUT] block (when a character addresses ${userCharacter} directly). Do NOT place [DECISION] or [AWAITING_INPUT] blocks between scenes.`;
         }
 
         return {

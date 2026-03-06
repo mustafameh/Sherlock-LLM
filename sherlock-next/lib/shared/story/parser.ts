@@ -68,6 +68,11 @@ export function parseStoryBlocks(raw: string): StoryBlock[] {
             continue;
         }
 
+        if (marker.type === 'awaiting_input') {
+            blocks.push({ type: 'awaiting_input', context: content || 'What do you do?' });
+            continue;
+        }
+
         if (!content) continue;
 
         switch (marker.type) {

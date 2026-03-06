@@ -140,8 +140,25 @@ export function StoryProvider({ children }: { children: ReactNode }) {
             : `Begin the story. Set the scene and introduce the first situation. Remember, I am playing as ${character}.`;
         const initialMessages: ChatMessage[] = [{ role: 'user', content: charIntro }];
 
+        let shownEarly = false;
+        const onBlocksUpdate = (blocks: StoryBlock[]) => {
+            setStoryBlocks(blocks);
+            if (!shownEarly && blocks.some(b => b.type === 'scene_break')) {
+                shownEarly = true;
+                setIsStoryStarted(true);
+            }
+        };
+
+        const promptParams = buildCurrentPromptParams();
+
         try {
-            const response = await callStream(initialMessages, []);
+            const response = await doStreamStoryApi(initialMessages, [], {
+                selectedModel, apiKey, temperature,
+                signal: abortRef.current?.signal,
+                onBlocksUpdate,
+                onStreamingHint: setStreamingHint,
+                promptParams,
+            });
             const assistantMsg: ChatMessage = { role: 'assistant', content: response };
             setStoryMessages([...initialMessages, assistantMsg]);
             setIsStoryStarted(true);
@@ -153,7 +170,7 @@ export function StoryProvider({ children }: { children: ReactNode }) {
             setIsStoryLoading(false);
             setStreamingHint(null);
         }
-    }, [callStream, clearSaveState]);
+    }, [selectedModel, apiKey, temperature, buildCurrentPromptParams, clearSaveState]);
 
     const sendStoryAction = useCallback(async (text: string) => {
         if (isStoryLoading || !text.trim()) return;

@@ -27,13 +27,13 @@ template: |
   {% if isMultiScene %}
   [SCENE_BREAK] Place this marker between distinct scenes within a single response. Each scene should have its own setting, narrative, and dialogue.
   {% endif %}
-  [DECISION]
-  - Option A: a specific choice the user can make
-  - Option B: an alternative choice
-  - Option C: a third option (optional, include 2-4 options)
+  [DECISION] Use this at dramatic turning points to present the user with specific choices. Include 2-4 concrete options. Start DIRECTLY with the options — do NOT include a header line like "What will you do?" or "What is your next move?" inside the block. Use dashes (-) to prefix each option, NOT numbers.
+  - Agree to take the case immediately
+  - Ask Lestrade for more details first
+  - Examine the letter more carefully before deciding
 
-  [AWAITING_INPUT] A brief line describing what {{ userCharacter }} should respond to — e.g., "Sherlock looks at you expectantly, waiting for your answer."
-  EXAMPLE OUTPUT (follow this structure exactly):
+  [AWAITING_INPUT] Use this INSTEAD OF [DECISION] when a character directly addresses {{ userCharacter }}, asks a question, or the scene calls for a free-form response rather than predefined choices. This is an ALTERNATIVE to [DECISION], not a companion. Example: "Sherlock looks at you expectantly, waiting for your answer."
+  EXAMPLE A — ending with [DECISION] (use at dramatic turning points with clear choices):
 
   [CHAPTER:The Visitor at Baker Street]
   [MOOD:mysterious]
@@ -41,22 +41,24 @@ template: |
   [SHERLOCK] "Curious. Most curious indeed," Holmes murmured, holding the letter up to the gaslight.
   [NARRATOR] He passed the note across. The handwriting was hurried, almost frantic.
   [CHARACTER:Inspector Lestrade] "We need your help, Mr. Holmes. Scotland Yard is at a loss."
-  {% if not isMultiScene %}
   [DECISION]
   - Option A: Agree to take the case immediately
   - Option B: Ask Lestrade for more details first
   - Option C: Examine the letter more carefully before deciding
-  [AWAITING_INPUT] Lestrade watches you expectantly, waiting for a response.
-  {% endif %}
-  {% if isMultiScene %}
-  [SCENE_BREAK]
-  [CHAPTER:The Journey to Whitechapel]
+
+  EXAMPLE B — ending with [AWAITING_INPUT] (use when a character asks {{ userCharacter }} a direct question or the scene calls for open-ended action):
+
   [MOOD:tense]
-  [NARRATOR] The cab rattled through narrow, fog-choked streets...
+  [NARRATOR] The cab rattled to a halt before the darkened townhouse. Holmes turned to you, his expression unreadable.
+  [SHERLOCK] "Before we enter, I must ask — what is your instinct telling you? What manner of man are we about to confront?"
+  [AWAITING_INPUT] Holmes waits, his keen eyes fixed on you, genuinely curious about your assessment.
+  {% if isMultiScene %}
+
+  MULTI-SCENE NOTE: When generating multiple scenes, end the FINAL scene with either [DECISION] or [AWAITING_INPUT]. Use [AWAITING_INPUT] when a character asks {{ userCharacter }} a question or the moment calls for a free-form response. Use [DECISION] at dramatic turning points with clear options. Vary between them across responses.
   {% endif %}
 
   RULES:
-  1. Begin the story with a [CHAPTER] block, then a [MOOD] block, then a [NARRATOR] block setting the scene, followed by character dialogue.
+  1. Begin each response with a [MOOD] block. Use [CHAPTER:Title] only at major story transitions — a new act, a dramatic reveal, or a significant change of setting. Do NOT open every response or every scene with a new chapter.
   2. Keep the narrative engaging. Build tension, plant clues, and create dramatic moments.
   {{ rules34 }}
   5. When the user picks a decision option or types free text, continue the story naturally from that point.
@@ -65,5 +67,6 @@ template: |
   8. Use varied pacing — mix tense moments with quieter investigative scenes.
   9. Introduce new characters and twists organically.
   10. Keep individual sections concise but atmospheric. Each [NARRATOR] block should be 2-4 sentences. Each dialogue block should be 1-3 sentences.
-  11. Introduce new [CHAPTER] blocks at significant turning points (roughly every 4-6 scene breaks).
+  11. Use [CHAPTER] sparingly — only at major act transitions such as arriving at a new location, a significant time skip, or a dramatic revelation. Aim for roughly one chapter every 4-6 user interactions, not every scene.
   12. Include a [MOOD] marker when the atmosphere shifts significantly.
+  13. Each scene should be substantial — at least 2 narrative blocks and 1 dialogue block. Avoid creating micro-scenes with only 1-2 blocks unless a brief, punchy beat genuinely serves the dramatic pacing.

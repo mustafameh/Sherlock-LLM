@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useSettings } from '@/lib/client/contexts';
 import type { StoryBlock } from '@/lib/shared/story/parser';
-import { ScrollText, RefreshCw, ChevronDown } from 'lucide-react';
+import { ScrollText, RefreshCw, ChevronDown, Milestone, Fingerprint, Users, HelpCircle, CheckCircle2, LucideIcon } from 'lucide-react';
 import styles from './StorySummary.module.css';
 
 interface StorySummaryPanelProps {
@@ -9,10 +9,21 @@ interface StorySummaryPanelProps {
 }
 
 function AccordionSection({ title, children, defaultOpen = false }: { title: string, children: React.ReactNode, defaultOpen?: boolean }) {
+    // Determine the thematic icon based on the section title
+    let Icon: LucideIcon = ScrollText;
+    if (title.toLowerCase().includes('situation')) Icon = Milestone;
+    else if (title.toLowerCase().includes('characters')) Icon = Users;
+    else if (title.toLowerCase().includes('clues') || title.toLowerCase().includes('evidence')) Icon = Fingerprint;
+    else if (title.toLowerCase().includes('decisions')) Icon = CheckCircle2;
+    else if (title.toLowerCase().includes('unresolved')) Icon = HelpCircle;
+
     return (
         <details className={styles.accordion} open={defaultOpen}>
             <summary className={styles.accordionSummary}>
-                {title}
+                <div className={styles.accordionIconWrapper}>
+                    <Icon size={18} className={styles.secIcon} />
+                    {title}
+                </div>
                 <ChevronDown size={18} className={styles.accordionIcon} />
             </summary>
             <div className={styles.accordionContent}>
@@ -63,7 +74,7 @@ function SimpleMarkdown({ content }: { content: string }) {
     flushSection(""); // flush final
 
     return (
-        <div className={styles.summaryContent}>
+        <div className={styles.accordionList}>
             {sections.map((sec, i) => (
                 <AccordionSection key={i} title={sec.title} defaultOpen={i === 0}>
                     {sec.elements}
@@ -152,6 +163,7 @@ export default function StorySummaryPanel({ blocks }: StorySummaryPanelProps) {
                 <div className={styles.summaryBackdrop} onClick={() => setIsOpen(false)}>
                     <div className={styles.summaryPanel} onClick={e => e.stopPropagation()}>
                         <div className={styles.summaryHeader}>
+                            <ScrollText size={28} className={styles.summaryHeaderIcon} />
                             <h2 className={styles.summaryTitle}>The Story Thus Far</h2>
                             <button className={styles.summaryCloseBtn} onClick={() => setIsOpen(false)} aria-label="Close">
                                 ✕
@@ -189,33 +201,36 @@ export default function StorySummaryPanel({ blocks }: StorySummaryPanelProps) {
                                 </button>
                             </div>
                         ) : summaryCache ? (
-                            <div className={styles.summaryContent} style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-                                <div style={{ flex: 1 }}>
+                            <>
+                                <div className={styles.summaryContent}>
                                     <SimpleMarkdown content={summaryCache.text} />
-
-                                    {hasNewContent && (
-                                        <div style={{ padding: '1rem', background: 'rgba(59, 130, 246, 0.1)', borderRadius: 'var(--radius-md)', marginTop: 'var(--space-4)' }}>
-                                            <p style={{ margin: '0 0 var(--space-3) 0', fontSize: 'var(--text-md)', color: 'var(--color-blue-300)', fontWeight: 600 }}>
-                                                Last updated {sceneDiff} scene{sceneDiff !== 1 ? 's' : ''} ago.
-                                            </p>
-                                            <button
-                                                style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', width: '100%', padding: '0.75rem', background: 'var(--color-blue-600)', border: 'none', borderRadius: 'var(--radius-md)', cursor: 'pointer', color: 'white', fontWeight: 600 }}
-                                                onClick={() => generateSummary(true)}
-                                            >
+                                </div>
+                                <div className={styles.summaryFooter}>
+                                    {hasNewContent ? (
+                                        <>
+                                            <span className={styles.summaryLastUpdated}>
+                                                Last updated {sceneDiff} scene{sceneDiff !== 1 ? 's' : ''} ago
+                                            </span>
+                                            <button className={styles.summaryUpdateBtn} onClick={() => generateSummary(true)}>
                                                 <RefreshCw size={16} /> Update Summary
                                             </button>
-                                        </div>
-                                    )}
-                                    {!hasNewContent && (
-                                        <button
-                                            style={{ marginTop: 'var(--space-4)', width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', padding: '0.75rem', background: 'transparent', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-md)', cursor: 'pointer', color: 'var(--text-secondary)' }}
-                                            onClick={() => generateSummary(true)}
-                                        >
-                                            <RefreshCw size={16} /> Regenerate
-                                        </button>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <span className={styles.summaryLastUpdated} style={{ opacity: 0.5 }}>
+                                                Up to date
+                                            </span>
+                                            <button
+                                                className={styles.summaryUpdateBtn}
+                                                onClick={() => generateSummary(true)}
+                                                style={{ background: 'transparent', border: '1px solid var(--border-light)', color: 'var(--text-secondary)' }}
+                                            >
+                                                <RefreshCw size={16} /> Regenerate
+                                            </button>
+                                        </>
                                     )}
                                 </div>
-                            </div>
+                            </>
                         ) : null}
                     </div>
                 </div>

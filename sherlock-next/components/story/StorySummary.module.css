@@ -1,7 +1,7 @@
 /* ===== STORY SUMMARY PANEL & FAB ===== */
 .summaryFab {
     position: fixed;
-    bottom: var(--space-6);
+    top: 80px;
     right: var(--space-6);
     width: 48px;
     height: 48px;
@@ -26,6 +26,36 @@
 
 .summaryFab:active {
     transform: translateY(0) scale(0.95);
+}
+
+.summaryFabLoading {
+    animation: fabPulse 1.5s infinite alternate;
+}
+
+@keyframes fabPulse {
+    0% {
+        box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.7);
+        transform: scale(1);
+    }
+
+    100% {
+        box-shadow: 0 0 0 10px rgba(59, 130, 246, 0);
+        transform: scale(1.05);
+    }
+}
+
+.summarySpin {
+    animation: spin 1.5s linear infinite;
+}
+
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
 }
 
 .summaryBackdrop {

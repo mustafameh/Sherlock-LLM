@@ -1,24 +1,50 @@
 import React, { useState, useEffect } from 'react';
 import { useSettings } from '@/lib/client/contexts';
 import type { StoryBlock } from '@/lib/shared/story/parser';
-import { ScrollText, RefreshCw } from 'lucide-react';
+import { ScrollText, RefreshCw, ChevronDown } from 'lucide-react';
 import styles from './StorySummary.module.css';
 
 interface StorySummaryPanelProps {
     blocks: StoryBlock[];
 }
 
+function AccordionSection({ title, children, defaultOpen = false }: { title: string, children: React.ReactNode, defaultOpen?: boolean }) {
+    return (
+        <details className={styles.accordion} open={defaultOpen}>
+            <summary className={styles.accordionSummary}>
+                {title}
+                <ChevronDown size={18} className={styles.accordionIcon} />
+            </summary>
+            <div className={styles.accordionContent}>
+                {children}
+            </div>
+        </details>
+    );
+}
+
 // Simple markdown renderer tailored for the rigid summary structure
 function SimpleMarkdown({ content }: { content: string }) {
     const lines = content.split('\n');
-    const elements: React.ReactNode[] = [];
+    const sections: { title: string; elements: React.ReactNode[] }[] = [];
+
+    let currentTitle = "Summary";
+    let currentElements: React.ReactNode[] = [];
     let currentList: React.ReactNode[] = [];
 
     const flushList = () => {
         if (currentList.length > 0) {
-            elements.push(<ul key={`ul-${elements.length}`}>{currentList}</ul>);
+            currentElements.push(<ul key={`ul-${currentElements.length}`}>{currentList}</ul>);
             currentList = [];
         }
+    };
+
+    const flushSection = (newTitle: string) => {
+        flushList();
+        if (currentElements.length > 0 || currentTitle !== "Summary") {
+            sections.push({ title: currentTitle, elements: currentElements });
+        }
+        currentTitle = newTitle;
+        currentElements = [];
     };
 
     lines.forEach((line, index) => {
@@ -26,18 +52,25 @@ function SimpleMarkdown({ content }: { content: string }) {
         if (!trimmed) return;
 
         if (trimmed.startsWith('### ')) {
-            flushList();
-            elements.push(<h3 key={`h3-${index}`}>{trimmed.substring(4)}</h3>);
+            flushSection(trimmed.substring(4));
         } else if (trimmed.startsWith('- ') || trimmed.startsWith('* ')) {
             currentList.push(<li key={`li-${index}`}>{trimmed.substring(2)}</li>);
         } else {
             flushList();
-            elements.push(<p key={`p-${index}`}>{trimmed}</p>);
+            currentElements.push(<p key={`p-${index}`}>{trimmed}</p>);
         }
     });
-    flushList();
+    flushSection(""); // flush final
 
-    return <div className={styles.summaryContent}>{elements}</div>;
+    return (
+        <div className={styles.summaryContent}>
+            {sections.map((sec, i) => (
+                <AccordionSection key={i} title={sec.title} defaultOpen={i === 0}>
+                    {sec.elements}
+                </AccordionSection>
+            ))}
+        </div>
+    );
 }
 
 export default function StorySummaryPanel({ blocks }: StorySummaryPanelProps) {
@@ -98,7 +131,8 @@ export default function StorySummaryPanel({ blocks }: StorySummaryPanelProps) {
         }
     }, [isOpen, summaryCache, loading, error]);
 
-    const hasNewContent = summaryCache && summaryCache.blockCount < blocks.length;
+    const sceneDiff = summaryCache ? blocks.length - summaryCache.blockCount : 0;
+    const hasNewContent = sceneDiff > 0;
 
     return (
         <>
@@ -161,8 +195,8 @@ export default function StorySummaryPanel({ blocks }: StorySummaryPanelProps) {
 
                                     {hasNewContent && (
                                         <div style={{ padding: '1rem', background: 'rgba(59, 130, 246, 0.1)', borderRadius: 'var(--radius-md)', marginTop: 'var(--space-4)' }}>
-                                            <p style={{ margin: '0 0 var(--space-2) 0', fontSize: 'var(--text-md)', color: 'var(--color-blue-300)' }}>
-                                                Story has progressed since this summary.
+                                            <p style={{ margin: '0 0 var(--space-3) 0', fontSize: 'var(--text-md)', color: 'var(--color-blue-300)', fontWeight: 600 }}>
+                                                Last updated {sceneDiff} scene{sceneDiff !== 1 ? 's' : ''} ago.
                                             </p>
                                             <button
                                                 style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', width: '100%', padding: '0.75rem', background: 'var(--color-blue-600)', border: 'none', borderRadius: 'var(--radius-md)', cursor: 'pointer', color: 'white', fontWeight: 600 }}

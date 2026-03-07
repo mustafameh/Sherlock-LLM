@@ -177,6 +177,61 @@
     margin: 0 0 var(--space-4) 0;
 }
 
+/* Accordion Styles */
+.accordion {
+    margin: 0 0 var(--space-3) 0;
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-md);
+    background: rgba(255, 255, 255, 0.02);
+    overflow: hidden;
+}
+
+.accordionSummary {
+    padding: var(--space-3) var(--space-4);
+    font-family: var(--font-serif);
+    font-size: var(--text-lg);
+    font-weight: 600;
+    color: var(--text-inverse);
+    cursor: pointer;
+    user-select: none;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: rgba(255, 255, 255, 0.03);
+    transition: background var(--transition-fast);
+}
+
+.accordionSummary:hover {
+    background: rgba(255, 255, 255, 0.06);
+}
+
+.accordionSummary::-webkit-details-marker {
+    display: none;
+}
+
+.accordion[open] .accordionSummary {
+    border-bottom: 1px solid var(--border-light);
+}
+
+.accordionIcon {
+    transition: transform var(--transition-base);
+    color: var(--text-secondary);
+}
+
+.accordion[open] .accordionIcon {
+    transform: rotate(180deg);
+}
+
+.accordionContent {
+    padding: var(--space-4);
+    animation: fadeIn var(--transition-base);
+}
+
+.accordionContent p:last-child,
+.accordionContent ul:last-child {
+    margin-bottom: 0;
+}
+
 /* Loading State for Summary */
 .summaryLoading {
     display: flex;

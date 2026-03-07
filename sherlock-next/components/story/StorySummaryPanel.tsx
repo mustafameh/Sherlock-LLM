@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useSettings } from '@/lib/client/contexts';
 import type { StoryBlock } from '@/lib/shared/story/parser';
-import { BookOpen, RefreshCw } from 'lucide-react';
+import { ScrollText, RefreshCw } from 'lucide-react';
 import styles from './StorySummary.module.css';
 
 interface StorySummaryPanelProps {
@@ -108,7 +108,7 @@ export default function StorySummaryPanel({ blocks }: StorySummaryPanelProps) {
                 title="Story Thus Far"
                 aria-label="Open story summary"
             >
-                <BookOpen size={24} className={loading ? styles.summarySpin : ''} />
+                <ScrollText size={24} className={loading ? styles.summarySpin : ''} />
                 {hasNewContent && !loading && (
                     <span style={{ position: 'absolute', top: -2, right: -2, width: 12, height: 12, background: 'var(--color-blue-400)', borderRadius: '50%', border: '2px solid var(--bg-primary)' }} />
                 )}

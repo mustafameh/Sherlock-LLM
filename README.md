@@ -68,4 +68,4 @@ ENCRYPTION_KEY=your-32-char-key
 npm run dev
 ```
 
-Register at [localhost:3000](http://localhost:3000), add an OpenRouter API key (free tier at [openrouter.ai](https://openrouter.ai)) in Settings, and go.
+Register at [agentic-sherlock.vercel.app](https://agentic-sherlock.vercel.app), add an OpenRouter API key (free tier at [openrouter.ai](https://openrouter.ai)) in Settings, and go. Or use the demo credentials above.

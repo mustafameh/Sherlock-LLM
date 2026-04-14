@@ -2,7 +2,7 @@
 
 An interactive Sherlock Holmes AI with two modes: **story-driven mysteries** where your choices shape the narrative, and **character roleplay** where Holmes uses ReAct-style reasoning and tool use in conversation.
 
-**[Try the Live Demo](https://agentic-sherlock.vercel.app/)** &nbsp;|&nbsp; Demo login — `Robo3` / `potatoaim123`
+**[Try the Live Demo](https://agentic-sherlock.vercel.app/)** &nbsp;|&nbsp; Demo login — username: `Robo3` &nbsp; password: `potatoaim123`
 
 Built as an MSc AI dissertation exploring LLM augmentation with structured reasoning and agentic tool use.
 

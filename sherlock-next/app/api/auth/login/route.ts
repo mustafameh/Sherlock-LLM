@@ -1,44 +1,35 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createHash } from 'crypto';
 import dbConnect from '@/lib/server/mongodb';
 import User from '@/lib/models/User';
-
-function hashPassword(password: string): string {
-    return createHash('sha256').update(password).digest('hex');
-}
-
-const isProduction = process.env.NODE_ENV === 'production';
+import { setSessionCookie } from '@/lib/server/auth';
+import { hashPassword, verifyPassword } from '@/lib/server/password';
 
 export async function POST(request: NextRequest) {
     try {
         await dbConnect();
         const { username, password } = await request.json();
 
-        if (!username || !password) {
+        if (typeof username !== 'string' || typeof password !== 'string' || !username || !password) {
             return NextResponse.json({ success: false, message: 'Username and password are required' }, { status: 400 });
         }
 
         const user = await User.findOne({ username });
+        const check = user ? await verifyPassword(password, user.password_hash) : null;
 
-        if (!user || user.password_hash !== hashPassword(password)) {
+        if (!user || !check?.valid) {
             return NextResponse.json({ success: false, message: 'Invalid username or password' }, { status: 401 });
         }
 
-        const response = NextResponse.json({ success: true, message: 'Login successful' });
-        response.cookies.set('session', JSON.stringify({
-            id: user._id,
-            username: user.username,
-            email: user.email,
-        }), {
-            httpOnly: true,
-            secure: isProduction,
-            sameSite: 'lax',
-            maxAge: 60 * 60 * 24 * 7,
-            path: '/',
-        });
+        // Upgrade accounts still on the old unsalted hash now that we have the plain password.
+        if (check.needsRehash) {
+            await User.updateOne({ _id: user._id }, { $set: { password_hash: await hashPassword(password) } });
+        }
 
+        const response = NextResponse.json({ success: true, message: 'Login successful' });
+        setSessionCookie(response, user);
         return response;
     } catch (error) {
-        return NextResponse.json({ success: false, message: String(error) }, { status: 500 });
+        console.error('Login error:', error);
+        return NextResponse.json({ success: false, message: 'Login failed. Please try again.' }, { status: 500 });
     }
 }

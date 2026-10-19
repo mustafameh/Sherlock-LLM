@@ -2,9 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/server/mongodb';
 import User from '@/lib/models/User';
 import { encryptApiKey, decryptApiKey } from '@/lib/server/crypto';
-import { getUserFromSession } from '@/lib/server/auth';
-
-const isProduction = process.env.NODE_ENV === 'production';
+import { getUserFromSession, setSessionCookie } from '@/lib/server/auth';
 
 export async function GET(request: NextRequest) {
     const sessionUser = getUserFromSession(request);
@@ -71,6 +69,9 @@ export async function PUT(request: NextRequest) {
 
         const clearApiKey = apiKey !== undefined && (apiKey === null || apiKey === '');
         if (apiKey !== undefined && !clearApiKey) {
+            if (typeof apiKey !== 'string' || apiKey.length > 500) {
+                return NextResponse.json({ error: 'Invalid API key' }, { status: 400 });
+            }
             updateFields.apiKey = encryptApiKey(apiKey);
         }
 
@@ -97,22 +98,10 @@ export async function PUT(request: NextRequest) {
             selectedModel: user.selectedModel || null,
         });
 
-        response.cookies.set('session', JSON.stringify({
-            id: user._id,
-            username: user.username,
-            email: user.email,
-            displayName: user.displayName,
-            avatar: user.avatar,
-        }), {
-            httpOnly: true,
-            secure: isProduction,
-            sameSite: 'lax',
-            maxAge: 60 * 60 * 24 * 7,
-            path: '/',
-        });
-
+        setSessionCookie(response, user);
         return response;
     } catch (error) {
-        return NextResponse.json({ error: String(error) }, { status: 500 });
+        console.error('Profile update error:', error);
+        return NextResponse.json({ error: 'Failed to update profile' }, { status: 500 });
     }
 }

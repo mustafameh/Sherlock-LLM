@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useSettings } from '@/lib/client/contexts';
+import { notifyTrial } from '@/lib/client/trial';
 import type { StoryBlock } from '@/lib/shared/story/parser';
 import { ScrollText, RefreshCw, ChevronDown, Milestone, Fingerprint, Users, HelpCircle, CheckCircle2, LucideIcon } from 'lucide-react';
 import styles from './StorySummary.module.css';
@@ -85,7 +86,7 @@ function SimpleMarkdown({ content }: { content: string }) {
 }
 
 export default function StorySummaryPanel({ blocks }: StorySummaryPanelProps) {
-    const { selectedModel } = useSettings();
+    const { selectedModel, apiKey } = useSettings();
     const [isOpen, setIsOpen] = useState(false);
     const [summaryCache, setSummaryCache] = useState<{ text: string; blockCount: number } | null>(null);
     const [loading, setLoading] = useState(false);
@@ -118,10 +119,11 @@ export default function StorySummaryPanel({ blocks }: StorySummaryPanelProps) {
             const res = await fetch('/api/story/summary', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ currentStoryText, model: selectedModel }),
+                body: JSON.stringify({ currentStoryText, model: selectedModel, apiKey: apiKey || undefined }),
             });
 
             const data = await res.json();
+            if (!apiKey) notifyTrial(typeof data.code === 'string' ? data.code : undefined);
 
             if (!res.ok) {
                 throw new Error(data.error || 'Failed to generate summary');

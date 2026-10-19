@@ -4,6 +4,7 @@ import React, { useState, useCallback } from 'react';
 import Link from 'next/link';
 import { useStory } from '@/lib/client/story/context';
 import { useSettings } from '@/lib/client/contexts';
+import TrialBadge from '@/components/shared/TrialBadge';
 import StorySettings from './StorySettings';
 import styles from './Story.module.css';
 
@@ -87,6 +88,7 @@ export default function StoryHeader() {
                     )}
                 </div>
                 <div className={styles.storyHeaderRight}>
+                    <TrialBadge />
                     {isStoryStarted && (
                         <button
                             className={styles.headerIconBtn}

@@ -100,8 +100,8 @@ export default function LandingPage() {
                     <div className={styles.aboutCard}>
                         <h3>🔗 OpenRouter Integration</h3>
                         <p>
-                            Access 10+ AI models via OpenRouter. Your API key is sent only to OpenRouter
-                            for inference. Free models available, or use your own credits for premium models.
+                            Try it straight away on a free trial, no sign-up needed. After that, bring your
+                            own OpenRouter key: it is sent only to OpenRouter for inference, and free models are available.
                         </p>
                     </div>
                 </div>

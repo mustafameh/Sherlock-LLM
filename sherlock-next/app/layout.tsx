@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import { ChatProvider, SettingsProvider, AuthProvider } from '@/lib/client/contexts';
+import { ChatProvider, SettingsProvider, AuthProvider, TrialProvider } from '@/lib/client/contexts';
+import TrialNotice from '@/components/shared/TrialNotice';
 
 export const metadata: Metadata = {
   title: "Agent Sherlock — AI Detective Chatbot",
@@ -17,9 +18,12 @@ export default function RootLayout({
       <body>
         <AuthProvider>
           <SettingsProvider>
-            <ChatProvider>
-              {children}
-            </ChatProvider>
+            <TrialProvider>
+              <ChatProvider>
+                {children}
+              </ChatProvider>
+              <TrialNotice />
+            </TrialProvider>
           </SettingsProvider>
         </AuthProvider>
       </body>

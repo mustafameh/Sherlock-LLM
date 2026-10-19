@@ -1,72 +1,31 @@
-import { NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { buildSystemPrompt, type PromptParams } from '@/lib/server/prompts/builder';
-import { type ChatMessage, foldSystemIntoUser } from '@/lib/server/chat-utils';
+import type { ChatMessage } from '@/lib/server/chat-utils';
+import { pipeStream, requestCompletion } from '@/lib/server/openrouter';
+import { sanitizeTrialMessages, startTrialRequest, trialUpstreamError } from '@/lib/server/trial';
 
-export const runtime = 'edge';
+// Node (not edge) so trial usage can be recorded in MongoDB; long stories need the extra time.
+export const runtime = 'nodejs';
+export const maxDuration = 300;
 
-async function callStream(
-    model: string,
-    messages: ChatMessage[],
-    temperature: number,
-    apiKey: string,
-): Promise<Response> {
-    return fetch('https://openrouter.ai/api/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${apiKey}`,
-        },
-        body: JSON.stringify({ model, messages, temperature, max_tokens: 2000, stream: true }),
-    });
-}
+const MAX_TOKENS = 2000;
 
-function pipeStream(upstream: Response): Response {
-    const reader = upstream.body!.getReader();
-    const readable = new ReadableStream({
-        async start(controller) {
-            try {
-                while (true) {
-                    const { done, value } = await reader.read();
-                    if (done) {
-                        controller.enqueue(new TextEncoder().encode('data: [DONE]\n\n'));
-                        controller.close();
-                        break;
-                    }
-                    controller.enqueue(value);
-                }
-            } catch {
-                controller.close();
-            }
-        },
-        cancel() { reader.cancel(); },
-    });
-
-    return new Response(readable, {
-        headers: {
-            'Content-Type': 'text/event-stream',
-            'Cache-Control': 'no-cache',
-            'Connection': 'keep-alive',
-        },
-    });
-}
-
-function jsonError(message: string, status: number): Response {
-    return new Response(JSON.stringify({ error: message }), {
-        status,
-        headers: { 'Content-Type': 'application/json' },
-    });
+function jsonError(message: string, status: number): NextResponse {
+    return NextResponse.json({ error: message }, { status });
 }
 
 export async function POST(request: NextRequest) {
     try {
         const body = await request.json();
         const { model, messages: rawMessages, temperature, apiKey, promptParams } = body;
+        // Without a key of their own, visitors play on the free trial (the app's key, metered).
+        const onTrial = !apiKey;
 
-        if (!apiKey) {
+        if (onTrial && !promptParams) {
             return jsonError('API key is required', 400);
         }
 
-        let messages: ChatMessage[] = rawMessages;
+        let messages: ChatMessage[] = onTrial ? sanitizeTrialMessages(rawMessages) : rawMessages;
         if (promptParams) {
             const systemPrompt = buildSystemPrompt(promptParams as PromptParams);
             const hasSystem = messages.some((m: ChatMessage) => m.role === 'system');
@@ -75,35 +34,29 @@ export async function POST(request: NextRequest) {
             }
         }
 
-        let response = await callStream(model, messages, temperature, apiKey);
-
-        if (response.status === 429 && model.endsWith(':free')) {
-            const paidModel = model.replace(/:free$/, '');
-            response = await callStream(paidModel, messages, temperature, apiKey);
-
-            if (response.status === 400 && messages.some((m: ChatMessage) => m.role === 'system')) {
-                response = await callStream(paidModel, foldSystemIntoUser(messages), temperature, apiKey);
+        if (!onTrial) {
+            const response = await requestCompletion(apiKey, {
+                model, messages, temperature, maxTokens: MAX_TOKENS, stream: true,
+            });
+            if (!response.ok) {
+                const errorText = await response.text();
+                return jsonError(`OpenRouter API error: ${response.status} - ${errorText}`, response.status);
             }
-
-            if (response.ok && response.body) return pipeStream(response);
+            if (!response.body) return jsonError('No response body from upstream', 502);
+            return pipeStream(response);
         }
 
-        if (response.status === 400 && messages.some((m: ChatMessage) => m.role === 'system')) {
-            response = await callStream(model, foldSystemIntoUser(messages), temperature, apiKey);
+        const admitted = await startTrialRequest(request, messages, MAX_TOKENS);
+        if ('response' in admitted) return admitted.response;
+        const { trial } = admitted;
 
-            if (response.ok && response.body) return pipeStream(response);
-        }
+        const response = await requestCompletion(trial.apiKey, {
+            model: trial.model, messages, temperature, maxTokens: MAX_TOKENS, stream: true,
+        });
+        if (!response.ok || !response.body) return trialUpstreamError(trial, response);
 
-        if (!response.ok) {
-            const errorText = await response.text();
-            return jsonError(`OpenRouter API error: ${response.status} - ${errorText}`, response.status);
-        }
-
-        if (!response.body) {
-            return jsonError('No response body from upstream', 502);
-        }
-
-        return pipeStream(response);
+        const streamed = pipeStream(response, trial.finish);
+        return trial.withCookie(new NextResponse(streamed.body, { headers: streamed.headers }));
     } catch (error) {
         console.error('Stream API error:', error);
         return jsonError(error instanceof Error ? error.message : 'Internal server error', 500);

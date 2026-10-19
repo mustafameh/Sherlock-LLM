@@ -49,7 +49,11 @@
     line-height: 1.1;
 }
 
-/* ── Right side: Profile / Login ── */
+/* ── Right side: Trial badge + Profile / Login ── */
+.trialSlot {
+    display: contents;
+}
+
 .headerRight {
     display: flex;
     align-items: center;
@@ -227,6 +231,11 @@
     }
 
     .userName {
+        display: none;
+    }
+
+    /* No room beside the logo on phones; the story header still shows the badge. */
+    .trialSlot {
         display: none;
     }
 

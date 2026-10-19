@@ -21,6 +21,7 @@ alwaysApply: false
 - User API keys are encrypted with AES-256 before storage (`lib/server/crypto.ts`).
 - Full API keys are only returned during hydration (`?hydrate=1`), not on every profile GET.
 - The `API_KEY_SECRET` env var must be set in both `.env.local` and Vercel project settings.
+- The app's own key (`OPENROUTER_API_KEY`, free trial) is read only in `lib/server/trial/config.ts`. Never expose it to the client, never log it, and route every default-key call through `startTrialRequest` so it is metered.
 
 ## Redirects
 

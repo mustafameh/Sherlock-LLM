@@ -32,6 +32,12 @@ export default async function dbConnect(): Promise<typeof mongoose> {
         });
     }
 
-    cached.conn = await cached.promise;
+    try {
+        cached.conn = await cached.promise;
+    } catch (error) {
+        // Let the next request retry instead of reusing a failed connection attempt.
+        cached.promise = null;
+        throw error;
+    }
     return cached.conn;
 }

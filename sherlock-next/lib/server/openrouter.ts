@@ -9,8 +9,13 @@ export interface CompletionRequest {
     temperature?: number;
     maxTokens: number;
     stream?: boolean;
-    /** OpenRouter provider ordering; 'price' keeps trial calls on the cheapest provider. */
-    providerSort?: 'price' | 'throughput' | 'latency';
+    /**
+     * Skip providers charging more than this (USD per million output tokens). Used on trial calls:
+     * some models' providers differ several-fold in output price.
+     */
+    maxOutputPricePerM?: number;
+    /** Set internally when a provider rejects the reasoning switch. */
+    allowModelReasoning?: boolean;
 }
 
 export interface TokenUsage {
@@ -33,7 +38,10 @@ function post(apiKey: string, req: CompletionRequest): Promise<Response> {
             temperature: req.temperature,
             max_tokens: req.maxTokens,
             ...(req.stream ? { stream: true } : {}),
-            ...(req.providerSort ? { provider: { sort: req.providerSort } } : {}),
+            // The app does its own (prompted) ReAct reasoning. Hidden model "thinking" would spend
+            // the token budget before any story text appears (GLM-5.3 otherwise returns nothing).
+            ...(req.allowModelReasoning ? {} : { reasoning: { enabled: false } }),
+            ...(req.maxOutputPricePerM ? { provider: { max_price: { completion: req.maxOutputPricePerM } } } : {}),
         }),
     });
 }
@@ -54,6 +62,11 @@ export async function requestCompletion(apiKey: string, req: CompletionRequest):
 
     if (response.status === 400 && req.messages.some(m => m.role === 'system')) {
         response = await post(apiKey, { ...req, model, messages: foldSystemIntoUser(req.messages) });
+    }
+
+    // Models that can't turn reasoning off reject the switch; retry with their default behaviour.
+    if (response.status === 400 && !req.allowModelReasoning) {
+        response = await post(apiKey, { ...req, model, allowModelReasoning: true });
     }
 
     return response;

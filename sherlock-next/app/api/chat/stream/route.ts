@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { buildSystemPrompt, type PromptParams } from '@/lib/server/prompts/builder';
 import type { ChatMessage } from '@/lib/server/chat-utils';
-import { pipeStream, requestCompletion } from '@/lib/server/openrouter';
+import { pipeStream, requestCompletion, REASONING_HEADROOM } from '@/lib/server/openrouter';
 import { sanitizeTrialMessages, startTrialRequest, trialUpstreamError } from '@/lib/server/trial';
 
 // Node (not edge) so trial usage can be recorded in MongoDB; long stories need the extra time.
@@ -46,7 +46,7 @@ export async function POST(request: NextRequest) {
             return pipeStream(response);
         }
 
-        const admitted = await startTrialRequest(request, messages, MAX_TOKENS);
+        const admitted = await startTrialRequest(request, messages, MAX_TOKENS + REASONING_HEADROOM);
         if ('response' in admitted) return admitted.response;
         const { trial } = admitted;
 

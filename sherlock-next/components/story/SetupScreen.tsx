@@ -5,6 +5,7 @@ import Image from 'next/image';
 import { useStory } from '@/lib/client/story/context';
 import { useAuth, useSettings, useTrial } from '@/lib/client/contexts';
 import { notifyTrial, readApiError } from '@/lib/client/trial';
+import { EMPTY_REPLY_MESSAGE } from '@/lib/client/story/streamStoryApi';
 import { STORY_SETTINGS, CHARACTER_PRESETS, VOICE_STYLES, GENRE_TAGS } from '@/lib/shared/story/prompts';
 import type { DecisionFrequency } from '@/lib/client/contexts';
 import styles from './SetupScreen.module.css';
@@ -166,6 +167,7 @@ export default function SetupScreen() {
             if (!res.ok) throw await readApiError(res, 'Generation failed');
             const data = await res.json();
             const text = data.choices?.[0]?.message?.content?.trim() || '';
+            if (!text) throw new Error(EMPTY_REPLY_MESSAGE);
             const jsonMatch = text.match(/\{[\s\S]*\}/);
             if (jsonMatch) {
                 const parsed = JSON.parse(jsonMatch[0]);

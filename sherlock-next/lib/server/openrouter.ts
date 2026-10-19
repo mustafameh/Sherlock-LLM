@@ -3,6 +3,14 @@ import { type ChatMessage, foldSystemIntoUser } from './chat-utils';
 
 const OPENROUTER_BASE_URL = process.env.OPENROUTER_BASE_URL || 'https://openrouter.ai/api/v1';
 
+/**
+ * Extra output tokens allowed for a model's hidden reasoning, on top of each route's answer budget.
+ * Reasoning models (GLM-5.3, DeepSeek R-series, o-series...) spend these before writing any text;
+ * non-reasoning models simply stop earlier. Trial reservations include it, so quotas stay exact.
+ */
+export const REASONING_HEADROOM = Number(process.env.REASONING_HEADROOM_TOKENS) || 2000;
+const REASONING_EFFORT = process.env.REASONING_EFFORT || 'low';
+
 export interface CompletionRequest {
     model: string;
     messages: ChatMessage[];
@@ -14,8 +22,8 @@ export interface CompletionRequest {
      * some models' providers differ several-fold in output price.
      */
     maxOutputPricePerM?: number;
-    /** Set internally when a provider rejects the reasoning switch. */
-    allowModelReasoning?: boolean;
+    /** Set internally when a provider rejects the reasoning parameter. */
+    omitReasoningParam?: boolean;
 }
 
 export interface TokenUsage {
@@ -36,11 +44,10 @@ function post(apiKey: string, req: CompletionRequest): Promise<Response> {
             model: req.model,
             messages: req.messages,
             temperature: req.temperature,
-            max_tokens: req.maxTokens,
+            max_tokens: req.maxTokens + REASONING_HEADROOM,
             ...(req.stream ? { stream: true } : {}),
-            // The app does its own (prompted) ReAct reasoning. Hidden model "thinking" would spend
-            // the token budget before any story text appears (GLM-5.3 otherwise returns nothing).
-            ...(req.allowModelReasoning ? {} : { reasoning: { enabled: false } }),
+            // Keep hidden reasoning short; some models (GLM-5.3) can't switch it off entirely.
+            ...(req.omitReasoningParam ? {} : { reasoning: { effort: REASONING_EFFORT } }),
             ...(req.maxOutputPricePerM ? { provider: { max_price: { completion: req.maxOutputPricePerM } } } : {}),
         }),
     });
@@ -64,9 +71,9 @@ export async function requestCompletion(apiKey: string, req: CompletionRequest):
         response = await post(apiKey, { ...req, model, messages: foldSystemIntoUser(req.messages) });
     }
 
-    // Models that can't turn reasoning off reject the switch; retry with their default behaviour.
-    if (response.status === 400 && !req.allowModelReasoning) {
-        response = await post(apiKey, { ...req, model, allowModelReasoning: true });
+    // Providers that don't accept the reasoning parameter reject it; retry without it.
+    if (response.status === 400 && !req.omitReasoningParam) {
+        response = await post(apiKey, { ...req, model, omitReasoningParam: true });
     }
 
     return response;

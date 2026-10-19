@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { buildSystemPrompt, type PromptParams } from '@/lib/server/prompts/builder';
 import type { ChatMessage } from '@/lib/server/chat-utils';
-import { readUsage, requestCompletion } from '@/lib/server/openrouter';
+import { readUsage, requestCompletion, REASONING_HEADROOM } from '@/lib/server/openrouter';
 import { sanitizeTrialMessages, startTrialRequest, trialUpstreamError } from '@/lib/server/trial';
 
 const MAX_TOKENS = 1000;
@@ -38,7 +38,7 @@ export async function POST(request: NextRequest) {
             return NextResponse.json(await response.json());
         }
 
-        const admitted = await startTrialRequest(request, messages, MAX_TOKENS);
+        const admitted = await startTrialRequest(request, messages, MAX_TOKENS + REASONING_HEADROOM);
         if ('response' in admitted) return admitted.response;
         const { trial } = admitted;
 

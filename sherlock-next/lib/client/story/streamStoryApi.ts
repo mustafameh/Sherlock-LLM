@@ -4,6 +4,9 @@ import { parseStoryBlocks, type StoryBlock } from '@/lib/shared/story/parser';
 import type { ChatMessage } from '@/lib/shared/types';
 import { notifyTrial, readApiError } from '@/lib/client/trial';
 
+export const EMPTY_REPLY_MESSAGE =
+    'The model finished without writing any story text (it may have spent its budget thinking). Try again, or pick another model in settings.';
+
 export function deriveStreamingHint(buffer: string): string {
     const markerMatch = buffer.match(/\*{0,2}\[\s*(NARRATOR|SHERLOCK|WATSON|CHARACTER\s*:\s*([^\]]+)|DECISION|AWAITING_INPUT|CHAPTER\s*:\s*[^\]]+|MOOD\s*:\s*[^\]]+|SCENE_BREAK)\s*\]\*{0,2}\s*$/i);
     if (markerMatch) {
@@ -77,7 +80,12 @@ export async function streamStoryApi(
 
         try {
             const json = JSON.parse(payload);
-            const delta = json.choices?.[0]?.delta?.content;
+            const d = json.choices?.[0]?.delta;
+            // Reasoning models stream hidden "thinking" before any story text.
+            if (!buffer && (d?.reasoning || d?.reasoning_content)) {
+                onStreamingHint('Thinking through the case');
+            }
+            const delta = d?.content;
             if (delta) {
                 buffer += delta;
 
@@ -127,6 +135,10 @@ export async function streamStoryApi(
     } finally {
         reader.releaseLock();
         if (!apiKey) notifyTrial();
+    }
+
+    if (!buffer.trim() && !signal?.aborted) {
+        throw new Error(EMPTY_REPLY_MESSAGE);
     }
 
     const finalBlocks = parseStoryBlocks(buffer);

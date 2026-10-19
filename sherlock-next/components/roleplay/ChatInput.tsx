@@ -6,6 +6,7 @@ import { UIMessage } from '@/lib/shared/types';
 import { parseReActResponse } from '@/lib/shared/agent';
 import { toolRegistry } from '@/lib/tools/registry';
 import { notifyTrial, readApiError } from '@/lib/client/trial';
+import { EMPTY_REPLY_MESSAGE } from '@/lib/client/story/streamStoryApi';
 import styles from './ChatInput.module.css';
 
 export default function ChatInput() {
@@ -78,6 +79,7 @@ export default function ChatInput() {
 
                     const data = await res.json();
                     const responseText = data.choices?.[0]?.message?.content || data.response || '';
+                    if (!responseText.trim()) throw new Error(EMPTY_REPLY_MESSAGE);
 
                     addMessage({
                         id: `assistant-${Date.now()}`,
@@ -112,6 +114,7 @@ export default function ChatInput() {
 
                         const data = await res.json();
                         const responseText = data.choices?.[0]?.message?.content || data.response || '';
+                        if (!responseText.trim()) throw new Error(EMPTY_REPLY_MESSAGE);
 
                         const parsed = parseReActResponse(responseText);
 

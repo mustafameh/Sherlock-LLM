@@ -1,21 +1,34 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createHash } from 'crypto';
 import dbConnect from '@/lib/server/mongodb';
 import User from '@/lib/models/User';
+import { setSessionCookie } from '@/lib/server/auth';
+import { hashPassword } from '@/lib/server/password';
 
-function hashPassword(password: string): string {
-    return createHash('sha256').update(password).digest('hex');
+function validate(username: unknown, email: unknown, password: unknown): string | null {
+    if (typeof username !== 'string' || typeof email !== 'string' || typeof password !== 'string'
+        || !username || !email || !password) {
+        return 'All fields are required';
+    }
+    if (!/^[A-Za-z0-9._-]{3,30}$/.test(username)) {
+        return 'Username must be 3-30 characters: letters, numbers, dots, dashes or underscores';
+    }
+    if (email.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        return 'Please enter a valid email address';
+    }
+    if (password.length < 8 || password.length > 200) {
+        return 'Password must be at least 8 characters';
+    }
+    return null;
 }
-
-const isProduction = process.env.NODE_ENV === 'production';
 
 export async function POST(request: NextRequest) {
     try {
         await dbConnect();
         const { username, email, password } = await request.json();
 
-        if (!username || !email || !password) {
-            return NextResponse.json({ success: false, message: 'All fields are required' }, { status: 400 });
+        const invalid = validate(username, email, password);
+        if (invalid) {
+            return NextResponse.json({ success: false, message: invalid }, { status: 400 });
         }
 
         const existing = await User.findOne({ $or: [{ username }, { email }] });
@@ -26,24 +39,14 @@ export async function POST(request: NextRequest) {
         const newUser = await User.create({
             username,
             email,
-            password_hash: hashPassword(password),
+            password_hash: await hashPassword(password),
         });
 
         const response = NextResponse.json({ success: true, message: 'Registration successful' });
-        response.cookies.set('session', JSON.stringify({
-            id: newUser._id,
-            username: newUser.username,
-            email: newUser.email,
-        }), {
-            httpOnly: true,
-            secure: isProduction,
-            sameSite: 'lax',
-            maxAge: 60 * 60 * 24 * 7,
-            path: '/',
-        });
-
+        setSessionCookie(response, newUser);
         return response;
     } catch (error) {
-        return NextResponse.json({ success: false, message: String(error) }, { status: 500 });
+        console.error('Registration error:', error);
+        return NextResponse.json({ success: false, message: 'Registration failed. Please try again.' }, { status: 500 });
     }
 }

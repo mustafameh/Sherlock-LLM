@@ -4,14 +4,16 @@ import Chat from '@/lib/models/Chat';
 import { getUserFromSession } from '@/lib/server/auth';
 
 export async function GET(request: NextRequest) {
+    const sessionUser = getUserFromSession(request);
+    if (!sessionUser) {
+        return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
+    }
+
     try {
         await dbConnect();
-        const sessionUser = getUserFromSession(request);
-
         const chatType = request.nextUrl.searchParams.get('type');
 
-        const filter: Record<string, unknown> = {};
-        if (sessionUser) filter.user_id = sessionUser.id;
+        const filter: Record<string, unknown> = { user_id: sessionUser.id };
         if (chatType) filter.chat_type = chatType;
 
         const chats = await Chat.find(filter)
@@ -36,13 +38,17 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+    const sessionUser = getUserFromSession(request);
+    if (!sessionUser) {
+        return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
+    }
+
     try {
         await dbConnect();
         const data = await request.json();
-        const sessionUser = getUserFromSession(request);
 
         const newChat = await Chat.create({
-            user_id: sessionUser?.id,
+            user_id: sessionUser.id,
             title: data.title,
             preview: data.preview,
             full_content: data.full_content,

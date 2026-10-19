@@ -10,6 +10,8 @@ alwaysApply: false
 
 - Every route that accesses user data must call `getUserFromSession(request)` and return 401 if null.
 - Import from `@/lib/server/auth`, never redefine the session parser.
+- The `session` cookie is HMAC-signed (`SESSION_SECRET`, or derived from `API_KEY_SECRET`). Set it only with `setSessionCookie` and clear it with `clearSessionCookie`; never write it by hand.
+- Hash passwords with `hashPassword` / `verifyPassword` from `@/lib/server/password` (salted scrypt).
 
 ## Authorization / Ownership
 

@@ -1,11 +1,12 @@
 'use client';
 
 import React, { useState } from 'react';
-import { useChat } from '@/lib/client/contexts';
+import { useAuth, useChat } from '@/lib/client/contexts';
 import { Character } from '@/lib/shared/types';
 
 export default function CharacterModal({ onClose }: { onClose: () => void }) {
     const { addCharacter } = useChat();
+    const { isLoggedIn } = useAuth();
     const [name, setName] = useState('');
     const [description, setDescription] = useState('');
     const [relationship, setRelationship] = useState('');
@@ -40,11 +41,14 @@ export default function CharacterModal({ onClose }: { onClose: () => void }) {
         };
 
         try {
-            await fetch('/api/characters', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(newChar),
-            });
+            // Signed-in users keep their characters on their account; guests keep them for this session.
+            if (isLoggedIn) {
+                await fetch('/api/characters', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(newChar),
+                });
+            }
             addCharacter(newChar);
             onClose();
         } catch (error) {

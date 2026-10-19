@@ -4,7 +4,7 @@ import dbConnect from '@/lib/server/mongodb';
 import User from '@/lib/models/User';
 import { getUserFromSession } from '@/lib/server/auth';
 import type { ChatMessage } from '@/lib/server/chat-utils';
-import { readUsage, requestCompletion } from '@/lib/server/openrouter';
+import { readUsage, requestCompletion, REASONING_HEADROOM } from '@/lib/server/openrouter';
 import { startTrialRequest, trialUpstreamError } from '@/lib/server/trial';
 
 const MAX_TOKENS = 1000;
@@ -75,12 +75,12 @@ export async function POST(req: NextRequest) {
         }
 
         // No key of their own: summarise on the free trial.
-        const admitted = await startTrialRequest(req, messages, MAX_TOKENS);
+        const admitted = await startTrialRequest(req, messages, MAX_TOKENS + REASONING_HEADROOM);
         if ('response' in admitted) return admitted.response;
         const { trial } = admitted;
 
         const response = await requestCompletion(trial.apiKey, {
-            model: trial.model, messages, temperature: 0.3, maxTokens: MAX_TOKENS,
+            model: trial.model, maxOutputPricePerM: 2, messages, temperature: 0.3, maxTokens: MAX_TOKENS,
         });
         if (!response.ok) return trialUpstreamError(trial, response);
 

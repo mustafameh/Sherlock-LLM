@@ -28,7 +28,7 @@ The key and all limits live only in server-side environment variables:
 | Variable | Default | Purpose |
 | --- | --- | --- |
 | `OPENROUTER_API_KEY` | (unset = no trial) | The app's OpenRouter key. Server-only; never prefix it with `NEXT_PUBLIC_`. |
-| `TRIAL_MODEL` | `deepseek/deepseek-v3.2` | Model every trial request uses. |
+| `TRIAL_MODEL` | `z-ai/glm-5.3` | Model every trial request uses. |
 | `TRIAL_TOKEN_LIMIT` | `30000` | Tokens per visitor (signed cookie), lifetime. |
 | `TRIAL_IP_DAILY_TOKEN_LIMIT` | `90000` | Tokens per IP (IPv6 /64) per UTC day, so clearing cookies doesn't reset the trial. |
 | `TRIAL_GLOBAL_DAILY_TOKEN_LIMIT` | `600000` | Tokens across all visitors per UTC day. |

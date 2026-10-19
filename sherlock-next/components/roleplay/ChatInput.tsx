@@ -5,6 +5,7 @@ import { useChat, useSettings } from '@/lib/client/contexts';
 import { UIMessage } from '@/lib/shared/types';
 import { parseReActResponse } from '@/lib/shared/agent';
 import { toolRegistry } from '@/lib/tools/registry';
+import { notifyTrial, readApiError } from '@/lib/client/trial';
 import styles from './ChatInput.module.css';
 
 export default function ChatInput() {
@@ -57,14 +58,7 @@ export default function ChatInput() {
 
         try {
             if (modelSource === 'openrouter') {
-                if (!apiKey) {
-                    setMessages(prev => prev.filter(m => m.id !== userMsg.id));
-                    setChatError('Please set your OpenRouter API key in the Settings panel (Connection → Bring your own API Key).');
-                    setLastFailedText(text);
-                    setIsLoading(false);
-                    return;
-                }
-
+                // No key of their own → the server runs the request on the free trial.
                 if (!deepReasoning) {
                     const res = await fetch('/api/chat', {
                         method: 'POST',
@@ -73,14 +67,13 @@ export default function ChatInput() {
                             model: selectedModel,
                             messages: apiMessages,
                             temperature,
-                            apiKey,
+                            apiKey: apiKey || undefined,
                             promptParams,
                         }),
                     });
 
                     if (!res.ok) {
-                        const err = await res.json();
-                        throw new Error(err.error || 'Failed to get response');
+                        throw await readApiError(res, 'Failed to get response');
                     }
 
                     const data = await res.json();
@@ -108,14 +101,13 @@ export default function ChatInput() {
                                 model: selectedModel,
                                 messages: currentMessages,
                                 temperature,
-                                apiKey,
+                                apiKey: apiKey || undefined,
                                 promptParams,
                             }),
                         });
 
                         if (!res.ok) {
-                            const err = await res.json();
-                            throw new Error(err.error || 'Failed to get response');
+                            throw await readApiError(res, 'Failed to get response');
                         }
 
                         const data = await res.json();
@@ -176,6 +168,7 @@ export default function ChatInput() {
             setLastFailedText(text);
         } finally {
             setIsLoading(false);
+            if (!apiKey) notifyTrial();
         }
     }, [messages, addMessage, setMessages, currentCharacter, context, isLoading, setIsLoading, modelSource, selectedModel, apiKey, temperature, deepReasoning, setChatError, setLastFailedText]);
 

@@ -2,6 +2,7 @@
 
 import { parseStoryBlocks, type StoryBlock } from '@/lib/shared/story/parser';
 import type { ChatMessage } from '@/lib/shared/types';
+import { notifyTrial, readApiError } from '@/lib/client/trial';
 
 export function deriveStreamingHint(buffer: string): string {
     const markerMatch = buffer.match(/\*{0,2}\[\s*(NARRATOR|SHERLOCK|WATSON|CHARACTER\s*:\s*([^\]]+)|DECISION|AWAITING_INPUT|CHAPTER\s*:\s*[^\]]+|MOOD\s*:\s*[^\]]+|SCENE_BREAK)\s*\]\*{0,2}\s*$/i);
@@ -39,8 +40,6 @@ export async function streamStoryApi(
 ): Promise<string> {
     const { selectedModel, apiKey, temperature, signal, onBlocksUpdate, onStreamingHint, promptParams } = opts;
 
-    if (!apiKey) throw new Error('Please set your OpenRouter API key first.');
-
     const res = await fetch('/api/chat/stream', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -48,15 +47,15 @@ export async function streamStoryApi(
             model: selectedModel,
             messages,
             temperature,
-            apiKey,
+            // No key of their own → the server runs the request on the free trial.
+            apiKey: apiKey || undefined,
             ...(promptParams ? { promptParams } : {}),
         }),
         signal,
     });
 
     if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || `API error ${res.status}`);
+        throw await readApiError(res, `API error ${res.status}`);
     }
 
     if (!res.body) throw new Error('No response body');
@@ -127,6 +126,7 @@ export async function streamStoryApi(
         }
     } finally {
         reader.releaseLock();
+        if (!apiKey) notifyTrial();
     }
 
     const finalBlocks = parseStoryBlocks(buffer);

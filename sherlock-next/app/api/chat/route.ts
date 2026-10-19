@@ -1,33 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { buildSystemPrompt, type PromptParams } from '@/lib/server/prompts/builder';
-import { type ChatMessage, foldSystemIntoUser } from '@/lib/server/chat-utils';
+import type { ChatMessage } from '@/lib/server/chat-utils';
+import { readUsage, requestCompletion } from '@/lib/server/openrouter';
+import { sanitizeTrialMessages, startTrialRequest, trialUpstreamError } from '@/lib/server/trial';
 
-async function callOpenRouter(
-    model: string,
-    messages: ChatMessage[],
-    temperature: number,
-    apiKey: string,
-): Promise<Response> {
-    return fetch('https://openrouter.ai/api/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${apiKey}`,
-        },
-        body: JSON.stringify({ model, messages, temperature, max_tokens: 1000 }),
-    });
-}
+const MAX_TOKENS = 1000;
 
 export async function POST(request: NextRequest) {
     try {
         const body = await request.json();
         const { model, messages: rawMessages, temperature, apiKey, promptParams } = body;
+        // Without a key of their own, visitors play on the free trial (the app's key, metered).
+        const onTrial = !apiKey;
 
-        if (!apiKey) {
+        if (onTrial && !promptParams) {
             return NextResponse.json({ error: 'API key is required' }, { status: 400 });
         }
 
-        let messages: ChatMessage[] = rawMessages;
+        let messages: ChatMessage[] = onTrial ? sanitizeTrialMessages(rawMessages) : rawMessages;
         if (promptParams) {
             const systemPrompt = buildSystemPrompt(promptParams as PromptParams);
             const hasSystem = messages.some((m: ChatMessage) => m.role === 'system');
@@ -36,44 +26,30 @@ export async function POST(request: NextRequest) {
             }
         }
 
-        let response = await callOpenRouter(model, messages, temperature, apiKey);
-
-        // 429 on a :free model → retry with the paid variant (uses account credits)
-        if (response.status === 429 && model.endsWith(':free')) {
-            const paidModel = model.replace(/:free$/, '');
-            response = await callOpenRouter(paidModel, messages, temperature, apiKey);
-
-            // If paid variant also fails with 400 (system role), fold and retry
-            if (response.status === 400 && messages.some((m: ChatMessage) => m.role === 'system')) {
-                response = await callOpenRouter(paidModel, foldSystemIntoUser(messages), temperature, apiKey);
+        if (!onTrial) {
+            const response = await requestCompletion(apiKey, { model, messages, temperature, maxTokens: MAX_TOKENS });
+            if (!response.ok) {
+                const errorData = await response.text();
+                return NextResponse.json(
+                    { error: `OpenRouter API error: ${response.status} - ${errorData}` },
+                    { status: response.status }
+                );
             }
-
-            if (response.ok) {
-                const data = await response.json();
-                return NextResponse.json(data);
-            }
+            return NextResponse.json(await response.json());
         }
 
-        // 400 with system message → fold system into user and retry same model
-        if (response.status === 400 && messages.some((m: ChatMessage) => m.role === 'system')) {
-            response = await callOpenRouter(model, foldSystemIntoUser(messages), temperature, apiKey);
+        const admitted = await startTrialRequest(request, messages, MAX_TOKENS);
+        if ('response' in admitted) return admitted.response;
+        const { trial } = admitted;
 
-            if (response.ok) {
-                const data = await response.json();
-                return NextResponse.json(data);
-            }
-        }
-
-        if (!response.ok) {
-            const errorData = await response.text();
-            return NextResponse.json(
-                { error: `OpenRouter API error: ${response.status} - ${errorData}` },
-                { status: response.status }
-            );
-        }
+        const response = await requestCompletion(trial.apiKey, {
+            model: trial.model, messages, temperature, maxTokens: MAX_TOKENS,
+        });
+        if (!response.ok) return trialUpstreamError(trial, response);
 
         const data = await response.json();
-        return NextResponse.json(data);
+        await trial.finish(readUsage(data), data.choices?.[0]?.message?.content ?? '');
+        return trial.withCookie(NextResponse.json(data));
     } catch (error) {
         console.error('Chat API error:', error);
         return NextResponse.json(

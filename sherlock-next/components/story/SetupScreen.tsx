@@ -3,7 +3,8 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import Image from 'next/image';
 import { useStory } from '@/lib/client/story/context';
-import { useAuth, useSettings } from '@/lib/client/contexts';
+import { useAuth, useSettings, useTrial } from '@/lib/client/contexts';
+import { notifyTrial, readApiError } from '@/lib/client/trial';
 import { STORY_SETTINGS, CHARACTER_PRESETS, VOICE_STYLES, GENRE_TAGS } from '@/lib/shared/story/prompts';
 import type { DecisionFrequency } from '@/lib/client/contexts';
 import styles from './SetupScreen.module.css';
@@ -31,6 +32,8 @@ export default function SetupScreen() {
     const { startNewStory, isStoryLoading, savedStories, loadStory } = useStory();
     const { isLoggedIn } = useAuth();
     const { selectedModel, apiKey, temperature, decisionFrequency, setDecisionFrequency, zenMode, setZenMode } = useSettings();
+    const { onTrial, trialAvailable } = useTrial();
+    const canGenerate = !!apiKey || onTrial;
 
     // Default directly to the first ones
     const [selectedCharacter, setSelectedCharacter] = useState<string>(CHARACTER_PRESETS[0]?.id || '');
@@ -137,7 +140,7 @@ export default function SetupScreen() {
     };
 
     const handleGenerate = useCallback(async () => {
-        if (!apiKey) return;
+        if (!canGenerate) return;
         setIsGenerating(true);
         setGenReady(false);
         try {
@@ -149,7 +152,7 @@ export default function SetupScreen() {
                 body: JSON.stringify({
                     model: selectedModel,
                     temperature: Math.min(temperature, 0.7),
-                    apiKey,
+                    apiKey: apiKey || undefined,
                     messages: [
                         { role: 'user', content: 'Generate a mystery premise.' },
                     ],
@@ -160,7 +163,7 @@ export default function SetupScreen() {
                     },
                 }),
             });
-            if (!res.ok) throw new Error('Generation failed');
+            if (!res.ok) throw await readApiError(res, 'Generation failed');
             const data = await res.json();
             const text = data.choices?.[0]?.message?.content?.trim() || '';
             const jsonMatch = text.match(/\{[\s\S]*\}/);
@@ -179,8 +182,9 @@ export default function SetupScreen() {
             setGenDesc('Failed to generate. Try again or write your own.');
         } finally {
             setIsGenerating(false);
+            if (!apiKey) notifyTrial();
         }
-    }, [apiKey, selectedModel, temperature, selectedGenres, genreHint]);
+    }, [canGenerate, apiKey, selectedModel, temperature, selectedGenres, genreHint]);
 
     return (
         <div className={styles.page}>
@@ -362,9 +366,12 @@ export default function SetupScreen() {
                                     <button
                                         className={styles.generateBtn}
                                         onClick={handleGenerate}
-                                        disabled={isGenerating || !apiKey}
+                                        disabled={isGenerating || !canGenerate}
                                     >
-                                        {isGenerating ? 'Generating...' : !apiKey ? 'Set API Key First' : 'Generate Mystery Idea'}
+                                        {isGenerating ? 'Generating...'
+                                            : !canGenerate ? 'Set API Key First'
+                                                : onTrial && !trialAvailable ? 'Free Trial Used'
+                                                    : 'Generate Mystery Idea'}
                                     </button>
                                     {genReady && (
                                         <div style={{ padding: '16px', background: 'rgba(245, 158, 11, 0.05)', border: '1px solid rgba(245, 158, 11, 0.2)', borderRadius: '12px', display: 'flex', flexDirection: 'column', gap: '12px' }}>

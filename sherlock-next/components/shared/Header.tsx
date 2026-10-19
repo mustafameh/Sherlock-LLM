@@ -6,6 +6,7 @@ import Image from 'next/image';
 import { useAuth } from '@/lib/client/contexts';
 import { AVATAR_OPTIONS } from '@/lib/shared/types';
 import EditProfileModal from './EditProfileModal';
+import TrialBadge from './TrialBadge';
 import styles from './Header.module.css';
 
 export default function Header() {
@@ -40,6 +41,9 @@ export default function Header() {
                 </div>
 
                 <div className={styles.headerRight}>
+                    <span className={styles.trialSlot}>
+                        <TrialBadge />
+                    </span>
                     {isLoggedIn ? (
                         <div className={styles.userMenu} ref={dropdownRef}>
                             <button

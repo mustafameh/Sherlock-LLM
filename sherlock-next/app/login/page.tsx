@@ -5,6 +5,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/client/contexts/auth';
+import { postAuthRedirect } from '@/lib/client/redirect';
 import styles from '../(auth)/auth.module.css';
 
 export default function LoginPage() {
@@ -14,12 +15,12 @@ export default function LoginPage() {
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
     const router = useRouter();
-    const { isLoggedIn } = useAuth();
+    const { isLoggedIn, checkAuth } = useAuth();
 
     // Redirect if already logged in
     useEffect(() => {
         if (isLoggedIn) {
-            router.replace('/');
+            router.replace(postAuthRedirect());
         }
     }, [isLoggedIn, router]);
 
@@ -37,7 +38,8 @@ export default function LoginPage() {
             const data = await res.json();
 
             if (data.success) {
-                router.push('/');
+                await checkAuth();
+                router.push(postAuthRedirect());
             } else {
                 setError(data.message || 'Invalid username or password.');
             }

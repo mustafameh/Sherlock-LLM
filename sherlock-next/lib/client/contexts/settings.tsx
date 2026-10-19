@@ -41,9 +41,9 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     const [modelSource, setModelSource] = useState<ModelSource>('openrouter');
     const [selectedModel, setSelectedModel] = useState(() => {
         if (typeof window !== 'undefined') {
-            return localStorage.getItem('SelectedModel') || 'deepseek/deepseek-v3.2';
+            return localStorage.getItem('SelectedModel') || 'z-ai/glm-5.3';
         }
-        return 'deepseek/deepseek-v3.2';
+        return 'z-ai/glm-5.3';
     });
     const [apiKey, setApiKey] = useState(() => {
         if (typeof window !== 'undefined') {

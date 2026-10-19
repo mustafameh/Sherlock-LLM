@@ -9,6 +9,8 @@ export interface CompletionRequest {
     temperature?: number;
     maxTokens: number;
     stream?: boolean;
+    /** OpenRouter provider ordering; 'price' keeps trial calls on the cheapest provider. */
+    providerSort?: 'price' | 'throughput' | 'latency';
 }
 
 export interface TokenUsage {
@@ -31,6 +33,7 @@ function post(apiKey: string, req: CompletionRequest): Promise<Response> {
             temperature: req.temperature,
             max_tokens: req.maxTokens,
             ...(req.stream ? { stream: true } : {}),
+            ...(req.providerSort ? { provider: { sort: req.providerSort } } : {}),
         }),
     });
 }

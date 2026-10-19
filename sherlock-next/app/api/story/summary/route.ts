@@ -80,7 +80,7 @@ export async function POST(req: NextRequest) {
         const { trial } = admitted;
 
         const response = await requestCompletion(trial.apiKey, {
-            model: trial.model, messages, temperature: 0.3, maxTokens: MAX_TOKENS,
+            model: trial.model, providerSort: 'price', messages, temperature: 0.3, maxTokens: MAX_TOKENS,
         });
         if (!response.ok) return trialUpstreamError(trial, response);
 

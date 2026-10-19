@@ -73,6 +73,7 @@ export interface OpenRouterModel {
 }
 
 export const AVAILABLE_MODELS: OpenRouterModel[] = [
+    { id: 'z-ai/glm-5.3', name: 'GLM-5.3 (default)' },
     { id: 'nousresearch/hermes-3-llama-3.1-405b:free', name: 'Hermes 3 Llama 405B (Free, 131K ctx)' },
     { id: 'qwen/qwen3-next-80b-a3b-instruct:free', name: 'Qwen3 Next 80B (Free, 262K ctx)' },
     { id: 'qwen/qwen3-coder:free', name: 'Qwen3 Coder 480B (Free, 262K ctx)' },

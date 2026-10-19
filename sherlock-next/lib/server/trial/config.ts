@@ -10,7 +10,7 @@ function numberEnv(name: string, fallback: number): number {
 /** Free-trial limits. Every value can be overridden with the env var named next to it. */
 export const trialConfig = {
     /** Model used for all trial requests, whatever the client asks for. */
-    model: process.env.TRIAL_MODEL?.trim() || 'deepseek/deepseek-v3.2',
+    model: process.env.TRIAL_MODEL?.trim() || 'z-ai/glm-5.3',
     /** Lifetime tokens per browser (prompt + completion, as billed by OpenRouter). */
     tokenLimit: numberEnv('TRIAL_TOKEN_LIMIT', 30_000),
     /** Daily tokens per IP address (IPv6: per /64), so clearing cookies doesn't reset the trial. */
